@@ -27,6 +27,7 @@ export default function GeneratorPage() {
   const [mpS3Days, setMpS3Days] = useState('3.0');
   const [mpExpenses, setMpExpenses] = useState(EXPENSES_DEFAULT);
   const [mpFinalCost, setMpFinalCost] = useState(0);
+  const [vatType, setVatType] = useState('별도'); // '별도' or '포함'
 
   useEffect(() => {
     const now = new Date();
@@ -144,6 +145,27 @@ export default function GeneratorPage() {
                 type="date" className="mt-1 block w-full p-2 border rounded-md"
                 value={issueDate} onChange={e => setIssueDate(e.target.value)}
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600">부가가치세 (VAT) 구분</label>
+              <div className="mt-1 flex gap-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio" className="form-radio text-blue-600"
+                    name="vatType" value="별도" checked={vatType === '별도'}
+                    onChange={e => setVatType(e.target.value)}
+                  />
+                  <span className="ml-2">VAT 별도 (기본)</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio" className="form-radio text-blue-600"
+                    name="vatType" value="포함" checked={vatType === '포함'}
+                    onChange={e => setVatType(e.target.value)}
+                  />
+                  <span className="ml-2">VAT 포함</span>
+                </label>
+              </div>
             </div>
           </section>
         </div>
@@ -307,7 +329,7 @@ export default function GeneratorPage() {
                         </tr>
                         <tr>
                           <td style={{ fontSize: '10pt' }}>발신:</td>
-                          <td style={{ fontSize: '11pt' }}>로이드인증원(LR)</td>
+                          <td style={{ fontSize: '11pt' }}>로이드인증원(LRQA)</td>
                           <td style={{ textAlign: 'right', fontSize: '11pt' }}>{formatDateKorean(issueDate)}</td>
                         </tr>
                       </tbody>
@@ -372,13 +394,13 @@ export default function GeneratorPage() {
                               <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>{invTotalDays.toFixed(1)} Manday</td>
                               <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(invCalculatedTotal)}원</td>
-                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT 별도</td>
+                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                             </tr>
                             <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>최종 제안금액</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>{invTotalDays.toFixed(1)} Manday</td>
-                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(invFinalCost)}원</td>
-                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT 별도</td>
+                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(invFinalCost * 1.1) : invFinalCost)}원</td>
+                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                             </tr>
                           </tbody>
                         </table>
@@ -429,13 +451,13 @@ export default function GeneratorPage() {
                               <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>{mpTotalDays.toFixed(1)} Manday</td>
                               <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(mpCalculatedTotal)}원</td>
-                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT 별도</td>
+                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                             </tr>
                             <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>최종 제안금액</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>{mpTotalDays.toFixed(1)} Manday</td>
-                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(mpFinalCost)}원</td>
-                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT 별도</td>
+                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(mpFinalCost * 1.1) : mpFinalCost)}원</td>
+                              <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                             </tr>
                           </tbody>
                         </table>
@@ -466,7 +488,7 @@ export default function GeneratorPage() {
                                 border: '1pt solid #000080',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {formatCurrency(invFinalCost + mpFinalCost)}원 (VAT 별도)
+                                {formatCurrency(vatType === '포함' ? Math.floor((invFinalCost + mpFinalCost) * 1.1) : (invFinalCost + mpFinalCost))}원 (VAT {vatType})
                               </td>
                             </tr>
                           </tbody>
@@ -476,7 +498,7 @@ export default function GeneratorPage() {
 
                     <div style={{ marginTop: '20px', paddingLeft: '20px', fontSize: '9pt', lineHeight: '1.4' }}>
                       <p style={{ fontWeight: 'bold' }}>(4) 기타</p>
-                      <p style={{ marginLeft: '10px' }}>1) 심사 요율은 1,050,000원/ Manday 이며 상기 금액은 부가가치세(VAT)가 제외된 금액입니다.</p>
+                      <p style={{ marginLeft: '10px' }}>1) 심사 요율은 1,050,000원/ Manday 이며 상기 금액은 부가가치세(VAT)가 {vatType === '포함' ? '포함된' : '제외된'} 금액입니다.</p>
                       <p style={{ marginLeft: '10px' }}>2) 교통비, 숙박비, 심사원 일비 등의 제경비는 상기 제안금액에 포함되어 있습니다.</p>
                       <p style={{ marginLeft: '10px' }}>3) 상기 검증비용은 업체의 상황에 따라 상호 협의 하에 조정될 수 있습니다.</p>
                       <p style={{ marginLeft: '10px' }}>4) 제안서 유효기간은 제안 발행일로부터 30일 이내 입니다.</p>
