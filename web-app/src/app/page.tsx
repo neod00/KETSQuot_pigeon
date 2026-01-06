@@ -372,23 +372,23 @@ export default function GeneratorPage() {
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>1단계(개요파악, 계획수립)</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>{invS1Days} Manday</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(parseFloat(invS1Days) * STANDARD_RATE)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(invS1Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                               <td rowSpan={4} style={{ border: '0.5pt solid black', padding: '6px' }}></td>
                             </tr>
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>2단계(문서검토, 현장검증)</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>{invS2Days} Manday</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(parseFloat(invS2Days) * STANDARD_RATE)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(invS2Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                             </tr>
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>3단계(검증결과 정리/평가 등)</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>{invS3Days} Manday</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(parseFloat(invS3Days) * STANDARD_RATE)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(invS3Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                             </tr>
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>제경비</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>-</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(invExpenses)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(invExpenses * (vatType === '포함' ? 1.1 : 1)))}원</td>
                             </tr>
                             <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
@@ -429,23 +429,23 @@ export default function GeneratorPage() {
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>1단계(개요파악, 계획수립)</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>{mpS1Days} Manday</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(parseFloat(mpS1Days) * STANDARD_RATE)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(mpS1Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                               <td rowSpan={4} style={{ border: '0.5pt solid black', padding: '6px' }}></td>
                             </tr>
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>2단계(문서검토, 현장검증)</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>{mpS2Days} Manday</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(parseFloat(mpS2Days) * STANDARD_RATE)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(mpS2Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                             </tr>
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>3단계(검증결과 정리/평가 등)</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>{mpS3Days} Manday</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(parseFloat(mpS3Days) * STANDARD_RATE)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(mpS3Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                             </tr>
                             <tr>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>제경비</td>
                               <td style={{ border: '0.5pt solid black', padding: '6px' }}>-</td>
-                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(mpExpenses)}원</td>
+                              <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(mpExpenses * (vatType === '포함' ? 1.1 : 1)))}원</td>
                             </tr>
                             <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
