@@ -498,7 +498,7 @@ export default function GeneratorPage() {
 
                     <div style={{ marginTop: '20px', paddingLeft: '20px', fontSize: '9pt', lineHeight: '1.4' }}>
                       <p style={{ fontWeight: 'bold' }}>(4) 기타</p>
-                      <p style={{ marginLeft: '10px' }}>1) 심사 요율은 1,050,000원/ Manday 이며 상기 금액은 부가가치세(VAT)가 {vatType === '포함' ? '포함된' : '제외된'} 금액입니다.</p>
+                      <p style={{ marginLeft: '10px' }}>1) 심사 요율은 {vatType === '포함' ? '1,155,000' : '1,050,000'}원/ Manday 이며 상기 금액은 부가가치세(VAT)가 {vatType === '포함' ? '포함된' : '제외된'} 금액입니다.</p>
                       <p style={{ marginLeft: '10px' }}>2) 교통비, 숙박비, 심사원 일비 등의 제경비는 상기 제안금액에 포함되어 있습니다.</p>
                       <p style={{ marginLeft: '10px' }}>3) 상기 검증비용은 업체의 상황에 따라 상호 협의 하에 조정될 수 있습니다.</p>
                       <p style={{ marginLeft: '10px' }}>4) 제안서 유효기간은 제안 발행일로부터 30일 이내 입니다.</p>
