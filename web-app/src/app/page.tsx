@@ -7,8 +7,8 @@ const EXPENSES_DEFAULT = 600000;
 
 export default function GeneratorPage() {
   const [quotType, setQuotType] = useState('3');
-  const [companyName, setCompanyName] = useState('씨엔씨티에너지');
-  const [contactPerson, setContactPerson] = useState('안종호 매니저님');
+  const [companyName, setCompanyName] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
   const [docId, setDocId] = useState('');
   const [issueDate, setIssueDate] = useState('');
 
