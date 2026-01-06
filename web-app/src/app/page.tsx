@@ -393,7 +393,7 @@ export default function GeneratorPage() {
                             <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>{invTotalDays.toFixed(1)} Manday</td>
-                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(invCalculatedTotal)}원</td>
+                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(invCalculatedTotal * 1.1) : invCalculatedTotal)}원</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                             </tr>
                             <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}>
@@ -450,7 +450,7 @@ export default function GeneratorPage() {
                             <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>{mpTotalDays.toFixed(1)} Manday</td>
-                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(mpCalculatedTotal)}원</td>
+                              <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(mpCalculatedTotal * 1.1) : mpCalculatedTotal)}원</td>
                               <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                             </tr>
                             <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}>
