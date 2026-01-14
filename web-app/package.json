@@ -9,7 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@types/file-saver": "^2.0.7",
+    "docxtemplater": "^3.67.6",
+    "file-saver": "^2.0.5",
+    "jszip-utils": "^0.1.0",
     "next": "16.1.1",
+    "pizzip": "^3.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
