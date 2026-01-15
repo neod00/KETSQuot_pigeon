@@ -280,8 +280,8 @@ export default function GeneratorPage() {
         <div className="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans selection:bg-blue-100">
             <div className="h-1.5 bg-blue-600 w-full fixed top-0 z-50"></div>
 
-            <main className="max-w-6xl mx-auto px-4 py-12">
-                <div className="mb-10">
+            <main className="max-w-6xl mx-auto px-4 py-8">
+                <div className="mb-6">
                     <div className="flex items-center gap-2 mb-4">
                         <Link href="/" className="text-slate-500 hover:text-blue-600 transition-colors font-medium flex items-center gap-1 group">
                             <span className="group-hover:-translate-x-1 transition-transform">←</span> Home
@@ -294,21 +294,21 @@ export default function GeneratorPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <div className="lg:col-span-8 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-8 space-y-4">
 
                         {/* 1. Services */}
-                        <section className="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
-                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Service Overview</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2 md:col-span-2">
+                        <section className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Service Overview</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1 md:col-span-2">
                                     <label className="text-xs font-bold text-slate-600">서비스 용역 설명</label>
-                                    <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={formData.serviceDesc} onChange={(e) => handleChange('serviceDesc', e.target.value)} />
+                                    <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={formData.serviceDesc} onChange={(e) => handleChange('serviceDesc', e.target.value)} />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">담당 심사원</label>
                                     <select
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 font-medium"
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium"
                                         value={formData.adminName}
                                         onChange={(e) => handleChange('adminName', e.target.value)}
                                     >
@@ -316,36 +316,36 @@ export default function GeneratorPage() {
                                         <option value="김달">김달 (LRQA)</option>
                                     </select>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">발행 일자</label>
-                                    <input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50" value={formData.proposalDate} onChange={(e) => handleChange('proposalDate', e.target.value)} />
+                                    <input type="date" className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50" value={formData.proposalDate} onChange={(e) => handleChange('proposalDate', e.target.value)} />
                                 </div>
                             </div>
                         </section>
 
                         {/* 2. Client */}
-                        <section className="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
-                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Client Details</h2>
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
+                        <section className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Client Details</h2>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
                                         <label className="text-xs font-bold text-slate-600">고객사 명칭</label>
-                                        <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200" placeholder="회사명 입력" value={formData.companyName} onChange={(e) => handleChange('companyName', e.target.value)} />
+                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="회사명 입력" value={formData.companyName} onChange={(e) => handleChange('companyName', e.target.value)} />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1">
                                         <label className="text-xs font-bold text-slate-600">대표자 성함</label>
-                                        <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200" placeholder="홍길동" value={formData.clientRepName} onChange={(e) => handleChange('clientRepName', e.target.value)} />
+                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="홍길동" value={formData.clientRepName} onChange={(e) => handleChange('clientRepName', e.target.value)} />
                                     </div>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">본사 주소</label>
-                                    <textarea rows={2} className="w-full px-4 py-3 rounded-xl border border-slate-200 resize-none font-sans" placeholder="주소를 입력하세요 (띄어쓰기 반영됨)" value={formData.hqAddress} onChange={(e) => handleChange('hqAddress', e.target.value)} />
+                                    <textarea rows={2} className="w-full px-3 py-2 rounded-xl border border-slate-200 resize-none font-sans" placeholder="주소를 입력하세요 (띄어쓰기 반영됨)" value={formData.hqAddress} onChange={(e) => handleChange('hqAddress', e.target.value)} />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">본사 및 대상 사업장</label>
                                     <textarea
                                         rows={2}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 font-medium font-sans focus:ring-2 focus:ring-blue-500 outline-none transition-all overflow-hidden"
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium font-sans focus:ring-2 focus:ring-blue-500 outline-none transition-all overflow-hidden"
                                         placeholder="본사 및 대상 사업장 (줄바꿈 반영됨)"
                                         value={formData.targetSites}
                                         onChange={(e) => {
@@ -354,57 +354,57 @@ export default function GeneratorPage() {
                                             e.target.style.height = 'auto';
                                             e.target.style.height = e.target.scrollHeight + 'px';
                                         }}
-                                        style={{ minHeight: '80px' }}
+                                        style={{ minHeight: '60px' }}
                                     />
                                 </div>
                             </div>
                         </section>
 
                         {/* 3. Technical */}
-                        <section className="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
-                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Technical Scope</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
+                        <section className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Technical Scope</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">중요성 기준 (Materiality)</label>
-                                    <select className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.materialityLevel} onChange={(e) => handleChange('materialityLevel', e.target.value)}>
+                                    <select className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.materialityLevel} onChange={(e) => handleChange('materialityLevel', e.target.value)}>
                                         <option value="5%">5%</option>
                                         <option value="10%">10%</option>
                                     </select>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">보증 수준 (Assurance)</label>
-                                    <select className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.assuranceLevel} onChange={(e) => handleChange('assuranceLevel', e.target.value)}>
+                                    <select className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.assuranceLevel} onChange={(e) => handleChange('assuranceLevel', e.target.value)}>
                                         <option value="제한적 보증수준 (Limited level of assurance)">제한적 (Limited)</option>
                                         <option value="합리적 보증수준 (Reasonable level of assurance)">합리적 (Reasonable)</option>
                                     </select>
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">보고 마감기한</label>
-                                    <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-medium" value={formData.reportingDeadline} onChange={(e) => handleChange('reportingDeadline', e.target.value)} placeholder="2026년 12월 31일" />
+                                    <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium" value={formData.reportingDeadline} onChange={(e) => handleChange('reportingDeadline', e.target.value)} placeholder="2026년 12월 31일" />
                                 </div>
                             </div>
                         </section>
 
                         {/* 4. Financial */}
-                        <section className="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
-                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Man-days & Costs</h2>
-                            <div className="space-y-8">
-                                <div className="grid grid-cols-3 gap-4">
+                        <section className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+                            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Man-days & Costs</h2>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-3 gap-3">
                                     {['s1Days', 's2Days', 's3Days'].map((field, i) => (
-                                        <div key={field} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                        <div key={field} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                             <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Stage {i + 1} MD</label>
-                                            <input type="number" step="0.1" className="bg-transparent text-xl font-bold w-full outline-none" value={(formData as any)[field]} onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)} />
+                                            <input type="number" step="0.1" className="bg-transparent text-lg font-bold w-full outline-none" value={(formData as any)[field]} onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)} />
                                         </div>
                                     ))}
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
                                         <label className="text-xs font-bold text-slate-600">심사 요율 (₩)</label>
-                                        <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={formData.auditRate.toLocaleString()} onChange={(e) => handleChange('auditRate', parseInt(e.target.value.replace(/,/g, '')) || 0)} />
+                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" value={formData.auditRate.toLocaleString()} onChange={(e) => handleChange('auditRate', parseInt(e.target.value.replace(/,/g, '')) || 0)} />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1">
                                         <label className="text-xs font-bold text-slate-600">제경비 (₩)</label>
-                                        <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={formData.expenses.toLocaleString()} onChange={(e) => handleChange('expenses', parseInt(e.target.value.replace(/,/g, '')) || 0)} />
+                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" value={formData.expenses.toLocaleString()} onChange={(e) => handleChange('expenses', parseInt(e.target.value.replace(/,/g, '')) || 0)} />
                                     </div>
                                 </div>
                             </div>
