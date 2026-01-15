@@ -289,7 +289,7 @@ export default function GeneratorPage() {
                     </div>
                     <div className="text-center">
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                            LRQA <span className="text-blue-600">Quotation System</span>
+                            P827 Data & Information <span className="text-blue-600">계약서 생성기</span>
                         </h1>
                     </div>
                 </div>
