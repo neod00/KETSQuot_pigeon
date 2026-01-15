@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { CONTRACT_TEMPLATE } from '../../constants/template';
 import { generateDocx } from '../../utils/docxGenerator';
 
@@ -280,10 +281,17 @@ export default function GeneratorPage() {
             <div className="h-1.5 bg-blue-600 w-full fixed top-0 z-50"></div>
 
             <main className="max-w-6xl mx-auto px-4 py-12">
-                <div className="mb-10 text-center">
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                        LRQA <span className="text-blue-600">Quotation System</span>
-                    </h1>
+                <div className="mb-10">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Link href="/" className="text-slate-500 hover:text-blue-600 transition-colors font-medium flex items-center gap-1 group">
+                            <span className="group-hover:-translate-x-1 transition-transform">←</span> Home
+                        </Link>
+                    </div>
+                    <div className="text-center">
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+                            LRQA <span className="text-blue-600">Quotation System</span>
+                        </h1>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
