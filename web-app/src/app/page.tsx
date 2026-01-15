@@ -45,22 +45,11 @@ export default function LandingPage() {
 
                 {/* New System Card */}
                 <Link href="/system" className="group">
-                    <div className="bg-white p-10 rounded-[2rem] shadow-lg shadow-blue-900/5 hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-1 transition-all duration-300 border border-blue-50 h-full flex flex-col relative overflow-hidden group-hover:border-blue-200">
+                    <div className="bg-white p-10 rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-1 transition-all duration-300 border border-blue-50 h-full flex flex-col relative overflow-hidden group-hover:border-blue-200">
                         {/* Gradient background decoration */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-50 to-purple-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60 group-hover:opacity-100 transition-opacity"></div>
 
-                        <div className="absolute top-6 right-6">
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                            </span>
-                        </div>
 
-                        <div className="absolute top-0 right-0 m-0">
-                            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-bl-2xl shadow-sm tracking-wider uppercase">
-                                Recommended
-                            </div>
-                        </div>
 
                         <div className="mb-8 w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shadow-blue-100 shadow-inner">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
