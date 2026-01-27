@@ -64,7 +64,16 @@ export default function GeneratorPage() {
     };
 
     const handlePrint = () => {
+        const originalTitle = document.title;
+        let fileName = "LRQA_온실가스 ";
+        if (showInv && showMp) fileName += "명세서 및 배출량 산정계획서 ";
+        else if (showInv) fileName += "명세서 ";
+        else fileName += "배출량 산정계획서 ";
+        fileName += `검증 비용 제안서_${companyName || "회사명"}`;
+
+        document.title = fileName;
         window.print();
+        document.title = originalTitle;
     };
 
     const showInv = quotType === '1' || quotType === '3';
