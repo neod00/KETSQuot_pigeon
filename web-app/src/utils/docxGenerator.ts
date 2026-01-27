@@ -44,8 +44,8 @@ export const generateDocx = async (data: any, templatePath: string = "/templates
                 mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             });
 
-            // 파일 이름 생성 (고객사명_제안번호.docx)
-            const fileName = `${data.company_name || "LRQA_제안서"}_${data.proposal_no || ""}.docx`.replace(/[/\\?%*:|"<>]/g, '-');
+            // 파일 이름 생성 (LRQA_Service Agreement_GHG Protocol_기업명_2026.docx)
+            const fileName = `LRQA_Service Agreement_GHG Protocol_${data.company_name || "기업명"}_2026.docx`.replace(/[/\\?%*:|"<>]/g, '-');
             saveAs(out, fileName);
         });
     } catch (e) {

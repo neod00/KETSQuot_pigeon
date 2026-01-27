@@ -163,7 +163,8 @@ export default function GeneratorPage() {
             reporting_deadline: formatText(formData.reportingDeadline),
         };
 
-        let rendered = CONTRACT_TEMPLATE;
+        const pdfFileName = `LRQA_Service Agreement_GHG Protocol_${formData.companyName || "기업명"}_2026`.replace(/[/\\?%*:|"<>]/g, '-');
+        let rendered = CONTRACT_TEMPLATE.replace('<head>', `<head><title>${pdfFileName}</title>`);
         Object.entries(data).forEach(([key, val]) => {
             const placeholder = `{{ ${key} }}`;
             // Wrap in dynamic-value span for font consistency across browsers
