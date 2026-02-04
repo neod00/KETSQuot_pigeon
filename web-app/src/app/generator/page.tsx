@@ -55,8 +55,12 @@ export default function GeneratorPage() {
 
     const formatCurrency = (val: number) => val.toLocaleString();
 
-    // 개별 단계 일수: 항상 소수점 첫째자리까지 표시 (6 → 6.0)
-    const formatStageDays = (val: string) => parseFloat(val).toFixed(1);
+    // 개별 단계 일수: 소수점 둘째자리가 0이 아니면 유지 (0.75 → 0.75, 6 → 6.0)
+    const formatStageDays = (val: string) => {
+        const num = parseFloat(val);
+        const fixed2 = num.toFixed(2);
+        return fixed2.endsWith('0') ? num.toFixed(1) : fixed2;
+    };
 
     // 합계 일수: 소수점 둘째자리가 0이면 제외 (9.50 → 9.5, 9.25 → 9.25)
     const formatTotalDays = (num: number) => {
