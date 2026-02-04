@@ -78,6 +78,12 @@ export default function GeneratorPage() {
 
     const formatNum = (n: number) => n.toLocaleString();
 
+    // 합계 일수: 소수점 둘째자리가 0이면 제외 (9.50 → 9.5, 9.25 → 9.25)
+    const formatTotalDays = (num: number) => {
+        const fixed2 = num.toFixed(2);
+        return fixed2.endsWith('0') ? num.toFixed(1) : fixed2;
+    };
+
     const formatDateLong = (dateStr: string) => {
         if (!dateStr) return '';
         const d = new Date(dateStr);
@@ -151,7 +157,7 @@ export default function GeneratorPage() {
             stage3_days: formData.s3Days.toFixed(1),
             stage3_cost: formatNum(Math.floor(calculations.s3Cost)),
             expenses: formatNum(Math.floor(calculations.expCost)),
-            total_days: calculations.totalDays.toFixed(2),
+            total_days: formatTotalDays(calculations.totalDays),
             total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
             final_cost: formatNum(formData.manualFinalCost),
             vat_type: formData.vatType,
@@ -262,7 +268,7 @@ export default function GeneratorPage() {
             stage3_days: formData.s3Days.toFixed(1),
             stage3_cost: formatNum(Math.floor(calculations.s3Cost)),
             expenses: formatNum(Math.floor(calculations.expCost)),
-            total_days: calculations.totalDays.toFixed(2),
+            total_days: formatTotalDays(calculations.totalDays),
             total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
             final_cost: formatNum(formData.manualFinalCost),
             vat_type: formData.vatType,

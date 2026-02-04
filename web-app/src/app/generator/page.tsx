@@ -55,6 +55,15 @@ export default function GeneratorPage() {
 
     const formatCurrency = (val: number) => val.toLocaleString();
 
+    // 개별 단계 일수: 항상 소수점 첫째자리까지 표시 (6 → 6.0)
+    const formatStageDays = (val: string) => parseFloat(val).toFixed(1);
+
+    // 합계 일수: 소수점 둘째자리가 0이면 제외 (9.50 → 9.5, 9.25 → 9.25)
+    const formatTotalDays = (num: number) => {
+        const fixed2 = num.toFixed(2);
+        return fixed2.endsWith('0') ? num.toFixed(1) : fixed2;
+    };
+
     const formatDateKorean = (dateStr: string) => {
         if (!dateStr) return '';
         const parts = dateStr.split('-');
@@ -386,18 +395,18 @@ export default function GeneratorPage() {
                                                         </tr>
                                                         <tr>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px' }}>1단계(개요파악, 계획수립)</td>
-                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{invS1Days} Manday</td>
+                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{formatStageDays(invS1Days)} Manday</td>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(invS1Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                                                             <td rowSpan={4} style={{ border: '0.5pt solid black', padding: '6px' }}></td>
                                                         </tr>
                                                         <tr>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px' }}>2단계(문서검토, 현장검증)</td>
-                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{invS2Days} Manday</td>
+                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{formatStageDays(invS2Days)} Manday</td>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(invS2Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                                                         </tr>
                                                         <tr>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px' }}>3단계(검증결과 정리/평가 등)</td>
-                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{invS3Days} Manday</td>
+                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{formatStageDays(invS3Days)} Manday</td>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(invS3Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                                                         </tr>
                                                         <tr>
@@ -407,13 +416,13 @@ export default function GeneratorPage() {
                                                         </tr>
                                                         <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
-                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{invTotalDays.toFixed(2)} Manday</td>
+                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{formatTotalDays(invTotalDays)} Manday</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(invCalculatedTotal * 1.1) : invCalculatedTotal)}원</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                                                         </tr>
                                                         <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>최종 제안금액</td>
-                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{invTotalDays.toFixed(2)} Manday</td>
+                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{formatTotalDays(invTotalDays)} Manday</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(invFinalCost * 1.1) : invFinalCost)}원</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                                                         </tr>
@@ -443,18 +452,18 @@ export default function GeneratorPage() {
                                                         </tr>
                                                         <tr>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px' }}>1단계(개요파악, 계획수립)</td>
-                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{mpS1Days} Manday</td>
+                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{formatStageDays(mpS1Days)} Manday</td>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(mpS1Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                                                             <td rowSpan={4} style={{ border: '0.5pt solid black', padding: '6px' }}></td>
                                                         </tr>
                                                         <tr>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px' }}>2단계(문서검토, 현장검증)</td>
-                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{mpS2Days} Manday</td>
+                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{formatStageDays(mpS2Days)} Manday</td>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(mpS2Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                                                         </tr>
                                                         <tr>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px' }}>3단계(검증결과 정리/평가 등)</td>
-                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{mpS3Days} Manday</td>
+                                                            <td style={{ border: '0.5pt solid black', padding: '6px' }}>{formatStageDays(mpS3Days)} Manday</td>
                                                             <td style={{ border: '0.5pt solid black', padding: '6px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(Math.floor(parseFloat(mpS3Days) * STANDARD_RATE * (vatType === '포함' ? 1.1 : 1)))}원</td>
                                                         </tr>
                                                         <tr>
@@ -464,13 +473,13 @@ export default function GeneratorPage() {
                                                         </tr>
                                                         <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>합 계</td>
-                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{mpTotalDays.toFixed(2)} Manday</td>
+                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{formatTotalDays(mpTotalDays)} Manday</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(mpCalculatedTotal * 1.1) : mpCalculatedTotal)}원</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                                                         </tr>
                                                         <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>최종 제안금액</td>
-                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{mpTotalDays.toFixed(2)} Manday</td>
+                                                            <td style={{ border: '1pt solid black', padding: '7px' }}>{formatTotalDays(mpTotalDays)} Manday</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px', textAlign: 'right', paddingRight: '8px' }}>{formatCurrency(vatType === '포함' ? Math.floor(mpFinalCost * 1.1) : mpFinalCost)}원</td>
                                                             <td style={{ border: '1pt solid black', padding: '7px' }}>VAT {vatType}</td>
                                                         </tr>
