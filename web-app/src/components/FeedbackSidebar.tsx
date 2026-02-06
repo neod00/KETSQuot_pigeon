@@ -231,34 +231,35 @@ export default function FeedbackSidebar() {
         }
     };
 
-    // 좋아요 토글
+    // 좋아요 (무제한 클릭!)
     const handleLike = async (feedbackId: string) => {
-        if (likingId) return;
-        setLikingId(feedbackId);
+        // 클릭 즉시 UI 업데이트 (낙관적 업데이트)
+        setFeedbacks(prev => prev.map(fb => {
+            if (fb.id === feedbackId) {
+                return { ...fb, likes: (fb.likes || 0) + 1 };
+            }
+            return fb;
+        }));
 
         try {
             const res = await fetch('/.netlify/functions/feedback?action=like', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ feedbackId, odonymId: userId }),
+                body: JSON.stringify({ feedbackId }),
             });
 
             if (res.ok) {
-                const { likes, liked } = await res.json();
+                const { likes } = await res.json();
+                // 서버 응답으로 정확한 값 반영
                 setFeedbacks(prev => prev.map(fb => {
                     if (fb.id === feedbackId) {
-                        const newLikedBy = liked
-                            ? [...(fb.likedBy || []), userId]
-                            : (fb.likedBy || []).filter(id => id !== userId);
-                        return { ...fb, likes, likedBy: newLikedBy };
+                        return { ...fb, likes };
                     }
                     return fb;
                 }));
             }
         } catch (error) {
             console.error('좋아요 실패:', error);
-        } finally {
-            setLikingId(null);
         }
     };
 
@@ -434,8 +435,8 @@ export default function FeedbackSidebar() {
                         <div
                             key={fb.id}
                             className={`rounded-xl p-3 border transition-colors ${isMyFeedback(fb.id)
-                                    ? 'bg-blue-50 border-blue-200 hover:border-blue-300'
-                                    : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                                ? 'bg-blue-50 border-blue-200 hover:border-blue-300'
+                                : 'bg-slate-50 border-slate-100 hover:border-slate-200'
                                 }`}
                         >
                             {/* 수정 모드 */}
@@ -502,15 +503,9 @@ export default function FeedbackSidebar() {
                                         {/* 좋아요 버튼 */}
                                         <button
                                             onClick={() => handleLike(fb.id)}
-                                            disabled={likingId === fb.id}
-                                            className={`flex items-center gap-1 text-xs font-medium transition-all ${hasLiked(fb)
-                                                    ? 'text-red-500 hover:text-red-600'
-                                                    : 'text-slate-400 hover:text-red-500'
-                                                }`}
+                                            className="flex items-center gap-1 text-xs font-medium text-red-400 hover:text-red-500 transition-all active:scale-125 hover:scale-110"
                                         >
-                                            <span className={`transition-transform ${likingId === fb.id ? 'animate-ping' : ''}`}>
-                                                {hasLiked(fb) ? '❤️' : '🤍'}
-                                            </span>
+                                            <span className="transition-transform">❤️</span>
                                             <span>{fb.likes || 0}</span>
                                         </button>
 

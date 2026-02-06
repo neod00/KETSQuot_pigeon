@@ -57,11 +57,11 @@ export default async (request: Request, context: Context) => {
         if (request.method === "POST") {
             const body = await request.json();
 
-            // 좋아요 토글
+            // 좋아요 (무제한 클릭 가능)
             if (action === "like") {
-                const { feedbackId, odonymId } = body;
+                const { feedbackId } = body;
 
-                if (!feedbackId || !odonymId) {
+                if (!feedbackId) {
                     return new Response(
                         JSON.stringify({ error: "필수 정보가 누락되었습니다." }),
                         { status: 400, headers }
@@ -81,26 +81,17 @@ export default async (request: Request, context: Context) => {
 
                 const feedback = feedbackList[feedbackIndex];
 
-                // likedBy 배열 초기화 (기존 데이터 호환)
-                if (!feedback.likedBy) feedback.likedBy = [];
+                // likes 초기화 (기존 데이터 호환)
                 if (typeof feedback.likes !== 'number') feedback.likes = 0;
 
-                // 좋아요 토글
-                const alreadyLiked = feedback.likedBy.includes(odonymId);
-                if (alreadyLiked) {
-                    feedback.likedBy = feedback.likedBy.filter(id => id !== odonymId);
-                    feedback.likes = Math.max(0, feedback.likes - 1);
-                } else {
-                    feedback.likedBy.push(odonymId);
-                    feedback.likes += 1;
-                }
+                // 클릭할 때마다 좋아요 증가!
+                feedback.likes += 1;
 
                 feedbackList[feedbackIndex] = feedback;
                 await store.setJSON("feedback-list", feedbackList);
 
                 return new Response(JSON.stringify({
-                    likes: feedback.likes,
-                    liked: !alreadyLiked
+                    likes: feedback.likes
                 }), { status: 200, headers });
             }
 
