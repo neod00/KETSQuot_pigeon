@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.6.0",
+    "@netlify/functions": "^5.1.2",
     "@types/file-saver": "^2.0.7",
     "docxtemplater": "^3.67.6",
     "file-saver": "^2.0.5",
