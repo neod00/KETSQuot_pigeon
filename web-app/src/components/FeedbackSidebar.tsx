@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 
+interface Reply {
+    id: string;
+    name: string;
+    comment: string;
+    createdAt: string;
+}
+
 interface Feedback {
     id: string;
     name: string;
@@ -9,9 +16,25 @@ interface Feedback {
     comment: string;
     createdAt: string;
     updatedAt?: string;
+    likes: number;
+    likedBy: string[];
+    replies: Reply[];
 }
 
 const LOCAL_STORAGE_KEY = 'lrqa_my_feedback_ids';
+const LOCAL_STORAGE_REPLY_KEY = 'lrqa_my_reply_ids';
+const LOCAL_STORAGE_USER_ID = 'lrqa_user_id';
+
+// 익명 사용자 ID 생성/조회
+const getUserId = (): string => {
+    if (typeof window === 'undefined') return '';
+    let userId = localStorage.getItem(LOCAL_STORAGE_USER_ID);
+    if (!userId) {
+        userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem(LOCAL_STORAGE_USER_ID, userId);
+    }
+    return userId;
+};
 
 // LocalStorage에 본인 피드백 ID 저장/조회
 const getMyFeedbackIds = (): string[] => {
@@ -33,9 +56,31 @@ const removeMyFeedbackId = (id: string) => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(ids));
 };
 
+// LocalStorage에 본인 댓글 ID 저장/조회
+const getMyReplyIds = (): string[] => {
+    if (typeof window === 'undefined') return [];
+    const stored = localStorage.getItem(LOCAL_STORAGE_REPLY_KEY);
+    return stored ? JSON.parse(stored) : [];
+};
+
+const addMyReplyId = (id: string) => {
+    const ids = getMyReplyIds();
+    if (!ids.includes(id)) {
+        ids.push(id);
+        localStorage.setItem(LOCAL_STORAGE_REPLY_KEY, JSON.stringify(ids));
+    }
+};
+
+const removeMyReplyId = (id: string) => {
+    const ids = getMyReplyIds().filter(i => i !== id);
+    localStorage.setItem(LOCAL_STORAGE_REPLY_KEY, JSON.stringify(ids));
+};
+
 export default function FeedbackSidebar() {
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [myFeedbackIds, setMyFeedbackIds] = useState<string[]>([]);
+    const [myReplyIds, setMyReplyIds] = useState<string[]>([]);
+    const [userId, setUserId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [name, setName] = useState('');
@@ -51,10 +96,21 @@ export default function FeedbackSidebar() {
 
     // 삭제 확인 모달
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [deleteReplyConfirm, setDeleteReplyConfirm] = useState<{ feedbackId: string; replyId: string } | null>(null);
 
-    // 본인 피드백 ID 로드
+    // 댓글 입력 상태
+    const [replyingTo, setReplyingTo] = useState<string | null>(null);
+    const [replyName, setReplyName] = useState('');
+    const [replyComment, setReplyComment] = useState('');
+
+    // 좋아요 로딩 상태
+    const [likingId, setLikingId] = useState<string | null>(null);
+
+    // 초기 로드
     useEffect(() => {
         setMyFeedbackIds(getMyFeedbackIds());
+        setMyReplyIds(getMyReplyIds());
+        setUserId(getUserId());
     }, []);
 
     // 피드백 목록 불러오기
@@ -63,7 +119,14 @@ export default function FeedbackSidebar() {
             const res = await fetch('/.netlify/functions/feedback');
             if (res.ok) {
                 const data = await res.json();
-                setFeedbacks(data);
+                // 기존 데이터 호환성 처리
+                const processed = data.map((fb: any) => ({
+                    ...fb,
+                    likes: fb.likes || 0,
+                    likedBy: fb.likedBy || [],
+                    replies: fb.replies || [],
+                }));
+                setFeedbacks(processed);
             }
         } catch (error) {
             console.error('피드백 불러오기 실패:', error);
@@ -96,9 +159,13 @@ export default function FeedbackSidebar() {
 
             if (res.ok) {
                 const newFeedback = await res.json();
-                setFeedbacks(prev => [newFeedback, ...prev]);
+                setFeedbacks(prev => [{
+                    ...newFeedback,
+                    likes: 0,
+                    likedBy: [],
+                    replies: [],
+                }, ...prev]);
 
-                // LocalStorage에 본인 피드백 ID 저장
                 addMyFeedbackId(newFeedback.id);
                 setMyFeedbackIds(prev => [...prev, newFeedback.id]);
 
@@ -120,9 +187,7 @@ export default function FeedbackSidebar() {
 
     // 피드백 수정
     const handleEdit = async (id: string) => {
-        if (!editComment.trim()) {
-            return;
-        }
+        if (!editComment.trim()) return;
 
         setIsSubmitting(true);
         try {
@@ -134,7 +199,7 @@ export default function FeedbackSidebar() {
 
             if (res.ok) {
                 const updatedFeedback = await res.json();
-                setFeedbacks(prev => prev.map(fb => fb.id === id ? updatedFeedback : fb));
+                setFeedbacks(prev => prev.map(fb => fb.id === id ? { ...fb, ...updatedFeedback } : fb));
                 setEditingId(null);
                 setSubmitMessage({ type: 'success', text: '수정되었습니다! ✏️' });
                 setTimeout(() => setSubmitMessage(null), 3000);
@@ -163,6 +228,95 @@ export default function FeedbackSidebar() {
             }
         } catch (error) {
             console.error('삭제 실패:', error);
+        }
+    };
+
+    // 좋아요 토글
+    const handleLike = async (feedbackId: string) => {
+        if (likingId) return;
+        setLikingId(feedbackId);
+
+        try {
+            const res = await fetch('/.netlify/functions/feedback?action=like', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedbackId, odonymId: userId }),
+            });
+
+            if (res.ok) {
+                const { likes, liked } = await res.json();
+                setFeedbacks(prev => prev.map(fb => {
+                    if (fb.id === feedbackId) {
+                        const newLikedBy = liked
+                            ? [...(fb.likedBy || []), userId]
+                            : (fb.likedBy || []).filter(id => id !== userId);
+                        return { ...fb, likes, likedBy: newLikedBy };
+                    }
+                    return fb;
+                }));
+            }
+        } catch (error) {
+            console.error('좋아요 실패:', error);
+        } finally {
+            setLikingId(null);
+        }
+    };
+
+    // 댓글 작성
+    const handleReply = async (feedbackId: string) => {
+        if (!replyComment.trim()) return;
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/.netlify/functions/feedback?action=reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedbackId, name: replyName, comment: replyComment }),
+            });
+
+            if (res.ok) {
+                const newReply = await res.json();
+                setFeedbacks(prev => prev.map(fb => {
+                    if (fb.id === feedbackId) {
+                        return { ...fb, replies: [...(fb.replies || []), newReply] };
+                    }
+                    return fb;
+                }));
+
+                addMyReplyId(newReply.id);
+                setMyReplyIds(prev => [...prev, newReply.id]);
+
+                setReplyingTo(null);
+                setReplyName('');
+                setReplyComment('');
+            }
+        } catch (error) {
+            console.error('댓글 작성 실패:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // 댓글 삭제
+    const handleDeleteReply = async (feedbackId: string, replyId: string) => {
+        try {
+            const res = await fetch(`/.netlify/functions/feedback?id=${feedbackId}&replyId=${replyId}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                setFeedbacks(prev => prev.map(fb => {
+                    if (fb.id === feedbackId) {
+                        return { ...fb, replies: fb.replies.filter(r => r.id !== replyId) };
+                    }
+                    return fb;
+                }));
+                removeMyReplyId(replyId);
+                setMyReplyIds(prev => prev.filter(i => i !== replyId));
+                setDeleteReplyConfirm(null);
+            }
+        } catch (error) {
+            console.error('댓글 삭제 실패:', error);
         }
     };
 
@@ -209,8 +363,10 @@ export default function FeedbackSidebar() {
         return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
     };
 
-    // 본인 글인지 확인
+    // 본인 글/댓글 확인
     const isMyFeedback = (id: string) => myFeedbackIds.includes(id);
+    const isMyReply = (id: string) => myReplyIds.includes(id);
+    const hasLiked = (fb: Feedback) => (fb.likedBy || []).includes(userId);
 
     return (
         <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 h-full flex flex-col">
@@ -263,7 +419,7 @@ export default function FeedbackSidebar() {
             </form>
 
             {/* 피드백 목록 */}
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 -mr-1" style={{ maxHeight: '400px' }}>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 -mr-1" style={{ maxHeight: '500px' }}>
                 {isLoading ? (
                     <div className="flex items-center justify-center py-8">
                         <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
@@ -321,6 +477,7 @@ export default function FeedbackSidebar() {
                                 </div>
                             ) : (
                                 <>
+                                    {/* 피드백 헤더 */}
                                     <div className="flex items-center justify-between mb-1.5">
                                         <div className="flex items-center gap-2">
                                             <span className="font-semibold text-slate-700 text-sm">{fb.name}</span>
@@ -331,54 +488,168 @@ export default function FeedbackSidebar() {
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[10px] text-slate-400 font-medium">
-                                                {formatTime(fb.updatedAt || fb.createdAt)}
-                                                {fb.updatedAt && ' (수정됨)'}
-                                            </span>
-                                        </div>
+                                        <span className="text-[10px] text-slate-400 font-medium">
+                                            {formatTime(fb.updatedAt || fb.createdAt)}
+                                            {fb.updatedAt && ' (수정됨)'}
+                                        </span>
                                     </div>
-                                    <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{fb.comment}</p>
 
-                                    {/* 본인 글일 때만 수정/삭제 버튼 표시 */}
-                                    {isMyFeedback(fb.id) && (
-                                        <div className="flex gap-2 mt-2 pt-2 border-t border-slate-200">
-                                            <button
-                                                onClick={() => startEditing(fb)}
-                                                className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-                                            >
-                                                ✏️ 수정
-                                            </button>
-                                            <button
-                                                onClick={() => setDeleteConfirmId(fb.id)}
-                                                className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1"
-                                            >
-                                                🗑️ 삭제
-                                            </button>
+                                    {/* 피드백 내용 */}
+                                    <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap mb-2">{fb.comment}</p>
+
+                                    {/* 좋아요 / 댓글 수 / 액션 버튼 */}
+                                    <div className="flex items-center gap-3 pt-2 border-t border-slate-200/50">
+                                        {/* 좋아요 버튼 */}
+                                        <button
+                                            onClick={() => handleLike(fb.id)}
+                                            disabled={likingId === fb.id}
+                                            className={`flex items-center gap-1 text-xs font-medium transition-all ${hasLiked(fb)
+                                                    ? 'text-red-500 hover:text-red-600'
+                                                    : 'text-slate-400 hover:text-red-500'
+                                                }`}
+                                        >
+                                            <span className={`transition-transform ${likingId === fb.id ? 'animate-ping' : ''}`}>
+                                                {hasLiked(fb) ? '❤️' : '🤍'}
+                                            </span>
+                                            <span>{fb.likes || 0}</span>
+                                        </button>
+
+                                        {/* 댓글 수 */}
+                                        <button
+                                            onClick={() => setReplyingTo(replyingTo === fb.id ? null : fb.id)}
+                                            className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-blue-500 transition-all"
+                                        >
+                                            <span>💬</span>
+                                            <span>{fb.replies?.length || 0}</span>
+                                        </button>
+
+                                        {/* 본인 글일 때만 수정/삭제 버튼 */}
+                                        {isMyFeedback(fb.id) && (
+                                            <>
+                                                <button
+                                                    onClick={() => startEditing(fb)}
+                                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => setDeleteConfirmId(fb.id)}
+                                                    className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* 삭제 확인 */}
+                                    {deleteConfirmId === fb.id && (
+                                        <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-200">
+                                            <p className="text-xs text-red-600 font-medium mb-2">정말 삭제하시겠습니까?</p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleDelete(fb.id)}
+                                                    className="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 rounded-lg"
+                                                >
+                                                    삭제
+                                                </button>
+                                                <button
+                                                    onClick={() => setDeleteConfirmId(null)}
+                                                    className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold py-1 rounded-lg"
+                                                >
+                                                    취소
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 댓글 목록 */}
+                                    {fb.replies && fb.replies.length > 0 && (
+                                        <div className="mt-3 pt-2 border-t border-slate-200/50 space-y-2">
+                                            {fb.replies.map((reply) => (
+                                                <div
+                                                    key={reply.id}
+                                                    className={`ml-2 pl-2 border-l-2 ${isMyReply(reply.id) ? 'border-blue-300' : 'border-slate-200'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-xs font-semibold text-slate-600">{reply.name}</span>
+                                                            {isMyReply(reply.id) && (
+                                                                <span className="text-[9px] bg-blue-100 text-blue-600 px-1 rounded font-semibold">
+                                                                    내 댓글
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-[10px] text-slate-400">{formatTime(reply.createdAt)}</span>
+                                                            {isMyReply(reply.id) && (
+                                                                <button
+                                                                    onClick={() => setDeleteReplyConfirm({ feedbackId: fb.id, replyId: reply.id })}
+                                                                    className="text-[10px] text-red-400 hover:text-red-600"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-slate-600 mt-0.5">{reply.comment}</p>
+
+                                                    {/* 댓글 삭제 확인 */}
+                                                    {deleteReplyConfirm?.replyId === reply.id && (
+                                                        <div className="mt-1 p-1.5 bg-red-50 rounded border border-red-200">
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => handleDeleteReply(fb.id, reply.id)}
+                                                                    className="flex-1 bg-red-500 text-white text-[10px] font-semibold py-0.5 rounded"
+                                                                >
+                                                                    삭제
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setDeleteReplyConfirm(null)}
+                                                                    className="flex-1 bg-slate-200 text-slate-700 text-[10px] font-semibold py-0.5 rounded"
+                                                                >
+                                                                    취소
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* 댓글 입력 */}
+                                    {replyingTo === fb.id && (
+                                        <div className="mt-3 pt-2 border-t border-slate-200/50 space-y-2">
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="이름"
+                                                    value={replyName}
+                                                    onChange={(e) => setReplyName(e.target.value)}
+                                                    className="w-20 px-2 py-1 text-xs rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    maxLength={10}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="댓글 작성..."
+                                                    value={replyComment}
+                                                    onChange={(e) => setReplyComment(e.target.value)}
+                                                    className="flex-1 px-2 py-1 text-xs rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    maxLength={200}
+                                                />
+                                                <button
+                                                    onClick={() => handleReply(fb.id)}
+                                                    disabled={isSubmitting || !replyComment.trim()}
+                                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs font-semibold rounded-lg transition-all"
+                                                >
+                                                    등록
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </>
-                            )}
-
-                            {/* 삭제 확인 */}
-                            {deleteConfirmId === fb.id && (
-                                <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-200">
-                                    <p className="text-xs text-red-600 font-medium mb-2">정말 삭제하시겠습니까?</p>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleDelete(fb.id)}
-                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 rounded-lg transition-all"
-                                        >
-                                            삭제
-                                        </button>
-                                        <button
-                                            onClick={() => setDeleteConfirmId(null)}
-                                            className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold py-1 rounded-lg transition-all"
-                                        >
-                                            취소
-                                        </button>
-                                    </div>
-                                </div>
                             )}
                         </div>
                     ))
