@@ -371,7 +371,7 @@ export default function FeedbackSidebar() {
     const hasLiked = (fb: Feedback) => (fb.likedBy || []).includes(userId);
 
     return (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 h-full flex flex-col">
+        <div className="bg-white rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-100 p-4 sm:p-6 h-full flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-5">
                 <span className="text-2xl">💬</span>

@@ -5,23 +5,23 @@ import FeedbackSidebar from '../components/FeedbackSidebar';
 
 export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 p-8 font-sans selection:bg-blue-100">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 p-4 sm:p-6 lg:p-8 font-sans selection:bg-blue-100">
             {/* Header */}
-            <div className="mb-12 text-center space-y-3">
-                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+            <div className="mb-8 sm:mb-12 text-center space-y-2 sm:space-y-3">
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
                     LRQA <span className="text-blue-600">Quotation & Contract</span> Portal
                 </h1>
-                <p className="text-slate-500 text-lg font-medium">원하시는 견적 및 계약 시스템을 선택해 주세요.</p>
+                <p className="text-slate-500 text-sm sm:text-lg font-medium">원하시는 견적 및 계약 시스템을 선택해 주세요.</p>
             </div>
 
             {/* Main Content: 2-column layout */}
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                 {/* Left: Tool Cards */}
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Legacy Generator Card */}
                         <Link href="/generator" className="group">
-                            <div className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-slate-100 h-full flex flex-col relative overflow-hidden group-hover:border-slate-300">
+                            <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-slate-100 h-full flex flex-col relative overflow-hidden group-hover:border-slate-300">
                                 {/* Soft background decoration */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:bg-slate-100"></div>
 
@@ -51,7 +51,7 @@ export default function LandingPage() {
 
                         {/* New System Card */}
                         <Link href="/system" className="group">
-                            <div className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-1 transition-all duration-300 border border-blue-50 h-full flex flex-col relative overflow-hidden group-hover:border-blue-200">
+                            <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-1 transition-all duration-300 border border-blue-50 h-full flex flex-col relative overflow-hidden group-hover:border-blue-200">
                                 {/* Gradient background decoration */}
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-50 to-purple-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60 group-hover:opacity-100 transition-opacity"></div>
 
@@ -86,13 +86,13 @@ export default function LandingPage() {
 
                 {/* Right: Feedback Sidebar */}
                 <div className="lg:col-span-4">
-                    <div className="sticky top-8">
+                    <div className="lg:sticky lg:top-8">
                         <FeedbackSidebar />
                     </div>
                 </div>
             </div>
 
-            <footer className="mt-16 text-center text-slate-400 text-xs font-medium tracking-wide">
+            <footer className="mt-10 sm:mt-16 text-center text-slate-400 text-xs font-medium tracking-wide">
                 © 2026 LRQA Korea's DK. All rights reserved.
             </footer>
         </div>
