@@ -18,6 +18,7 @@ interface QuotationData {
     hq_address: string;
     target_sites: string;
     verification_year: string;
+    ghg_declaration_period: string;
     reporting_period_full: string;
     assurance_level: string;
     materiality_level: string;
@@ -58,6 +59,7 @@ export default function GeneratorPage() {
         hqAddress: '',
         targetSites: '본사 및 대상 사업장',
         vYear: '2025',
+        ghgDeclarationPeriod: '2025년 01월 01일~2025년 12월 31일',
         assuranceLevel: '제한적 보증수준 (Limited level of assurance)',
         materialityLevel: '5%',
         auditRate: DEFAULT_AUDIT_RATE,
@@ -146,6 +148,7 @@ export default function GeneratorPage() {
             hq_address: formatText(formData.hqAddress),
             target_sites: formatText(formData.targetSites),
             verification_year: formData.vYear,
+            ghg_declaration_period: formatText(formData.ghgDeclarationPeriod),
             reporting_period_full: `${formData.vYear}년 1월 ~ 12월 (12개월)`,
             assurance_level: formData.assuranceLevel,
             materiality_level: formData.materialityLevel,
@@ -257,6 +260,7 @@ export default function GeneratorPage() {
             hq_address: rawText(formData.hqAddress),
             target_sites: rawText(formData.targetSites),
             verification_year: formData.vYear,
+            ghg_declaration_period: rawText(formData.ghgDeclarationPeriod),
             reporting_period_full: `${formData.vYear}년 1월 ~ 12월 (12개월)`,
             assurance_level: formData.assuranceLevel,
             materiality_level: formData.materialityLevel,
@@ -307,8 +311,8 @@ export default function GeneratorPage() {
                         {/* 1. Services */}
                         <section className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
                             <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Service Overview</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1 md:col-span-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-1 md:col-span-3">
                                     <label className="text-xs font-bold text-slate-600">서비스 용역 설명</label>
                                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={formData.serviceDesc} onChange={(e) => handleChange('serviceDesc', e.target.value)} />
                                 </div>
@@ -322,6 +326,10 @@ export default function GeneratorPage() {
                                         <option value="권대근">권대근 (LRQA)</option>
                                         <option value="김달">김달 (LRQA)</option>
                                     </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-600">제안서 번호</label>
+                                    <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="QR.GHG-YYYYMMDD-01" value={formData.proposalNo} onChange={(e) => handleChange('proposalNo', e.target.value)} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">발행 일자</label>
@@ -388,6 +396,10 @@ export default function GeneratorPage() {
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">보고 마감기한</label>
                                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium" value={formData.reportingDeadline} onChange={(e) => handleChange('reportingDeadline', e.target.value)} placeholder="2026년 12월 31일" />
+                                </div>
+                                <div className="space-y-1 md:col-span-2">
+                                    <label className="text-xs font-bold text-slate-600">온실가스 선언이 적용되는 기간</label>
+                                    <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={formData.ghgDeclarationPeriod} onChange={(e) => handleChange('ghgDeclarationPeriod', e.target.value)} placeholder="2025년 01월 01일~2025년 12월 31일" />
                                 </div>
                             </div>
                         </section>

@@ -3004,7 +3004,7 @@ pdf2htmlEX.defaultViewer = new pdf2htmlEX.Viewer({});
             </tr>
             <tr>
                 <th>온실가스 선언이 적용되는 기간</th>
-                <td>{{ verification_year }}년 온실가스 Scope 1, 2 배출량</td>
+                <td>{{ ghg_declaration_period }}</td>
             </tr>
             <tr>
                 <th>보증수준</th>
