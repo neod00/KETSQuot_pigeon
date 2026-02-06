@@ -7,6 +7,7 @@ interface Feedback {
     rating: number;
     comment: string;
     createdAt: string;
+    updatedAt?: string;
 }
 
 export default async (request: Request, context: Context) => {
@@ -16,7 +17,7 @@ export default async (request: Request, context: Context) => {
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Content-Type": "application/json",
     };
 
@@ -70,6 +71,87 @@ export default async (request: Request, context: Context) => {
             await store.setJSON("feedback-list", feedbackList);
 
             return new Response(JSON.stringify(newFeedback), { status: 201, headers });
+        }
+
+        // PUT: 피드백 수정
+        if (request.method === "PUT") {
+            const body = await request.json();
+            const { id, name, rating, comment } = body;
+
+            if (!id) {
+                return new Response(
+                    JSON.stringify({ error: "피드백 ID가 필요합니다." }),
+                    { status: 400, headers }
+                );
+            }
+
+            if (!comment || comment.trim() === "") {
+                return new Response(
+                    JSON.stringify({ error: "의견을 입력해주세요." }),
+                    { status: 400, headers }
+                );
+            }
+
+            // 기존 목록 가져오기
+            const existingData = await store.get("feedback-list", { type: "json" });
+            const feedbackList: Feedback[] = existingData || [];
+
+            // 해당 피드백 찾기
+            const feedbackIndex = feedbackList.findIndex(fb => fb.id === id);
+            if (feedbackIndex === -1) {
+                return new Response(
+                    JSON.stringify({ error: "피드백을 찾을 수 없습니다." }),
+                    { status: 404, headers }
+                );
+            }
+
+            // 수정
+            feedbackList[feedbackIndex] = {
+                ...feedbackList[feedbackIndex],
+                name: name?.trim() || "익명",
+                rating: Math.min(5, Math.max(1, rating || 5)),
+                comment: comment.trim(),
+                updatedAt: new Date().toISOString(),
+            };
+
+            // 저장
+            await store.setJSON("feedback-list", feedbackList);
+
+            return new Response(JSON.stringify(feedbackList[feedbackIndex]), { status: 200, headers });
+        }
+
+        // DELETE: 피드백 삭제
+        if (request.method === "DELETE") {
+            const url = new URL(request.url);
+            const id = url.searchParams.get("id");
+
+            if (!id) {
+                return new Response(
+                    JSON.stringify({ error: "피드백 ID가 필요합니다." }),
+                    { status: 400, headers }
+                );
+            }
+
+            // 기존 목록 가져오기
+            const existingData = await store.get("feedback-list", { type: "json" });
+            const feedbackList: Feedback[] = existingData || [];
+
+            // 해당 피드백 찾기
+            const feedbackIndex = feedbackList.findIndex(fb => fb.id === id);
+            if (feedbackIndex === -1) {
+                return new Response(
+                    JSON.stringify({ error: "피드백을 찾을 수 없습니다." }),
+                    { status: 404, headers }
+                );
+            }
+
+            // 삭제
+            feedbackList.splice(feedbackIndex, 1);
+
+            // 저장
+            await store.setJSON("feedback-list", feedbackList);
+
+            return new Response(JSON.stringify({ success: true }), { status: 200, headers });
         }
 
         return new Response(
