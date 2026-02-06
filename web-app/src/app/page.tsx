@@ -93,7 +93,7 @@ export default function LandingPage() {
             </div>
 
             <footer className="mt-16 text-center text-slate-400 text-xs font-medium tracking-wide">
-                © 2026 LRQA. All rights reserved.
+                © 2026 LRQA Korea's DK. All rights reserved.
             </footer>
         </div>
     );
