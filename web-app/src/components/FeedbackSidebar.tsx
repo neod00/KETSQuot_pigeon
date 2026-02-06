@@ -241,23 +241,13 @@ export default function FeedbackSidebar() {
             return fb;
         }));
 
+        // 서버에 저장 (응답은 무시 - 새로고침 시 정확한 값 반영)
         try {
-            const res = await fetch('/.netlify/functions/feedback?action=like', {
+            await fetch('/.netlify/functions/feedback?action=like', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ feedbackId }),
             });
-
-            if (res.ok) {
-                const { likes } = await res.json();
-                // 서버 응답으로 정확한 값 반영
-                setFeedbacks(prev => prev.map(fb => {
-                    if (fb.id === feedbackId) {
-                        return { ...fb, likes };
-                    }
-                    return fb;
-                }));
-            }
         } catch (error) {
             console.error('좋아요 실패:', error);
         }
