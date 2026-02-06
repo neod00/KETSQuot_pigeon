@@ -106,11 +106,20 @@ export default function FeedbackSidebar() {
     // 좋아요 로딩 상태
     const [likingId, setLikingId] = useState<string | null>(null);
 
+    // 관리자 모드
+    const [isAdmin, setIsAdmin] = useState(false);
+
     // 초기 로드
     useEffect(() => {
         setMyFeedbackIds(getMyFeedbackIds());
         setMyReplyIds(getMyReplyIds());
         setUserId(getUserId());
+
+        // URL 파라미터로 관리자 모드 체크
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('admin') === 'lrqa2026') {
+            setIsAdmin(true);
+        }
     }, []);
 
     // 피드백 목록 불러오기
@@ -354,7 +363,9 @@ export default function FeedbackSidebar() {
         return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
     };
 
-    // 본인 글/댓글 확인
+    // 본인 글/댓글 확인 (관리자는 모두 삭제 가능)
+    const canDeleteFeedback = (id: string) => isAdmin || myFeedbackIds.includes(id);
+    const canDeleteReply = (id: string) => isAdmin || myReplyIds.includes(id);
     const isMyFeedback = (id: string) => myFeedbackIds.includes(id);
     const isMyReply = (id: string) => myReplyIds.includes(id);
     const hasLiked = (fb: Feedback) => (fb.likedBy || []).includes(userId);
@@ -365,6 +376,11 @@ export default function FeedbackSidebar() {
             <div className="flex items-center gap-2 mb-5">
                 <span className="text-2xl">💬</span>
                 <h2 className="text-lg font-bold text-slate-800">팀원 피드백</h2>
+                {isAdmin && (
+                    <span className="text-[10px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded">
+                        ADMIN
+                    </span>
+                )}
                 <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
                     {feedbacks.length}
                 </span>
@@ -508,22 +524,24 @@ export default function FeedbackSidebar() {
                                             <span>{fb.replies?.length || 0}</span>
                                         </button>
 
-                                        {/* 본인 글일 때만 수정/삭제 버튼 */}
+                                        {/* 본인 글일 때만 수정 버튼 */}
                                         {isMyFeedback(fb.id) && (
-                                            <>
-                                                <button
-                                                    onClick={() => startEditing(fb)}
-                                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    onClick={() => setDeleteConfirmId(fb.id)}
-                                                    className="text-xs text-red-500 hover:text-red-700 font-medium"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </>
+                                            <button
+                                                onClick={() => startEditing(fb)}
+                                                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                            >
+                                                ✏️
+                                            </button>
+                                        )}
+
+                                        {/* 본인 또는 관리자일 때 삭제 버튼 */}
+                                        {canDeleteFeedback(fb.id) && (
+                                            <button
+                                                onClick={() => setDeleteConfirmId(fb.id)}
+                                                className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                            >
+                                                🗑️
+                                            </button>
                                         )}
                                     </div>
 
@@ -568,7 +586,7 @@ export default function FeedbackSidebar() {
                                                         </div>
                                                         <div className="flex items-center gap-1">
                                                             <span className="text-[10px] text-slate-400">{formatTime(reply.createdAt)}</span>
-                                                            {isMyReply(reply.id) && (
+                                                            {canDeleteReply(reply.id) && (
                                                                 <button
                                                                     onClick={() => setDeleteReplyConfirm({ feedbackId: fb.id, replyId: reply.id })}
                                                                     className="text-[10px] text-red-400 hover:text-red-600"
