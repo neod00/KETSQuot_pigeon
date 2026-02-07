@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>3페이지 레이아웃 재설계 샘플 (디자인 매칭)</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #eee;
+            font-family: sans-serif;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            /* 표준 여백 */
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            box-sizing: border-box;
+            color: #000;
+        }
+
+        /* LRQA 스타일 재현 */
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 16pt;
+            color: #008ca1;
+            /* LRQA 청록색 계열 */
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .standard-table {
+            width: 100%;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .standard-table td {
+            padding: 4px 8px;
+            font-size: 9.5pt;
+            line-height: 1.4;
+        }
+
+        .label-col {
+            width: 140px;
+            font-weight: bold;
+        }
+
+        .inner-line {
+            border-bottom: 0.5px solid #ccc;
+        }
+
+        /* 메인 데이터 테이블 */
+        .data-table {
+            width: 100%;
+            border: 0.8px solid #000;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 0.8px solid #000;
+            padding: 8px 12px;
+            font-size: 9.5pt;
+            vertical-align: middle;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: #fff;
+            font-weight: bold;
+            width: 35%;
+        }
+
+        .data-table td {
+            width: 65%;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .scope-title {
+            font-weight: bold;
+            font-size: 11pt;
+            margin: 25px 0 10px 0;
+        }
+
+        .footer-page-num {
+            position: absolute;
+            bottom: 20mm;
+            right: 20mm;
+            font-size: 9pt;
+        }
+
+        /* 확장성 테스트를 위한 추가 가이드 섹션 */
+        .next-section {
+            margin-top: 30px;
+            border-left: 4px solid #008ca1;
+            padding-left: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="page">
+        <div class="header-top">
+            <span>LRQA Agreement for the provision of certification services 2024</span>
+            <span>3</span>
+        </div>
+
+        <div class="section-title">1. 서비스</div>
+
+        <table class="standard-table">
+            <tr class="inner-line">
+                <td class="label-col">제안된 표준</td>
+                <td>GHG Protocol A Corporate Accounting and Reporting Standard</td>
+            </tr>
+            <tr>
+                <td class="label-col">심사기준</td>
+                <td>ISO 14064-3:2019 (온실가스선언에 대한 타당성 평가 및 검증을 위한 사용규칙 및 지침)</td>
+            </tr>
+        </table>
+
+        <table class="standard-table" style="border-top: none;">
+            <tr>
+                <td class="label-col">고객 위치</td>
+                <td style="font-weight: bold;">고객 위치 주소</td>
+            </tr>
+            <tr>
+                <td class="label-col"></td>
+                <td>경기도 성남시 분당구 판교역로 231, H스퀘어 S동 6층 <br>(본사 주소가 여기에 표시됩니다)</td>
+            </tr>
+        </table>
+
+        <div class="scope-title">Scope</div>
+
+        <table class="data-table">
+            <tr>
+                <th>조직명</th>
+                <td>(주) 에이치앤 ({{ company_name }})</td>
+            </tr>
+            <tr>
+                <th>검증 받을 조직의 위치 및 경계</th>
+                <td>본사: 서울특별시 강남구 테헤란로 123
+                    1) 인천공장: 인천광역시 서구 가좌동 456
+                    2) 수원공장: 경기도 수원시 영통구 789
+                    3) 파주공장: 경기도 파주시 탄현면 101
+                    4) 부산물류센터: 부산광역시 강서구 202
+                    5) 광주지사: 광주광역시 북구 303
+                    6) 대전R&D센터: 대전광역시 유성구 404
+                    7) 울산생산본부: 울산광역시 남구 505
+                    8) 김해제2공장: 경상남도 김해시 606
+                    9) 천안조립동: 충청남도 천안시 707
+                    10) 제주데이터센터: 제주특별자치도 제주시 808
+                    <!-- 사업장이 많아지면 표와 페이지가 자동으로 늘어납니다 -->
+                </td>
+            </tr>
+            <tr>
+                <th>온실가스 선언이 적용되는 기간</th>
+                <td>2025년 온실가스 Scope 1, 2 배출량</td>
+            </tr>
+            <tr>
+                <th>보증수준</th>
+                <td>제한적 보증수준 (Limited level of assurance)</td>
+            </tr>
+            <tr>
+                <th>중요성</th>
+                <td>5%</td>
+            </tr>
+        </table>
+
+        <div class="next-section">
+            <div style="font-weight: bold; font-size: 12pt; color: #008ca1; margin-bottom: 10px;">2. 심사 프로세스</div>
+            <div style="font-size: 9.5pt; color: #333;">
+                이 섹션은 표의 길이에 관계없이 항상 표 바로 아래에 일정한 간격을 두고 위치하게 됩니다.
+                표가 다음 페이지로 넘어가면 이 섹션도 자연스럽게 함께 따라갑니다.
+            </div>
+        </div>
+
+        <div class="footer-page-num">3</div>
+    </div>
+
+</body>
+
+</html>

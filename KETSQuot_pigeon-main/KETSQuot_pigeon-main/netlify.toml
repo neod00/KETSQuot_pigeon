@@ -1,0 +1,10 @@
+[build]
+  # Netlify가 작업할 기본 폴더를 web-app으로 강제 지정
+  base = "web-app"
+  # 실행할 명령어
+  command = "npm install && npm run build"
+  # 결과물이 나오는 폴더 (Next.js 기본값)
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

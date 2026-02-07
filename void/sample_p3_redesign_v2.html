@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>3페이지 레이아웃 재설계 샘플 (v2 - 푸터 고정)</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #eee;
+            font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            box-sizing: border-box;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 헤더 비움 */
+        .header-top {
+            height: 20px;
+        }
+
+        .content-area {
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 16pt;
+            color: #008ca1;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .standard-table {
+            width: 100%;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .standard-table td {
+            padding: 4px 8px;
+            font-size: 9.5pt;
+            line-height: 1.4;
+        }
+
+        .label-col {
+            width: 140px;
+            font-weight: bold;
+        }
+
+        .inner-line {
+            border-bottom: 0.5px solid #ccc;
+        }
+
+        .data-table {
+            width: 100%;
+            border: 0.8px solid #000;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 0.8px solid #000;
+            padding: 8px 12px;
+            font-size: 9.5pt;
+            vertical-align: middle;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: #fff;
+            font-weight: bold;
+            width: 35%;
+        }
+
+        .data-table td {
+            width: 65%;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .scope-title {
+            font-weight: bold;
+            font-size: 11pt;
+            margin: 25px 0 10px 0;
+        }
+
+        /* 표 바로 아래 위치할 참고 사항 */
+        .additional-notes {
+            margin-top: 25px;
+            border: 0.8px solid #000;
+            padding: 15px;
+            font-size: 9pt;
+            line-height: 1.6;
+        }
+
+        .notes-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 10pt;
+        }
+
+        .link-text {
+            font-size: 9pt;
+            margin-bottom: 10px;
+        }
+
+        .link-text a {
+            color: #005a9c;
+            text-decoration: underline;
+        }
+
+        /* 푸터 고정 스타일 */
+        .footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            font-size: 8pt;
+            color: #333;
+        }
+
+        .footer-left {
+            position: absolute;
+            left: 0;
+        }
+
+        .footer-center {
+            font-size: 10pt;
+        }
+
+        .footer-right {
+            position: absolute;
+            right: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="page">
+        <div class="header-top"></div>
+
+        <div class="content-area">
+            <div class="section-title">1. 서비스</div>
+
+            <table class="standard-table">
+                <tr class="inner-line">
+                    <td class="label-col">제안된 표준</td>
+                    <td>GHG Protocol A Corporate Accounting and Reporting Standard</td>
+                </tr>
+                <tr>
+                    <td class="label-col">심사기준</td>
+                    <td>ISO 14064-3:2019 (온실가스선언에 대한 타당성 평가 및 검증을 위한 사용규칙 및 지침)</td>
+                </tr>
+            </table>
+
+            <table class="standard-table" style="border-top: none;">
+                <tr>
+                    <td class="label-col">고객 위치</td>
+                    <td style="font-weight: bold;">고객 위치 주소</td>
+                </tr>
+                <tr>
+                    <td class="label-col"></td>
+                    <td>경기도 성남시 분당구 판교역로 231, H스퀘어 S동 6층 <br>(본사 주소가 여기에 표시됩니다)</td>
+                </tr>
+            </table>
+
+            <div class="scope-title">Scope</div>
+
+            <table class="data-table">
+                <tr>
+                    <th>조직명</th>
+                    <td>(주) 에이치앤 ({{ company_name }})</td>
+                </tr>
+                <tr>
+                    <th>검증 받을 조직의 위치 및 경계</th>
+                    <td>본사: 서울특별시 강남구 테헤란로 123
+                        1) 인천공장: 인천광역시 서구 가좌동 456
+                        2) 수원공장: 경기도 수원시 영통구 789
+                        3) 파주공장: 경기도 파주시 탄현면 101
+                        4) 부산물류센터: 부산광역시 강서구 202
+                        5) 광주지사: 광주광역시 북구 303
+                        6) 대전R&D센터: 대전광역시 유성구 404
+                        7) 울산생산본부: 울산광역시 남구 505
+                        8) 김해제2공장: 경상남도 김해시 606
+                        9) 천안조립동: 충청남도 천안시 707
+                        10) 제주데이터센터: 제주특별자치도 제주시 808</td>
+                </tr>
+                <tr>
+                    <th>온실가스 선언이 적용되는 기간</th>
+                    <td>2025년 온실가스 Scope 1, 2 배출량</td>
+                </tr>
+                <tr>
+                    <th>보증수준</th>
+                    <td>제한적 보증수준 (Limited level of assurance)</td>
+                </tr>
+                <tr>
+                    <th>중요성</th>
+                    <td>5%</td>
+                </tr>
+            </table>
+
+            <!-- 표 바로 밑에 배치되는 추가 참고 사항 -->
+            <div class="link-text" style="margin-top: 20px;">
+                심사표준별 적용기준 및 LRQA 고객 정보 유의사항을 확인하려면 <a href="#">여기</a>를 클릭하십시오.
+            </div>
+            <div class="additional-notes">
+                <span class="notes-title">추가 참고 사항</span>
+                본 계약에 명시된 수수료에는 한 가지 언어로 된 인증서와 보고서의 발급이 포함되며, 이는 LRQA 클라이언트 포털을 통해 이용 가능합니다. 다수의 사이트의 경우, 모든 사이트를 포함하는
+                부록이 있는 인증서가 발급됩니다. 추가로 다른 언어의 인증서 및/또는 보고서를 요청하는 경우 추가 요금이 부과됩니다.<br><br>
+                회사의 변경 사항(주소, 직원 수, 규모 등)이 발생하여 심사 범위와 심사 시간에 영향을 미치는 경우, 다음 심사 전에 이를 검토하고 심사 문서 및 차기 심사계획을 업데이트합니다. 변경된
+                심사 일수는 심사 시점에 적용되는 심사요율에 따라 청구됩니다.
+            </div>
+        </div>
+
+        <!-- 푸터로 이동한 정보 -->
+        <div class="footer">
+            <div class="footer-center">3</div>
+            <div class="footer-right">LRQA Agreement for the provision of certification services 2024</div>
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,1961 @@
+<div class="pf w0 h0" data-page-no="a" id="pfa">
+ <div class="pc pca w0 h0">
+  <img alt="" class="bi x0 y0 w1 h1" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABKgAAAaUCAIAAABbmLONAAAACXBIWXMAABYlAAAWJQFJUiTwAAAgAElEQVR42uzXQREAIAzAMIp/z5sOuERCf21mDgAAAP+6EgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4SAAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAAAwfhIAAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAADB+AAAAGD8AAACMHwAAAMYPAB5WVToAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAwPhJAAAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAADA+EkAAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAACA8QMAAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAABg/AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAMH4AAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAADjBwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAAIDxAwAAwPgBAAAYPwAAAIwfAAAAxg8AAADjBwAAgPEDAADA+AEAAGD8AAAAjB8AAADGDwAAAOMHAACA8QMAAMD4AQAAYPwAAAAwfgAAAMYPAAAA4wcAAIDxAwAAwPgBAABg/AAAADB+AAAAGD8AAACMHwAAgPEDAADA+AEAAGD8AAAAMH4AAAAYPwAAAIwfAAAAxg8AAMD4AQAAYPwAAAAwfgAAABg/AAAAjB8AAADGDwAAAOMHAABg/AAAADB+AAAAGD8AAACMHwAAAMYPAAAA4wcAANueHZsACENRFE2iA9g5hfsv4hRWDqD5dpJSBBHCOZ2BWLzuEkD4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAIQfAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAABA+AEAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAIQfAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8TAAAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAAAQfgAAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAACD8AAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAOEHAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAIDwAwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAAAQfgAAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAACD8AAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAOEHAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAAAQfgAAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAOEHAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAABA+AEAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAIQfAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAABA+AEAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAACD8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAIQfAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAAIDwAwAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAABA+AEAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAACD8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAIQfAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPiZAAAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAAAQfgAAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAOEHAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAAAQfgAAAHQtR4QVAAAAOubFDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAAAQfgAAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAAIPwAAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAABB+AAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAOEHAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAADCDwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAAAA4QcAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AAADhBwAAgPADAAAQfiYAAAAQfgAAAAg/AAAAhB8AAADCDwAAAOEHAACA8AMAAED4AQAACD8AAACEHwAAAMIPAAAA4QcAAIDwAwAAQPgBAAAg/AAAAIQfAAAAwg8AAADhBwAAgPADAABA+AEAACD8AAAAEH4AAAAIPwAAAOEHAACA8AMAAED4AQAAIPwAAAAQfgAAAAg/AAAAhB8AAIDwAwAAQPgBAAAg/AAAABB+AAAACD8AAACEHwAAAMIPAABA+AEAACD8AAAAEH4AAAAIPwAAAIQfAAAAwg8AACjipcUAAABDSURBVADhBwAAgPADAAAQfgAAAAg/AAAAhB8AAADCDwAAgO9kEwAA8KcyjXU/UoqI+2wueavN91PtvWXI6/niH9CjC4h6JSPkGGAkAAAAAElFTkSuQmCC"/>
+  <div class="c x0 y3 w5 h0">
+   <div class="t m0 x1 h3 yfe ff1 fs0 fc0 sc0 ls7 ws8">
+   </div>
+   <div class="t m0 x2c h5 yff ff1 fs2 fc0 sc0 lsd0 ws3f">
+    10
+    <span class="ls7 ws8">
+    </span>
+   </div>
+   <div class="t m0 xd h5 y100 ff1 fs3 fc0 sc0 ls7 ws8">
+    LRQA Agreement for the provision of certification services 2024
+    <span class="fs2">
+    </span>
+   </div>
+   <div class="t m0 x1 h28 y17d ff5 fsd fc0 sc0 ls7 ws15">
+    본
+    <span class="ff2 ls32 ws8">
+    </span>
+    계약은
+    <span class="ff2 lsbc ws8">
+     2026 01
+     <span class="_ _3">
+     </span>
+    </span>
+    월
+    <span class="ff2 ws8">
+     <span class="lsd1 ws40">
+      12
+      <span class="_">
+      </span>
+     </span>
+    </span>
+    일
+    <span class="ff2 lsd2 ws41">
+     ("
+    </span>
+    효력
+    <span class="ff2 ls32 ws8">
+    </span>
+    발생일
+    <span class="ff2 lsd3 ws42">
+     ")
+    </span>
+    에
+    <span class="ff2 ls32 ws8">
+    </span>
+    <span class="ff4 ws14">
+     다음
+     <span class="ff3 ls32 ws8">
+     </span>
+     당사
+     <span class="_ _2">
+     </span>
+     자
+     <span class="ff3 ls32 ws8">
+     </span>
+     간에
+     <span class="ff3 ls32 ws8">
+     </span>
+     체결되었습니다
+     <span class="ff3 lsbd">
+      :
+     </span>
+     <span class="ff2 ws8">
+     </span>
+    </span>
+   </div>
+  </div>
+  <div class="c x1 y17e w1a h42">
+   <div class="t m0 x15 h28 y17f ff3 fsd fc0 sc0 ls7 ws15">
+    (1)
+    <span class="ff7 lsbe ws8">
+    </span>
+    <span class="ws8">
+     LRQA:
+     <span class="ff4 ws14">
+      로이드인증원㈜
+     </span>
+     (
+     <span class="_ _2">
+     </span>
+     LRQA Korea Limited)
+    </span>
+   </div>
+  </div>
+  <div class="c x1 y180 w1a h43">
+   <div class="t m0 x2a h28 y181 ff3 fsd fc0 sc0 ls7 ws43">
+    UKAS
+    <span class="_">
+    </span>
+    <span class="ff4 ws14">
+     가
+    </span>
+    <span class="lsbf ws8">
+    </span>
+    <span class="ff4 ws14">
+     인정한
+    </span>
+    <span class="ws8">
+     <span class="_ _3">
+     </span>
+     1
+     <span class="_ _3">
+     </span>
+     Trinity
+     <span class="_ _3">
+     </span>
+     Park,
+     <span class="_ _3">
+     </span>
+     Bickenhill
+     <span class="_ _3">
+     </span>
+     Lane,
+     <span class="_ _3">
+     </span>
+     Birmingham
+     <span class="_ _3">
+     </span>
+     B37
+     <span class="_ _3">
+     </span>
+     7ES,
+     <span class="_ _3">
+     </span>
+     United
+     <span class="_ _3">
+     </span>
+     Kingdom
+     <span class="_ _12">
+     </span>
+     <span class="ff4 ws14">
+      에
+     </span>
+     <span class="lsbf">
+     </span>
+     <span class="ff4 ws14">
+      등록되고
+     </span>
+     ,
+     <span class="_ _2">
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x2a h28 y182 ff4 fsd fc0 sc0 ls7 ws14">
+    서울특별시
+    <span class="ff3 ls32 ws8">
+    </span>
+    중구
+    <span class="ff3 ls32 ws8">
+    </span>
+    소월로
+    <span class="ff3 ws8">
+     2
+     <span class="_ _3">
+     </span>
+    </span>
+    <span class="ls4">
+     길
+    </span>
+    <span class="ff3 ws8">
+     <span class="_ _2">
+     </span>
+     30, T
+     <span class="_ _3">
+     </span>
+    </span>
+    타워
+    <span class="ff3 ws8">
+     2
+     <span class="_ _12">
+     </span>
+    </span>
+    층
+    <span class="ff3 ws8">
+     (
+    </span>
+    남산트라팰리스
+    <span class="ff3 ws15">
+     )
+    </span>
+    에
+    <span class="ff3 ls32 ws8">
+    </span>
+    위치한
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x1 y183 w1a h44">
+   <div class="t m0 x10 h45 y184 ff3 fse fc0 sc0 ls7 ws8">
+   </div>
+  </div>
+  <div class="c x1 y185 w1a h46">
+   <div class="t m0 x15 h28 y182 ff3 fsd fc0 sc0 ls7 ws15">
+    (2)
+    <span class="ff7 lsbe ws8">
+    </span>
+    <span class="ff4 ws14">
+     고객
+    </span>
+    <span class="lsd4 ws8">
+     :
+    </span>
+    [
+    <span class="ff4 ws14">
+     회사명
+    </span>
+    <span class="ws8">
+     ]
+    </span>
+   </div>
+  </div>
+  <div class="c x1 y186 w1a h46">
+   <div class="t m0 x2a h28 y182 ff3 fsd fc0 sc0 ls7 ws15">
+    [
+    <span class="ff4 ws14">
+     본사
+    </span>
+    <span class="ls32 ws8">
+    </span>
+    <span class="ff4 ws14">
+     주소
+    </span>
+    <span class="ws8">
+     ]
+    </span>
+   </div>
+  </div>
+  <div class="c x0 y3 w5 h0">
+   <div class="t m0 x1 h2d y187 ff2 fsd fc0 sc0 ls7 ws8">
+   </div>
+   <div class="t m0 x1 h28 y188 ff5 fsd fc0 sc0 ls7 ws15">
+    고객과
+    <span class="ff2 ws8">
+     LRQA
+     <span class="_ _3">
+     </span>
+    </span>
+    는
+    <span class="ff2 ls32 ws8">
+    </span>
+    각각
+    <span class="ff2 ls32 ws8">
+    </span>
+    계약의
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ls32 ws8">
+    </span>
+    당사자이며
+    <span class="ff2 ls32 ws8">
+    </span>
+    동시에
+    <span class="ff2 ls32 ws8">
+    </span>
+    양
+    <span class="ff2 ls32 ws8">
+    </span>
+    당사자가
+    <span class="ff2 ls32 ws8">
+    </span>
+    됩니다
+    <span class="ff2 ls41 ws8">
+     .
+     <span class="_ _2">
+     </span>
+     <span class="ff3 ls7">
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x1 h28 y189 ff3 fsd fc0 sc0 ls7 ws8">
+   </div>
+   <div class="t m0 x1 h28 y18a ff4 fsd fc0 sc0 ls7 ws14">
+    다음과
+    <span class="ff3 ls32 ws8">
+    </span>
+    같이
+    <span class="ff3 ls32 ws8">
+    </span>
+    합의되었습니다
+    <span class="_ _2">
+    </span>
+    <span class="ff3 ws8">
+     :
+    </span>
+   </div>
+   <div class="t m0 x1 h28 y18b ff3 fsd fc0 sc0 ls7 ws8">
+   </div>
+   <div class="t m0 xe h2d y18c ff2 fsd fc0 sc0 ls7 ws15">
+    (A)
+    <span class="ff1 lsc0 ws8">
+    </span>
+    <span class="ws44">
+     LRQA
+     <span class="_">
+     </span>
+    </span>
+    <span class="ff5">
+     는
+    </span>
+    <span class="ls32 ws8">
+    </span>
+    <span class="ff5">
+     인증
+    </span>
+    <span class="ls32 ws8">
+    </span>
+    <span class="ff5">
+     서비스
+    </span>
+    <span class="ls32 ws8">
+    </span>
+    <span class="ff5">
+     제공업체입니다
+    </span>
+    <span class="ws8">
+     .
+    </span>
+   </div>
+   <div class="t m0 xe h2d y18d ff2 fsd fc0 sc0 lsd5 ws45">
+    (B)
+    <span class="ff1 lsc1 ws8">
+     <span class="ff5 ls7 ws15">
+      고객은
+     </span>
+     <span class="ff2 ls32">
+      <span class="ff5 lsc2">
+       “
+      </span>
+      <span class="lsc3">
+       1
+       <span class="ls41">
+        .
+        <span class="ff5 ls7 ws15">
+         서비스”에
+        </span>
+       </span>
+      </span>
+      <span class="ff5 ls7 ws15">
+       명시된
+      </span>
+      <span class="ff5 ls7 ws15">
+       사항을
+      </span>
+      <span class="ff5 ls7 ws15">
+       제공하도록
+      </span>
+      <span class="ls7">
+       LRQA
+       <span class="_ _12">
+       </span>
+       <span class="ff5 ls4">
+        와
+       </span>
+      </span>
+      <span class="ff5 ls7 ws15">
+       계약하기로
+      </span>
+      <span class="ff5 ls7 ws15">
+       합의합니다
+       <span class="_ _2">
+       </span>
+      </span>
+      <span class="ls7">
+       .
+      </span>
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x28 h2d y18e ff2 fsd fc0 sc0 ls7 ws8">
+   </div>
+   <div class="t m0 x1 h28 y18f ff3 fsd fc0 sc0 ls4e ws46">
+    1.
+    <span class="lsc4 ws8">
+     <span class="ff4 ls7 ws14">
+      정의
+     </span>
+     <span class="ls32">
+      <span class="ff4 ls7 ws14">
+       및
+      </span>
+      <span class="lsc5">
+       <span class="ff4 ls7 ws14">
+        해석
+       </span>
+       <span class="ls7">
+       </span>
+      </span>
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x1 h2d y190 ff2 fsd fc0 sc0 ls7 ws8">
+   </div>
+   <div class="t m0 x1 h28 y191 ff2 fsd fc0 sc0 ls7 ws15">
+    1.1
+    <span class="ff1 lsc6 ws8">
+    </span>
+    <span class="ff5">
+     본
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     계약에서
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     달리
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     규정되거
+     <span class="_ _2">
+     </span>
+     나
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     문맥상
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     달리
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     요구되지
+    </span>
+    <span class="ls3c ws8">
+     <span class="ff5 ls4 ws1b">
+      않는
+     </span>
+     <span class="ls3b">
+     </span>
+    </span>
+    <span class="ff5">
+     한
+    </span>
+    <span class="ls41 ws8">
+     ,
+     <span class="_ _5">
+     </span>
+    </span>
+    <span class="ff5">
+     큰따옴표
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     및
+    </span>
+    <span class="ls3b ws8">
+     <span class="ff5 ls4 ws1b">
+      굵은
+     </span>
+     <span class="lsc7">
+     </span>
+    </span>
+    <span class="ff5">
+     글씨로
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     표기된
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff4 ws14">
+     “표현”
+    </span>
+    <span class="ff5">
+     들은
+    </span>
+    <span class="ls3b ws8">
+    </span>
+    <span class="ff5">
+     다
+     <span class="_ _2">
+     </span>
+     음과
+    </span>
+    <span class="ws8">
+    </span>
+   </div>
+   <div class="t m0 x2d h2d y192 ff5 fsd fc0 sc0 ls7 ws15">
+    같은
+    <span class="ff2 ls32 ws8">
+    </span>
+    의미를
+    <span class="ff2 ls32 ws8">
+    </span>
+    갖습니다
+    <span class="ff2 ws8">
+     :
+    </span>
+   </div>
+   <div class="t m0 xe h2d y193 ff2 fsd fc0 sc0 ls7 ws8">
+   </div>
+  </div>
+  <div class="c x21 y194 w1b h3b">
+   <div class="t m0 x2e h11 y195 ff4 fs7 fc0 sc0 ls7 ws9">
+    “인정
+    <span class="ff3 ws8">
+    </span>
+    기관”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x2f y194 w1c h3b">
+   <div class="t m0 x10 h10 y195 ff5 fs7 fc0 sc0 ls7 ws4">
+    해당되는
+    <span class="ff2 ls77 ws8">
+    </span>
+    경우
+    <span class="ff2 ls17 ws8">
+     ,
+     <span class="_ _a">
+     </span>
+     <span class="ls7 ws47">
+      LRQA
+      <span class="_">
+      </span>
+     </span>
+    </span>
+    가
+    <span class="ff2 ls77 ws8">
+    </span>
+    <span class="ls4 ws2e">
+     인증
+     <span class="ff2 ls77 ws8">
+     </span>
+    </span>
+    서비스를
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19 ff5 fs7 fc0 sc0 ls7 ws4">
+    수행할
+    <span class="ff2 ls18 ws8">
+    </span>
+    수
+    <span class="ff2 ls18 ws8">
+    </span>
+    있도록
+    <span class="ff2 ls18 ws8">
+    </span>
+    인정을
+    <span class="ff2 ls18 ws8">
+    </span>
+    부여하는
+    <span class="ff2 ls18 ws8">
+    </span>
+    기관을
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    의미합니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x21 y196 w1b h47">
+   <div class="t m0 x2e h11 y197 ff4 fs7 fc0 sc0 ls7 ws9">
+    “계약”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x2f y196 w1c h47">
+   <div class="t m0 x10 h10 y197 ff5 fs7 fc0 sc0 ls7 ws4">
+    본
+    <span class="ff2 ls87 ws8">
+    </span>
+    계약
+    <span class="ff2 ls87 ws8">
+    </span>
+    조건과
+    <span class="ff2 ls87 ws8">
+    </span>
+    조항
+    <span class="ff2 ws8">
+     ,
+     <span class="_ _13">
+     </span>
+    </span>
+    <span class="ls4 ws2e">
+     첨부
+     <span class="_ _1">
+     </span>
+     <span class="ff2 ls87 ws8">
+      <span class="ff5 ls7 ws4">
+       항목들을
+      </span>
+      <span class="ls7">
+      </span>
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y18 ff5 fs7 fc0 sc0 ls7 ws4">
+    포함하며
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_">
+     </span>
+    </span>
+    여기에
+    <span class="_ _2">
+    </span>
+    <span class="ff2 lsa2 ws8">
+    </span>
+    명시된
+    <span class="ff2 lsa2 ws8">
+    </span>
+    규정과
+    <span class="ff2 lsa2 ws8">
+    </span>
+    시간의
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19 ff5 fs7 fc0 sc0 ls7 ws4">
+    지남에
+    <span class="ff2 lsc8 ws8">
+    </span>
+    따라
+    <span class="ff2 lsc9 ws8">
+    </span>
+    수정될
+    <span class="ff2 lsc8 ws8">
+    </span>
+    수
+    <span class="ff2 lsa5 ws8">
+    </span>
+    있는
+    <span class="ff2 lsc8 ws8">
+    </span>
+    것들을
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    의미합니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x21 y198 w1b h48">
+   <div class="t m0 x2e h11 y199 ff4 fs7 fc0 sc0 ls7 ws9">
+    “연간
+    <span class="ff3 ws8">
+    </span>
+    관리
+    <span class="ff3 ws8">
+    </span>
+    수수료”
+    <span class="ff3 ws8">
+     <span class="fc4 sc0">
+     </span>
+    </span>
+   </div>
+  </div>
+  <div class="c x2f y198 w1c h48">
+   <div class="t m0 x10 h10 y199 ff5 fs7 fc0 sc0 ls7 ws4">
+    고객이
+    <span class="ff2 ls20 ws8">
+    </span>
+    인증의
+    <span class="ff2 ls20 ws8">
+    </span>
+    처리
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _8">
+     </span>
+    </span>
+    유지
+    <span class="ff2 ls20 ws8">
+    </span>
+    및
+    <span class="ff2 ls20 ws8">
+    </span>
+    관련
+    <span class="ff2 ls20 ws8">
+    </span>
+    비용을
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19a ff5 fs7 fc0 sc0 ls7 ws4">
+    지원하기
+    <span class="ff2 lsa1 ws8">
+    </span>
+    위해
+    <span class="ff2 lsa1 ws8">
+    </span>
+    지불하는
+    <span class="ff2 lsa1 ws8">
+    </span>
+    의무적인
+    <span class="ff2 lsa1 ws8">
+    </span>
+    연간
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19b ff5 fs7 fc0 sc0 ls7 ws4">
+    요금을
+    <span class="ff2 ls18 ws8">
+    </span>
+    의미하며
+    <span class="ff2 ws8">
+     ,
+     <span class="_ _5">
+     </span>
+     LRQA(
+    </span>
+    또는
+    <span class="ff2 ws8">
+     <span class="_ _5">
+     </span>
+     LRQA
+     <span class="_ _6">
+     </span>
+    </span>
+    당사자
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19c ff5 fs7 fc0 sc0 ls7 ws4">
+    측
+    <span class="ff2 ls44">
+     )
+    </span>
+    의
+    <span class="ff2 ls16 ws8">
+    </span>
+    고객
+    <span class="ff2 ls16 ws8">
+    </span>
+    현장의
+    <span class="ff2 ls16 ws8">
+    </span>
+    방문
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ls16 ws8">
+    </span>
+    비용은
+    <span class="ff2 ls16 ws8">
+    </span>
+    포함되지
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    않습니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x21 y19d w1b h3a">
+   <div class="t m0 x2e h11 y19 ff4 fs7 fc0 sc0 ls7 ws9">
+    “업무일”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x2f y19d w1c h3a">
+   <div class="t m0 x10 h10 y19 ff5 fs7 fc0 sc0 ls7 ws4">
+    토요일
+    <span class="ff2 ls28 ws8">
+     ,
+    </span>
+    일요일
+    <span class="_ _2">
+    </span>
+    <span class="ff2 lsf ws8">
+    </span>
+    또는
+    <span class="ff2 lsf ws8">
+    </span>
+    공휴일을
+    <span class="ff2 lsf ws8">
+    </span>
+    제외한
+    <span class="ff2 lsf ws8">
+    </span>
+    날을
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    의미합니다
+    <span class="ff2 ls28 ws8">
+     .
+     <span class="ls7">
+     </span>
+    </span>
+   </div>
+  </div>
+  <div class="c x21 y19e w1b h39">
+   <div class="t m0 x2e h11 y149 ff4 fs7 fc0 sc0 ls7 ws9">
+    “인증서”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x2f y19e w1c h39">
+   <div class="t m0 x10 h10 y149 ff5 fs7 fc0 sc0 ls7 ws4">
+    제품
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _4">
+     </span>
+     <span class="ff5 ls7 ws4">
+      서비스
+      <span class="ff2 ws8">
+       <span class="_ _4">
+       </span>
+       <span class="ff5 ws4">
+        또는
+        <span class="ff2 ws8">
+         <span class="_ _1">
+         </span>
+         <span class="ff5 ws4">
+          공정에
+          <span class="ff2 ws8">
+           <span class="_ _4">
+           </span>
+           <span class="ff5 ws4">
+            대한
+            <span class="ff2 ws8">
+             <span class="_ _1">
+             </span>
+             <span class="ff5 ws4">
+              검증
+              <span class="ff2 ls5c">
+               /
+              </span>
+              심사가
+              <span class="ff2 ws8">
+              </span>
+             </span>
+            </span>
+           </span>
+          </span>
+         </span>
+        </span>
+       </span>
+      </span>
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19 ff5 fs7 fc0 sc0 ls7 ws4">
+    통과되었음을
+    <span class="ff2 ls8e ws8">
+    </span>
+    확인하는
+    <span class="ff2 ws8">
+     <span class="_ _5">
+     </span>
+     LRQA
+     <span class="_ _3">
+     </span>
+    </span>
+    가
+    <span class="ff2 ls14 ws8">
+    </span>
+    발급하는
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    증명서
+    <span class="ff2 ls5c">
+     /
+    </span>
+    성명서를
+    <span class="ff2 ws8">
+    </span>
+    의미합니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x21 y19f w1b h49">
+   <div class="t m0 x2e h11 y1a0 ff4 fs7 fc0 sc0 ls7 ws9">
+    “고객
+    <span class="ff3 ws8">
+    </span>
+    정보”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x2f y19f w1c h49">
+   <div class="t m0 x10 h10 y1a0 ff5 fs7 fc0 sc0 ls7 ws4">
+    고객이나
+    <span class="ff2 lsca ws8">
+    </span>
+    고객을
+    <span class="ff2 lsca ws8">
+    </span>
+    대신하여
+    <span class="ff2 ws8">
+     <span class="_ _e">
+     </span>
+     LRQA(
+    </span>
+    또는
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a1 ff2 fs7 fc0 sc0 ls7 ws8">
+    LRQA
+    <span class="_ _d">
+    </span>
+    <span class="ff5 ws4">
+     측
+    </span>
+    <span class="ls44">
+     )
+    </span>
+    <span class="ff5 ws4">
+     에게
+    </span>
+    <span class="ls5b">
+    </span>
+    <span class="ff5 ws4">
+     제공한
+    </span>
+    <span class="ls5b">
+    </span>
+    <span class="ff5 ws4">
+     모든
+    </span>
+    <span class="ls5b">
+    </span>
+    <span class="ff5 ws4">
+     정보
+    </span>
+    <span class="ls28">
+     ,
+     <span class="_ _15">
+     </span>
+    </span>
+    <span class="ff5 ws4">
+     문서
+    </span>
+    <span class="ls17">
+     ,
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a2 ff5 fs7 fc0 sc0 ls7 ws4">
+    텍스트
+    <span class="ff2 ls28 ws8">
+     ,
+    </span>
+    도면
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _2">
+     </span>
+    </span>
+    다이어그램
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ls28 ws8">
+     ,
+    </span>
+    이
+    <span class="_ _2">
+    </span>
+    미지
+    <span class="ff2 ls44">
+     (
+    </span>
+    그것들로
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a3 ff5 fs7 fc0 sc0 ls7 ws4">
+    구성된
+    <span class="ff2 ls60 ws8">
+    </span>
+    데이터베이스
+    <span class="ff2 ls60 ws8">
+    </span>
+    포함
+    <span class="ff2 ws8">
+     ),
+     <span class="_ _12">
+     </span>
+    </span>
+    어떤
+    <span class="ff2 ls60 ws8">
+    </span>
+    매체에
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a4 ff5 fs7 fc0 sc0 ls7 ws4">
+    구현된
+    <span class="ff2 lsaf ws8">
+    </span>
+    것
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _11">
+     </span>
+    </span>
+    또는
+    <span class="ff2 lsaf ws8">
+    </span>
+    본
+    <span class="ff2 lsaf ws8">
+    </span>
+    계약에
+    <span class="ff2 lsaf ws8">
+    </span>
+    따라
+    <span class="ff2 ls44">
+     (
+    </span>
+    또는
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a5 ff5 fs7 fc0 sc0 ls7 ws4">
+    결과물
+    <span class="ff2 ls13 ws8">
+    </span>
+    제공과
+    <span class="ff2 ls13 ws8">
+    </span>
+    관련하여
+    <span class="ff2 ls44 ws8">
+     )
+    </span>
+    <span class="ff2">
+     LRQA(
+    </span>
+    또는
+    <span class="ff2 ws8">
+     LRQA
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y197 ff5 fs7 fc0 sc0 ls7 ws4">
+    측
+    <span class="ff2 ls44">
+     )
+    </span>
+    가
+    <span class="ff2 ws8">
+    </span>
+    수집
+    <span class="ff2 ls28 ws8">
+     ,
+    </span>
+    생성
+    <span class="ff2 ls17 ws8">
+     ,
+    </span>
+    처리
+    <span class="ff2 ls17 ws8">
+     ,
+    </span>
+    저장
+    <span class="ff2 ls13 ws8">
+    </span>
+    또는
+    <span class="ff2 ws8">
+    </span>
+    전송해야
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y149 ff5 fs7 fc0 sc0 ls7 ws4">
+    하는
+    <span class="ff2 ls8a ws8">
+    </span>
+    것
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _6">
+     </span>
+    </span>
+    그리고
+    <span class="ff2 ls8a ws8">
+    </span>
+    그것들에
+    <span class="ff2 ls8a ws8">
+    </span>
+    <span class="ls4 ws2e">
+     대해
+     <span class="ff2 ls8a ws8">
+     </span>
+    </span>
+    이루어진
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19 ff5 fs7 fc0 sc0 ls7 ws4">
+    모든
+    <span class="ff2 ws8">
+     <span class="_ _9">
+     </span>
+     <span class="ff5 ws4">
+      수정
+      <span class="ff2 ls28 ws8">
+       ,
+       <span class="_ _4">
+       </span>
+       <span class="ff5 ls7 ws4">
+        추가
+        <span class="ff2 ws8">
+         <span class="_ _9">
+         </span>
+         <span class="ff5 ws4">
+          및
+          <span class="ff2 ws8">
+           <span class="_ _4">
+           </span>
+           <span class="ff5 ws4">
+            개발
+            <span class="ff2 ws8">
+             <span class="_ _9">
+             </span>
+             <span class="ff5 ws4">
+              사항을
+              <span class="_ _2">
+              </span>
+              <span class="ff2 ws8">
+               <span class="_ _9">
+               </span>
+               <span class="ff5 ws4">
+                포함한
+                <span class="ff2 ws8">
+                 <span class="_ _9">
+                 </span>
+                 <span class="ff5 ws4">
+                  것을
+                  <span class="ff2 ws8">
+                  </span>
+                 </span>
+                </span>
+               </span>
+              </span>
+             </span>
+            </span>
+           </span>
+          </span>
+         </span>
+        </span>
+       </span>
+      </span>
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    의미합니다
+    <span class="ff2 ls28 ws8">
+     .
+     <span class="_ _6">
+     </span>
+    </span>
+    이는
+    <span class="ff2 ls8a ws8">
+    </span>
+    서비스
+    <span class="ff2 ls8a ws8">
+    </span>
+    <span class="ls4 ws2e">
+     수행
+     <span class="ff2 ls8a ws8">
+     </span>
+    </span>
+    중
+    <span class="ff2 ls8a ws8">
+    </span>
+    고객이
+    <span class="ff2 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x30 y1a6 w1d h4a">
+   <div class="t m0 x10 h10 y1a7 ff2 fs7 fc0 sc0 ls7 ws4">
+    LRQA(
+    <span class="ff5">
+     또는
+    </span>
+    <span class="ws8">
+     <span class="_ _17">
+     </span>
+     LRQA
+     <span class="_ _17">
+     </span>
+    </span>
+    <span class="ff5">
+     측
+    </span>
+    <span class="ls44">
+     )
+    </span>
+    <span class="ff5">
+     에게
+    </span>
+    <span class="ls1a ws8">
+    </span>
+    <span class="ff5">
+     제공한
+    </span>
+    <span class="ls9e ws8">
+    </span>
+    <span class="ff5">
+     서면
+     <span class="_ _2">
+     </span>
+    </span>
+    <span class="ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    지시
+    <span class="ff2 ls28 ws8">
+     ,
+    </span>
+    문서
+    <span class="ff2 ws8">
+    </span>
+    샘플
+    <span class="ff2 ws8">
+    </span>
+    및
+    <span class="ff2 ws8">
+    </span>
+    정보를
+    <span class="ff2 ws8">
+    </span>
+    포함합니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x2c y1a8 w1e h4b">
+   <div class="t m0 x1c h11 y1a9 ff4 fs7 fc0 sc0 ls7 ws9">
+    “기밀
+    <span class="ff3 ws8">
+    </span>
+    정보”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+   <div class="t m0 x1c h10 y1a5 ff2 fs7 fc0 sc0 ls7 ws8">
+   </div>
+  </div>
+  <div class="c x30 y1a8 w1d h4b">
+   <div class="t m0 x10 h10 y1a9 ff5 fs7 fc0 sc0 ls7 ws4">
+    한
+    <span class="ff2 ls18 ws8">
+    </span>
+    당사자가
+    <span class="ff2 ls18 ws8">
+    </span>
+    다른
+    <span class="ff2 ls18 ws8">
+    </span>
+    당사자에게
+    <span class="ff2 ls18 ws8">
+    </span>
+    공개한
+    <span class="ff2 ls18 ws8">
+    </span>
+    모든
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a5 ff5 fs7 fc0 sc0 ls7 ws4">
+    비공개
+    <span class="ff2 ls59 ws8">
+    </span>
+    정보를
+    <span class="ff2 ls59 ws8">
+    </span>
+    의미합니다
+    <span class="ff2 ls17 ws8">
+     .
+     <span class="_ _a">
+     </span>
+    </span>
+    이는
+    <span class="ff2 ls59 ws8">
+    </span>
+    데이터
+    <span class="ff2 ls17 ws8">
+     ,
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1aa ff5 fs7 fc0 sc0 ls7 ws4">
+    노하우
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _3">
+     </span>
+    </span>
+    개념
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _3">
+     </span>
+    </span>
+    매뉴얼
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _3">
+     </span>
+    </span>
+    보고서
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _3">
+     </span>
+    </span>
+    사양
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _3">
+     </span>
+    </span>
+    영업
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y18 ff5 fs7 fc0 sc0 ls7 ws4">
+    비밀
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _f">
+     </span>
+    </span>
+    상표
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _6">
+     </span>
+    </span>
+    회사
+    <span class="ff2 ls24 ws8">
+    </span>
+    로고
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _6">
+     </span>
+    </span>
+    그리고
+    <span class="ff2 ls24 ws8">
+    </span>
+    기타
+    <span class="ff2 ls24 ws8">
+    </span>
+    사업
+    <span class="ff2 ls17 ws8">
+     ,
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19 ff5 fs7 fc0 sc0 ls7 ws4">
+    상업
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _e">
+     </span>
+    </span>
+    법적
+    <span class="ff2 ls17 ws8">
+     ,
+     <span class="_ _18">
+     </span>
+    </span>
+    재정
+    <span class="ff2 ls17 ws8">
+     ,
+     <span class="_ _e">
+     </span>
+    </span>
+    마케팅
+    <span class="ff2 lsca ws8">
+    </span>
+    또는
+    <span class="ff2 lsca ws8">
+    </span>
+    기술
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    정보에만
+    <span class="ff2 ws8">
+    </span>
+    국한되지
+    <span class="ff2 ws8">
+    </span>
+    않습니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x2c y19d w1e h4c">
+   <div class="t m0 x1c h11 y1ab ff4 fs7 fc0 sc0 ls7 ws9">
+    “결과물”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+   <div class="t m0 x1c h10 y1ac ff2 fs7 fc0 sc0 ls7 ws8">
+   </div>
+  </div>
+  <div class="c x30 y19d w1d h4c">
+   <div class="t m0 x10 h10 y1ab ff5 fs7 fc0 sc0 ls7 ws4">
+    서비스의
+    <span class="ff2 lsca ws8">
+    </span>
+    수행과
+    <span class="ff2 lsca ws8">
+    </span>
+    관련하여
+    <span class="ff2 ws8">
+     <span class="_ _e">
+     </span>
+     LRQA(
+    </span>
+    또는
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1ac ff2 fs7 fc0 sc0 ls7 ws8">
+    LRQA
+    <span class="_ _15">
+    </span>
+    <span class="ff5 ws4">
+     측
+    </span>
+    <span class="ls44">
+     )
+    </span>
+    <span class="ff5 ws4">
+     가
+    </span>
+    <span class="lscb">
+    </span>
+    <span class="ff5 ws4">
+     생성하거나
+    </span>
+    <span class="lscb">
+    </span>
+    <span class="ff5 ws4">
+     제
+     <span class="_ _2">
+     </span>
+     공하는
+    </span>
+    <span class="lscb">
+    </span>
+    <span class="ff5 ws4">
+     모든
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19a ff5 fs7 fc0 sc0 ls7 ws4">
+    문서
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _18">
+     </span>
+    </span>
+    보증
+    <span class="_ _2">
+    </span>
+    <span class="ff2 lscc ws8">
+    </span>
+    성명서
+    <span class="ff2 ls5c">
+     /
+    </span>
+    인증서
+    <span class="ff2 ls17 ws8">
+     ,
+     <span class="_ _18">
+     </span>
+    </span>
+    보고서
+    <span class="ff2 lscc ws8">
+    </span>
+    <span class="ls4">
+     및
+    </span>
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y18 ff5 fs7 fc0 sc0 ls7 ws4">
+    서비스에서
+    <span class="ff2 lsc8 ws8">
+    </span>
+    나온
+    <span class="ff2 lsc8 ws8">
+    </span>
+    결과물을
+    <span class="ff2 lsc8 ws8">
+    </span>
+    제한
+    <span class="ff2 lsc8 ws8">
+    </span>
+    없이
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y19 ff5 fs7 fc0 sc0 ls7 ws4">
+    의미합니다
+    <span class="ff2 ls28 ws8">
+     .
+     <span class="_ _5">
+     </span>
+    </span>
+    이는
+    <span class="ff2 ls18 ws8">
+    </span>
+    <span class="ls4">
+     본
+     <span class="ff2 ls18 ws8">
+     </span>
+    </span>
+    계약에
+    <span class="ff2 ls19 ws8">
+    </span>
+    따라
+    <span class="ff2 ws8">
+     <span class="_ _2">
+     </span>
+     LRQA
+     <span class="_ _3">
+     </span>
+    </span>
+    <span class="ls4">
+     가
+    </span>
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    고객에게
+    <span class="ff2 ws8">
+    </span>
+    제공하기로
+    <span class="ff2 ws8">
+    </span>
+    합의한
+    <span class="ff2 ls13 ws8">
+    </span>
+    것입니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x2c y1ad w1e h26">
+   <div class="t m0 x1c h11 y81 ff4 fs7 fc0 sc0 ls7 ws9">
+    “일일
+    <span class="ff3 ws8">
+    </span>
+    요율”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x30 y1ad w1d h26">
+   <div class="t m0 x10 h10 y81 ff2 fs7 fc0 sc0 ls7 ws34">
+    LRQA
+    <span class="_">
+    </span>
+    <span class="ff5 ws4">
+     가
+    </span>
+    <span class="ws8">
+     <span class="_ _9">
+     </span>
+     <span class="ff5 ws4">
+      서비스
+      <span class="ff2 ws8">
+       <span class="_ _9">
+       </span>
+       <span class="ff5 ls4">
+        및
+        <span class="ff2 ls7">
+         <span class="_ _9">
+         </span>
+         <span class="ff5 ws4">
+          결과물에
+          <span class="ff2 ws8">
+           <span class="_ _4">
+           </span>
+           <span class="ff5 ws4">
+            대해
+            <span class="ff2 ws8">
+             <span class="_ _9">
+             </span>
+             <span class="ff5 ws4">
+              부과하는
+              <span class="ff2 ws8">
+              </span>
+             </span>
+            </span>
+           </span>
+          </span>
+         </span>
+        </span>
+       </span>
+      </span>
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    일일
+    <span class="ff2 ws8">
+    </span>
+    요율을
+    <span class="ff2 ws8">
+    </span>
+    의미합니다
+    <span class="ff2 ls17 ws8">
+     .
+     <span class="ls7">
+     </span>
+    </span>
+   </div>
+  </div>
+  <div class="c x2c y1ae w1e h39">
+   <div class="t m0 x1c h11 y149 ff3 fs7 fc0 sc0 ls7 ws8">
+   </div>
+   <div class="t m0 x1c h11 y81 ff4 fs7 fc0 sc0 ls7 ws9">
+    “제경비”
+    <span class="ff3 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x30 y1ae w1d h39">
+   <div class="t m0 x10 h10 y149 ff5 fs7 fc0 sc0 ls7 ws4">
+    실비로
+    <span class="ff2 lscd ws8">
+    </span>
+    청구되는
+    <span class="ff2 lscd ws8">
+    </span>
+    출장
+    <span class="ff2 lscd ws8">
+    </span>
+    경비
+    <span class="_ _2">
+    </span>
+    <span class="ff2 ls17 ws8">
+     ,
+     <span class="_">
+     </span>
+    </span>
+    출장
+    <span class="ff2 lscd ws8">
+    </span>
+    일비
+    <span class="ff2 ls17 ws8">
+     ,
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y81 ff5 fs7 fc0 sc0 ls7 ws4">
+    숙박비용과
+    <span class="ff2 ls24 ws8">
+    </span>
+    그리고
+    <span class="ff2 ls24 ws8">
+     <span class="lsa ws1c">
+      10%
+     </span>
+    </span>
+    의
+    <span class="ff2 ls24 ws8">
+    </span>
+    <span class="ls4 ws2e">
+     행정
+     <span class="ff2 ls24 ws8">
+     </span>
+    </span>
+    수수료를
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    의미합니다
+    <span class="ff2 ws8">
+     .
+    </span>
+   </div>
+  </div>
+  <div class="c x2c y1af w1e h4d">
+   <div class="t m0 x1c h11 y1a3 ff4 fs7 fc0 sc0 ls7 ws9">
+    “불가항력”
+    <span class="ff2 ws8">
+    </span>
+   </div>
+  </div>
+  <div class="c x30 y1af w1d h4d">
+   <div class="t m0 x10 h10 y1a3 ff2 fs7 fc0 sc0 ls7 ws4">
+    LRQA(
+    <span class="ff5">
+     또는
+    </span>
+    <span class="ws8">
+     <span class="_ _3">
+     </span>
+     LRQA
+     <span class="_ _3">
+     </span>
+    </span>
+    <span class="ff5">
+     측
+    </span>
+    <span class="ls44">
+     )
+     <span class="ff5 ls4">
+      의
+     </span>
+     <span class="ls63 ws8">
+     </span>
+    </span>
+    <span class="ff5">
+     합리적인
+    </span>
+    <span class="lsce ws8">
+    </span>
+    <span class="ff5">
+     통제를
+     <span class="_ _2">
+     </span>
+    </span>
+    <span class="ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1b0 ff5 fs7 fc0 sc0 ls7 ws4">
+    벗어난
+    <span class="ff2 ls1f ws8">
+    </span>
+    사건을
+    <span class="ff2 ls1f ws8">
+    </span>
+    의미합니다
+    <span class="ff2 ls28 ws8">
+     .
+     <span class="_ _8">
+     </span>
+    </span>
+    여기에는
+    <span class="ff2 ls1f ws8">
+    </span>
+    공공
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1b1 ff5 fs7 fc0 sc0 ls7 ws4">
+    서비스나
+    <span class="ff2 ls1f ws8">
+    </span>
+    교통망의
+    <span class="ff2 ls1f ws8">
+    </span>
+    실패
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _8">
+     </span>
+    </span>
+    인터넷
+    <span class="ff2 ls1f ws8">
+    </span>
+    인프라의
+    <span class="ff2 ws8">
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y197 ff5 fs7 fc0 sc0 ls7 ws4">
+    일반적인
+    <span class="ff2 ls21 ws8">
+    </span>
+    실패
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _2">
+     </span>
+    </span>
+    자연재해
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _5">
+     </span>
+    </span>
+    화재
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _2">
+     </span>
+    </span>
+    홍수
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _5">
+     </span>
+    </span>
+    폭풍
+    <span class="ff2 ls17 ws8">
+     ,
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y149 ff5 fs7 fc0 sc0 ls7 ws4">
+    전쟁
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_ _4">
+     </span>
+     <span class="ff5 ls7 ws4">
+      폭동
+      <span class="ff2 ls28 ws8">
+       ,
+       <span class="_ _1">
+       </span>
+       <span class="ff5 ls7 ws4">
+        민란
+        <span class="ff2 ls28 ws8">
+         ,
+         <span class="_ _1">
+         </span>
+         <span class="ff5 ls7 ws4">
+          악의적
+          <span class="ff2 ws8">
+           <span class="_ _4">
+           </span>
+           <span class="ff5 ws4">
+            손상
+            <span class="ff2 ls28 ws8">
+             ,
+            </span>
+            화산재
+            <span class="ff2 ls28 ws8">
+             ,
+             <span class="_ _9">
+             </span>
+             <span class="ff5 ls7 ws4">
+              지진
+              <span class="ff2 ls17 ws8">
+               ,
+              </span>
+             </span>
+            </span>
+           </span>
+          </span>
+         </span>
+        </span>
+       </span>
+      </span>
+     </span>
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y81 ff5 fs7 fc0 sc0 ls7 ws4">
+    폭발
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_">
+     </span>
+    </span>
+    테러
+    <span class="ff2 lscf ws8">
+    </span>
+    행위
+    <span class="ff2 ls28 ws8">
+     ,
+     <span class="_">
+     </span>
+    </span>
+    법률이나
+    <span class="ff2 ls9c ws8">
+    </span>
+    정부의
+    <span class="ff2 lscf ws8">
+    </span>
+    명령
+    <span class="ff2 ls17 ws8">
+     ,
+    </span>
+   </div>
+   <div class="t m0 x10 h10 y1a ff5 fs7 fc0 sc0 ls7 ws4">
+    규칙
+    <span class="ff2 ls28 ws8">
+     ,
+    </span>
+    규정
+    <span class="ff2 ws8">
+     <span class="_ _4">
+     </span>
+     <span class="ff5 ws4">
+      또는
+      <span class="_ _2">
+      </span>
+      <span class="ff2 ws8">
+       <span class="_ _1">
+       </span>
+       <span class="ff5 ws4">
+        지시의
+        <span class="ff2 ws8">
+        </span>
+        준수를
+        <span class="ff2 ws8">
+         <span class="_ _1">
+         </span>
+         <span class="ff5 ws4">
+          포함합니다
+          <span class="ff2 ws8">
+           .
+          </span>
+         </span>
+        </span>
+       </span>
+      </span>
+     </span>
+    </span>
+   </div>
+  </div>
+ </div>
+ <div class="pi" data-data='{"ctm":[1.000000,0.000000,0.000000,1.000000,0.000000,0.000000]}'>
+ </div>
+</div>

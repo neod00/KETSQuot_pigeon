@@ -49,7 +49,7 @@ export default function LandingPage() {
                             </div>
                         </Link>
 
-                        {/* New System Card */}
+                        {/* P827 Data & Information Contract Card */}
                         <Link href="/system" className="group">
                             <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-1 transition-all duration-300 border border-blue-50 h-full flex flex-col relative overflow-hidden group-hover:border-blue-200">
                                 {/* Gradient background decoration */}
@@ -79,6 +79,37 @@ export default function LandingPage() {
                                 <p className="text-slate-500 leading-relaxed text-sm">
                                     새로운 대시보드 UI와 통합 관리 기능을 제공하는 차세대 시스템입니다. 데이터 기반의 정확한 계약서 작성을 지원합니다.
                                 </p>
+                            </div>
+                        </Link>
+
+                        {/* K-ETS 명세서 검증 계약서 생성기 Card */}
+                        <Link href="/kets-contract" className="group md:col-span-2">
+                            <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-emerald-900/10 hover:-translate-y-1 transition-all duration-300 border border-emerald-50 h-full flex flex-col relative overflow-hidden group-hover:border-emerald-200">
+                                {/* Gradient background decoration */}
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60 group-hover:opacity-100 transition-opacity"></div>
+
+                                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                                    <div className="mb-4 md:mb-0 w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300 shadow-emerald-100 shadow-inner flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                                        </svg>
+                                    </div>
+
+                                    <div className="flex-grow">
+                                        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
+                                            <h2 className="text-xl font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
+                                                K-ETS 명세서 검증 계약서 생성기
+                                            </h2>
+                                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-600/20 w-fit">
+                                                New (v1.0)
+                                            </span>
+                                        </div>
+
+                                        <p className="text-slate-500 leading-relaxed text-sm">
+                                            K-ETS 온실가스 명세서 검증을 위한 계약서를 생성합니다. 템플릿 기반 Word 문서(.docx)를 자동 생성하여 다운로드할 수 있습니다.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </Link>
                     </div>

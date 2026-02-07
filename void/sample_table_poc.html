@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>표 자동 확장 테스트 (Option 3 Sample)</title>
+    <style>
+        body {
+            font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+            padding: 50px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: #1a365d;
+            border-bottom: 2px solid #3182ce;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        /* 3번 대안: 절대 좌표 대신 테이블 사용 */
+        .dynamic-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .dynamic-table th, .dynamic-table td {
+            border: 1px solid #000;
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        
+        .dynamic-table th {
+            background-color: #ffffff; /* 실제 템플릿과 동일하게 흰색 배경 */
+            width: 35%;
+            font-weight: bold;
+        }
+        
+        .dynamic-table td {
+            width: 65%;
+            white-space: pre-wrap; /* 줄바꿈 및 공백 유지 */
+        }
+
+        .below-content {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e2e8f0;
+            border-radius: 8px;
+            border-left: 5px solid #3182ce;
+        }
+        
+        .note {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #4a5568;
+            background: #fffaf0;
+            padding: 15px;
+            border: 1px dashed #ed8936;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>1. 서비스 (표 자동 확장 PoC)</h1>
+    
+    <table class="dynamic-table">
+        <tr>
+            <th>조직명</th>
+            <td>(주) 에이치앤</td>
+        </tr>
+        <tr>
+            <th>검증 받을 조직의 위치 및 경계</th>
+            <td>본사: 서울특별시 강남구 테헤란로 123
+1) 인천공장: 인천광역시 서구 가좌동 456
+2) 수원공장: 경기도 수원시 영통구 789
+3) 파주공장: 경기도 파주시 탄현면 101
+4) 부산물류센터: 부산광역시 강서구 202
+5) 광주지사: 광주광역시 북구 303
+6) 대전R&D센터: 대전광역시 유성구 404
+7) 울산생산본부: 울산광역시 남구 505
+8) 김해제2공장: 경상남도 김해시 606
+9) 천안조립동: 충청남도 천안시 707
+10) 제주데이터센터: 제주특별자치도 제주시 808</td>
+        </tr>
+        <tr>
+            <th>온실가스 선언이 적용되는 기간</th>
+            <td>2025년 온실가스 Scope 1, 2 배출량</td>
+        </tr>
+        <tr>
+            <th>보증수준</th>
+            <td>제한적 보증수준 (Limited level of assurance)</td>
+        </tr>
+        <tr>
+            <th>중요성</th>
+            <td>5%</td>
+        </tr>
+    </table>
+
+    <div class="below-content">
+        <strong>[영향 확인]</strong> 이 텍스트는 표 바로 아래에 위치합니다. 
+        사업장이 10개로 늘어나면서 표의 높이가 자동으로 확장되었고, 
+        지금 보시는 이 박스가 <strong>겹치지 않고 자연스럽게 아래로 밀려난 것</strong>을 확인할 수 있습니다.
+    </div>
+
+    <div class="note">
+        <strong>작동 원리:</strong><br>
+        기존의 <code>absolute positioning</code> (절대 좌표) 방식 대신 표준 <code>&lt;table&gt;</code> 구조를 사용했습니다. 
+        이 방식은 내용이 늘어나면 브라우저가 자동으로 높이를 계산하여 하단 요소들을 밀어내기 때문에, 
+        사업장 개수에 상관없이 항상 올바른 레이아웃을 유지합니다.
+    </div>
+</div>
+
+</body>
+</html>
