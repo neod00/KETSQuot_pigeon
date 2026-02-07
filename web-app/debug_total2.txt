@@ -1,0 +1,1 @@
+v class="t m0 x21 hf yc4 ff4 fs1 fc0 sc0 ls0 ws0">{total_days} </div><div class="t m0 x1c hf yc5 ff4 fs1 fc0 sc0 ls0 ws0"> </div></div><div class="c x1b yc3 w1b h3c"><div class="t m0 x22 hf yc4 ff4 fs1 fc0 sc0 ls0 ws0">{final_cost}<span class="_ _4"></span> </div></div><div class="c x1d yc3 w1c h3c"><div class="t m0 x1a hf yc4 ff4 fs1 fc0 sc0 ls0 w

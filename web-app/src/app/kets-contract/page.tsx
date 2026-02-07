@@ -27,6 +27,10 @@ interface KetsContractData {
     total_cost: string;
     final_cost: string;
     vat_type: string;
+    // 공평성 자가진단표 관련 필드
+    business_registration: string;
+    client_contact: string;
+    industry_type: string;
 }
 
 const DEFAULT_AUDIT_RATE = 1050000;
@@ -54,6 +58,10 @@ export default function KetsContractPage() {
         vatType: '별도',
         manualFinalCost: 0,
         isManualCost: false,
+        // 공평성 자가진단표 관련 필드
+        businessRegistration: '',
+        clientContact: '',
+        industryType: '',
     });
 
     const formatNum = (n: number) => n.toLocaleString();
@@ -127,9 +135,109 @@ export default function KetsContractPage() {
             total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
             final_cost: formatNum(formData.manualFinalCost),
             vat_type: formData.vatType,
+            // 공평성 자가진단표 관련 필드
+            business_registration: rawText(formData.businessRegistration),
+            client_contact: rawText(formData.clientContact),
+            industry_type: rawText(formData.industryType),
         };
 
         generateKetsDocx(data, formData.companyName);
+    };
+
+    const handlePrintPdf = async () => {
+        const adm = ADM_DATA[formData.adminName] || ADM_DATA['권대근'];
+        const formatText = (val: string) => (val || '').replace(/ /g, '\u00a0').replace(/\n/g, '<br/>');
+
+        const data: Record<string, string> = {
+            company_name: formatText(formData.companyName),
+            proposal_date: formatDateLong(formData.proposalDate),
+            proposal_no: formData.proposalNo,
+            lrqa_contact_name: formData.adminName,
+            lrqa_contact_email: adm.email,
+            lrqa_contact_phone: adm.phone,
+            hq_address: formatText(formData.hqAddress),
+            target_sites: formatText(formData.targetSites),
+            ghg_declaration_period: formatText(formData.ghgDeclarationPeriod),
+            materiality: formData.materiality,
+            stage1_days: formData.s1Days.toFixed(1) + ' days',
+            stage1_cost: formatNum(Math.floor(calculations.s1Cost)),
+            stage2_days: formData.s2Days.toFixed(1) + ' days',
+            stage2_cost: formatNum(Math.floor(calculations.s2Cost)),
+            stage3_days: formData.s3Days.toFixed(1) + ' days',
+            stage3_cost: formatNum(Math.floor(calculations.s3Cost)),
+            expenses: formatNum(Math.floor(calculations.expCost)),
+            total_days: formatTotalDays(calculations.totalDays) + ' days',
+            total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
+            final_cost: formatNum(formData.manualFinalCost),
+            vat_type: `VAT ${formData.vatType}`,
+            // 공평성 자가진단표 관련 필드
+            business_registration: formatText(formData.businessRegistration),
+            client_contact: formatText(formData.clientContact),
+            industry_type: formatText(formData.industryType),
+        };
+
+        try {
+            const response = await fetch('/K-ETSemission_template.html');
+            let htmlContent = await response.text();
+
+            // PDF 파일명 설정
+            const pdfFileName = `LRQA_온실가스 명세서 검증 제안서 계약서_${formData.companyName || "기업명"}`.replace(/[/\\?%*:|"<>]/g, '-');
+            htmlContent = htmlContent.replace('<head>', `<head><title>${pdfFileName}</title>`);
+
+            // 플레이스홀더 치환 ({key} 형식)
+            Object.entries(data).forEach(([key, val]) => {
+                const placeholder = `{${key}}`;
+                const wrappedVal = `<span class="dynamic-value">${val}</span>`;
+                htmlContent = htmlContent.split(placeholder).join(wrappedVal);
+            });
+
+            // 인쇄 스타일 추가
+            const printStyles = `
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  @media print {
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .pf {
+      margin: 0 auto !important;
+      box-shadow: none !important;
+      page-break-after: always !important;
+      page-break-inside: avoid !important;
+    }
+    .dynamic-value {
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", Dotum, sans-serif !important;
+      font-weight: 500 !important;
+      text-decoration: none !important;
+      display: inline !important;
+      white-space: nowrap !important;
+    }
+    #sidebar, .pi, .loading-indicator {
+      display: none !important;
+    }
+  }
+</style>
+`;
+            htmlContent = htmlContent.replace('</head>', `${printStyles}</head>`);
+
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+                setTimeout(() => {
+                    printWindow.print();
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Failed to load HTML template:', error);
+            alert('PDF 템플릿을 불러올 수 없습니다.');
+        }
     };
 
     return (
@@ -189,6 +297,22 @@ export default function KetsContractPage() {
                                         <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="회사명 입력" value={formData.companyName} onChange={(e) => handleChange('companyName', e.target.value)} />
                                     </div>
                                     <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-600">사업자(법인)등록번호</label>
+                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="000-00-00000" value={formData.businessRegistration} onChange={(e) => handleChange('businessRegistration', e.target.value)} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-600">담당자/연락처</label>
+                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="홍길동 / 010-1234-5678" value={formData.clientContact} onChange={(e) => handleChange('clientContact', e.target.value)} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-600">업종</label>
+                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200" placeholder="제조업, 서비스업 등" value={formData.industryType} onChange={(e) => handleChange('industryType', e.target.value)} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
                                         <label className="text-xs font-bold text-slate-600">중요성 기준 (Materiality)</label>
                                         <select className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.materiality} onChange={(e) => handleChange('materiality', e.target.value)}>
                                             <option value="2%">2%</option>
@@ -246,6 +370,34 @@ export default function KetsContractPage() {
                                         <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" value={formData.expenses.toLocaleString()} onChange={(e) => handleChange('expenses', parseInt(e.target.value.replace(/,/g, '')) || 0)} />
                                     </div>
                                 </div>
+                                {/* VAT 선택 */}
+                                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                                    <label className="text-xs font-bold text-emerald-700 mb-2 block">부가가치세 (VAT) 구분</label>
+                                    <div className="flex gap-6">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="vatType"
+                                                value="별도"
+                                                checked={formData.vatType === '별도'}
+                                                onChange={(e) => handleChange('vatType', e.target.value)}
+                                                className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                            />
+                                            <span className="text-sm font-medium text-slate-700">VAT 별도 (기본)</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="vatType"
+                                                value="포함"
+                                                checked={formData.vatType === '포함'}
+                                                onChange={(e) => handleChange('vatType', e.target.value)}
+                                                className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                            />
+                                            <span className="text-sm font-medium text-slate-700">VAT 포함</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </section>
                     </div>
@@ -291,8 +443,14 @@ export default function KetsContractPage() {
 
                                 <div className="flex flex-col gap-4 mt-8">
                                     <button
+                                        onClick={handlePrintPdf}
+                                        className="w-full bg-emerald-500 hover:bg-emerald-400 py-4 rounded-xl font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                                    >
+                                        제안서 PDF 인쇄
+                                    </button>
+                                    <button
                                         onClick={handleDownloadDocx}
-                                        className="w-full bg-emerald-500 hover:bg-emerald-400 py-4 rounded-xl font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                        className="w-full border-2 border-emerald-500/50 hover:bg-emerald-500/10 py-4 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
                                     >
                                         <span>Word 계약서 다운로드</span>
                                         <span className="text-xs opacity-60">(.docx)</span>
