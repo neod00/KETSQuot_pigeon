@@ -518,13 +518,13 @@ export default function GeneratorPage() {
 
                                 <div className="flex flex-col gap-4 mt-8">
                                     <button
-                                        onClick={handleGenerate}
+                                        onClick={() => handleGenerate()}
                                         className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-95"
                                     >
                                         제안서 PDF 인쇄
                                     </button>
                                     <button
-                                        onClick={handleDownloadDocx}
+                                        onClick={() => handleDownloadDocx()}
                                         className="w-full border-2 border-blue-500/50 hover:bg-blue-500/10 py-4 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
                                     >
                                         <span>Word 제안서 다운로드</span>

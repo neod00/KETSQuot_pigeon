@@ -458,13 +458,13 @@ export default function KetsContractPage() {
 
                                 <div className="flex flex-col gap-4 mt-8">
                                     <button
-                                        onClick={handlePrintPdf}
+                                        onClick={() => handlePrintPdf()}
                                         className="w-full bg-emerald-500 hover:bg-emerald-400 py-4 rounded-xl font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
                                     >
                                         제안서 PDF 인쇄
                                     </button>
                                     <button
-                                        onClick={handleDownloadDocx}
+                                        onClick={() => handleDownloadDocx()}
                                         className="w-full border-2 border-emerald-500/50 hover:bg-emerald-500/10 py-4 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
                                     >
                                         <span>Word 계약서 다운로드</span>
