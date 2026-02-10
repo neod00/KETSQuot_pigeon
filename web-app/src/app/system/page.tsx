@@ -132,7 +132,7 @@ export default function GeneratorPage() {
                 setFormData(savedData);
             } else if (action === 'regenerate') {
                 setFormData(savedData);
-                setTimeout(() => handleGenerate(savedData), 300);
+                setTimeout(() => handleDownloadDocx(savedData), 300);
             }
         } catch { /* ignore */ }
     }, []);
@@ -346,9 +346,9 @@ export default function GeneratorPage() {
         setFormData(savedFormData);
     };
 
-    // 이력에서 다시 생성 (바로 PDF)
+    // 이력에서 다시 생성 (바로 Word)
     const handleHistoryRegenerate = (savedFormData: any) => {
-        handleGenerate(savedFormData);
+        handleDownloadDocx(savedFormData);
     };
 
     return (

@@ -118,7 +118,7 @@ export default function KetsContractPage() {
                 setFormData(savedData);
             } else if (action === 'regenerate') {
                 setFormData(savedData);
-                setTimeout(() => handlePrintPdf(savedData), 300);
+                setTimeout(() => handleDownloadDocx(savedData), 300);
             }
         } catch { /* ignore */ }
     }, []);
@@ -267,9 +267,9 @@ export default function KetsContractPage() {
         setFormData(savedFormData);
     };
 
-    // 이력에서 다시 생성 (바로 PDF)
+    // 이력에서 다시 생성 (바로 Word)
     const handleHistoryRegenerate = (savedFormData: any) => {
-        handlePrintPdf(savedFormData);
+        handleDownloadDocx(savedFormData);
     };
 
     return (
