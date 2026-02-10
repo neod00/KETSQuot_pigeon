@@ -132,6 +132,9 @@ export default function LandingPage() {
             <footer className="mt-10 sm:mt-16 text-center text-slate-400 text-xs font-medium tracking-wide">
                 © 2026 LRQA Korea's DK. All rights reserved.
             </footer>
+
+            {/* 관리자 전용: 개정이력 */}
+            <ChangelogSection />
         </div>
     );
 }
@@ -442,5 +445,166 @@ function RecentHistorySection() {
                 }
             `}</style>
         </>
+    );
+}
+
+// ============================================================
+//  관리자 전용: 개정이력 (Changelog)
+// ============================================================
+const CHANGELOG = [
+    {
+        version: 'v2.4',
+        date: '2026-02-11',
+        type: 'feature' as const,
+        items: [
+            '생성 이력 기능 추가 (칩 + 팝업 모달 UI)',
+            '메인 페이지 최근 이력 섹션 & 전체 이력 팝업',
+            '관리자 삭제 / 통계 / CSV 다운로드 기능',
+            '다시 생성 시 Word 문서 즉시 다운로드',
+            '개정이력(Changelog) 섹션 추가',
+        ],
+    },
+    {
+        version: 'v2.3',
+        date: '2026-02-07',
+        type: 'improvement' as const,
+        items: [
+            'K-ETS 계약서 PDF 인쇄 레이아웃 개선',
+            'Stage Days 한줄 표시, VAT 표시 정리',
+            '온실가스 선언 기간 별도 입력 필드화',
+        ],
+    },
+    {
+        version: 'v2.2',
+        date: '2026-02-06',
+        type: 'improvement' as const,
+        items: [
+            'K-ETS 계약서 생성기 신규 추가',
+            '계약 기간 필드 분리 (service_description에서 독립)',
+        ],
+    },
+    {
+        version: 'v2.1',
+        date: '2026-02-04',
+        type: 'fix' as const,
+        items: [
+            '견적서 소수점 표시 정밀도 개선 (6 → 6.0, 9.50 → 9.5)',
+            'P827 계약서 Word 템플릿 데이터 매핑 수정',
+        ],
+    },
+    {
+        version: 'v2.0',
+        date: '2026-02-01',
+        type: 'feature' as const,
+        items: [
+            'P827 Data & Information 계약서 생성기 추가',
+            '피드백 사이드바 (별점, 댓글, 좋아요)',
+            '메인 포털 페이지 UI 리뉴얼',
+        ],
+    },
+    {
+        version: 'v1.0',
+        date: '2026-01-15',
+        type: 'feature' as const,
+        items: [
+            'LRQA K-ETS 견적서 생성기 초기 버전',
+            'PDF 인쇄 & 자동 계산 기능',
+        ],
+    },
+];
+
+const TYPE_COLORS = {
+    feature: { dot: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700', label: 'New' },
+    improvement: { dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700', label: 'Update' },
+    fix: { dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700', label: 'Fix' },
+};
+
+function ChangelogSection() {
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [expanded, setExpanded] = useState(false);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('admin') === 'lrqa2026') {
+            setIsAdmin(true);
+        }
+    }, []);
+
+    if (!isAdmin) return null;
+
+    const displayItems = expanded ? CHANGELOG : CHANGELOG.slice(0, 2);
+
+    return (
+        <div className="max-w-7xl mx-auto mt-8">
+            <div className="bg-white rounded-2xl sm:rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                {/* Header */}
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-slate-50/50 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="text-lg">📝</span>
+                        <h2 className="text-base sm:text-lg font-black text-slate-800">개정이력</h2>
+                        <span className="text-[10px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded-full">
+                            {CHANGELOG[0].version}
+                        </span>
+                        <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+                            ADMIN
+                        </span>
+                    </div>
+                    <span className={`text-slate-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}>
+                        ▼
+                    </span>
+                </button>
+
+                {/* Timeline */}
+                <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+                    <div className="relative">
+                        {/* Vertical line */}
+                        <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-blue-300 via-slate-200 to-transparent"></div>
+
+                        <div className="space-y-5">
+                            {displayItems.map((entry, idx) => {
+                                const colors = TYPE_COLORS[entry.type];
+                                return (
+                                    <div key={entry.version} className="relative pl-7">
+                                        {/* Dot */}
+                                        <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full ${colors.dot} border-[3px] border-white shadow-sm`}></div>
+
+                                        {/* Content */}
+                                        <div className={`${idx === 0 ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200' : 'bg-slate-50 border-slate-200'} border rounded-xl p-4`}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="text-sm font-black text-slate-800">{entry.version}</span>
+                                                <span className={`text-[10px] font-bold ${colors.badge} px-1.5 py-0.5 rounded`}>
+                                                    {colors.label}
+                                                </span>
+                                                <span className="text-[11px] text-slate-400 font-medium ml-auto">{entry.date}</span>
+                                            </div>
+                                            <ul className="space-y-1">
+                                                {entry.items.map((item, i) => (
+                                                    <li key={i} className="text-xs text-slate-600 font-medium flex items-start gap-1.5">
+                                                        <span className="text-slate-300 mt-0.5">•</span>
+                                                        <span>{item}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {CHANGELOG.length > 2 && (
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            className="mt-4 w-full text-center text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors py-2"
+                        >
+                            {expanded ? '접기 ▲' : `이전 이력 ${CHANGELOG.length - 2}건 더 보기 ▼`}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
