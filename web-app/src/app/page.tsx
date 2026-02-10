@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import FeedbackSidebar from '../components/FeedbackSidebar';
 import type { HistoryRecord } from '../components/GenerationHistory';
 
@@ -137,12 +138,19 @@ export default function LandingPage() {
 
 // 최근 생성 이력 섹션 컴포넌트
 function RecentHistorySection() {
+    const router = useRouter();
     const [history, setHistory] = useState<HistoryRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<string>('all');
     const [isAdmin, setIsAdmin] = useState(false);
+
+    const navigateWithData = (record: HistoryRecord, action: 'restore' | 'regenerate') => {
+        localStorage.setItem('history_action', JSON.stringify({ action, formData: record.formData, pageType: record.pageType }));
+        router.push(PAGE_LINKS[record.pageType] || '/generator');
+        setShowModal(false);
+    };
 
     const PAGE_LABELS: Record<string, string> = {
         'generator': 'K-ETS 견적서',
@@ -336,9 +344,8 @@ function RecentHistorySection() {
                                 filteredHistory.map(record => {
                                     const colors = PAGE_COLORS[record.pageType] || PAGE_COLORS['generator'];
                                     return (
-                                        <Link
+                                        <div
                                             key={record.id}
-                                            href={PAGE_LINKS[record.pageType] || '/generator'}
                                             className={`block ${colors.bg} ${colors.border} border rounded-xl p-4 hover:shadow-md transition-all`}
                                         >
                                             <div className="flex items-start justify-between">
@@ -359,9 +366,23 @@ function RecentHistorySection() {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <span className="text-slate-300 text-xs ml-2">›</span>
                                             </div>
-                                        </Link>
+                                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200/50">
+                                                <button
+                                                    onClick={() => navigateWithData(record, 'restore')}
+                                                    className="flex-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg py-1.5 transition-colors"
+                                                >
+                                                    ✏️ 수정 후 생성
+                                                </button>
+                                                <button
+                                                    onClick={() => navigateWithData(record, 'regenerate')}
+                                                    className={`flex-1 text-[11px] font-bold text-white ${colors.dot.replace('bg-', 'bg-')} hover:opacity-80 rounded-lg py-1.5 transition-colors`}
+                                                    style={{ backgroundColor: record.pageType === 'system' ? '#3b82f6' : record.pageType === 'kets-contract' ? '#10b981' : '#64748b' }}
+                                                >
+                                                    🔄 다시 생성
+                                                </button>
+                                            </div>
+                                        </div>
                                     );
                                 })
                             )}

@@ -106,6 +106,23 @@ export default function KetsContractPage() {
         setFormData(prev => ({ ...prev, proposalDate: dateStr, proposalNo: `QR.KETS-${yyyy}${mm}${dd}-01` }));
     }, []);
 
+    // 메인페이지 이력에서 넘어온 경우 데이터 복원
+    useEffect(() => {
+        const raw = localStorage.getItem('history_action');
+        if (!raw) return;
+        localStorage.removeItem('history_action');
+        try {
+            const { action, formData: savedData, pageType } = JSON.parse(raw);
+            if (pageType !== 'kets-contract') return;
+            if (action === 'restore') {
+                setFormData(savedData);
+            } else if (action === 'regenerate') {
+                setFormData(savedData);
+                setTimeout(() => handlePrintPdf(savedData), 300);
+            }
+        } catch { /* ignore */ }
+    }, []);
+
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };

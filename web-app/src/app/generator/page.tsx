@@ -42,6 +42,22 @@ export default function GeneratorPage() {
         setDocId(`QR.001/DK/G${YYMMDD}`);
     }, []);
 
+    // 메인페이지 이력에서 넘어온 경우 데이터 복원
+    useEffect(() => {
+        const raw = localStorage.getItem('history_action');
+        if (!raw) return;
+        localStorage.removeItem('history_action');
+        try {
+            const { action, formData: savedData, pageType } = JSON.parse(raw);
+            if (pageType !== 'generator') return;
+            if (action === 'restore') {
+                handleHistoryRestore(savedData);
+            } else if (action === 'regenerate') {
+                handleHistoryRegenerate(savedData);
+            }
+        } catch { /* ignore */ }
+    }, []);
+
     const calculateAuto = (s1: string, s2: string, s3: string, exp: number) => {
         return Math.floor((parseFloat(s1) || 0) * STANDARD_RATE + (parseFloat(s2) || 0) * STANDARD_RATE + (parseFloat(s3) || 0) * STANDARD_RATE + exp);
     };
