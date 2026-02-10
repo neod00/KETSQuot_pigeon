@@ -229,13 +229,21 @@ function RecentHistorySection() {
 
     const handleDeleteOne = async (id: string) => {
         if (!confirm('이 이력을 삭제하시겠습니까?')) return;
-        await fetch(`/.netlify/functions/history?action=delete&id=${id}`, { method: 'DELETE' });
+        await fetch('/.netlify/functions/history?action=delete', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, adminKey: 'lrqa2026' }),
+        });
         setHistory(prev => prev.filter(h => h.id !== id));
     };
 
     const handleDeleteAll = async () => {
         if (!confirm('모든 이력을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
-        await fetch('/.netlify/functions/history?action=deleteAll', { method: 'DELETE' });
+        await fetch('/.netlify/functions/history?action=deleteAll', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminKey: 'lrqa2026' }),
+        });
         setHistory([]);
     };
 
