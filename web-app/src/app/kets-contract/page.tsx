@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { generateKetsDocx } from '../../utils/docxGenerator';
+import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
 
 // --- Types ---
 interface KetsContractData {
@@ -109,118 +110,123 @@ export default function KetsContractPage() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleDownloadDocx = () => {
-        const adm = ADM_DATA[formData.adminName] || ADM_DATA['권대근'];
-        const rawText = (val: string) => (val || '').trim();
-
-        const data: KetsContractData = {
-            company_name: rawText(formData.companyName),
-            proposal_date: formatDateLong(formData.proposalDate),
-            proposal_no: formData.proposalNo,
-            lrqa_contact_name: formData.adminName,
-            lrqa_contact_email: adm.email,
-            lrqa_contact_phone: adm.phone,
-            hq_address: rawText(formData.hqAddress),
-            target_sites: rawText(formData.targetSites),
-            ghg_declaration_period: rawText(formData.ghgDeclarationPeriod),
-            materiality: formData.materiality,
-            stage1_days: formData.s1Days.toFixed(1),
-            stage1_cost: formatNum(Math.floor(calculations.s1Cost)),
-            stage2_days: formData.s2Days.toFixed(1),
-            stage2_cost: formatNum(Math.floor(calculations.s2Cost)),
-            stage3_days: formData.s3Days.toFixed(1),
-            stage3_cost: formatNum(Math.floor(calculations.s3Cost)),
-            expenses: formatNum(Math.floor(calculations.expCost)),
-            total_days: formatTotalDays(calculations.totalDays),
-            total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
-            final_cost: formatNum(formData.manualFinalCost),
-            vat_type: formData.vatType,
-            // 공평성 자가진단표 관련 필드
-            business_registration: rawText(formData.businessRegistration),
-            client_contact: rawText(formData.clientContact),
-            industry_type: rawText(formData.industryType),
-        };
-
-        generateKetsDocx(data, formData.companyName);
+    // 이력 저장 헬퍼
+    const saveToHistory = () => {
+        saveHistoryRecord(
+            'kets-contract', 'K-ETS 계약서',
+            formData.companyName, formData.manualFinalCost, formData.vatType,
+            formData,
+            { s1Days: formData.s1Days, s2Days: formData.s2Days, s3Days: formData.s3Days, expenses: formData.expenses, auditRate: formData.auditRate }
+        );
     };
 
-    const handlePrintPdf = async () => {
-        const adm = ADM_DATA[formData.adminName] || ADM_DATA['권대근'];
-        const formatText = (val: string) => (val || '').replace(/ /g, '\u00a0').replace(/\n/g, '<br/>');
+    const handleDownloadDocx = (sourceData?: any) => {
+        const fd = sourceData || formData;
+        const adm = ADM_DATA[fd.adminName] || ADM_DATA['권대근'];
+        const rawText = (val: string) => (val || '').trim();
 
-        const data: Record<string, string> = {
-            company_name: formatText(formData.companyName),
-            proposal_date: formatDateLong(formData.proposalDate),
-            proposal_no: formData.proposalNo,
-            lrqa_contact_name: formData.adminName,
+        // 재계산 (sourceData에서 불러온 경우)
+        const rate = fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate;
+        const s1Cost = fd.s1Days * rate;
+        const s2Cost = fd.s2Days * rate;
+        const s3Cost = fd.s3Days * rate;
+        const expCost = fd.vatType === '포함' ? fd.expenses * 1.1 : fd.expenses;
+        const totalDays = fd.s1Days + fd.s2Days + fd.s3Days;
+        const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+
+        const data: KetsContractData = {
+            company_name: rawText(fd.companyName),
+            proposal_date: formatDateLong(fd.proposalDate),
+            proposal_no: fd.proposalNo,
+            lrqa_contact_name: fd.adminName,
             lrqa_contact_email: adm.email,
             lrqa_contact_phone: adm.phone,
-            hq_address: formatText(formData.hqAddress),
-            target_sites: formatText(formData.targetSites),
-            ghg_declaration_period: formatText(formData.ghgDeclarationPeriod),
-            materiality: formData.materiality,
-            stage1_days: formData.s1Days.toFixed(1) + ' days',
-            stage1_cost: formatNum(Math.floor(calculations.s1Cost)),
-            stage2_days: formData.s2Days.toFixed(1) + ' days',
-            stage2_cost: formatNum(Math.floor(calculations.s2Cost)),
-            stage3_days: formData.s3Days.toFixed(1) + ' days',
-            stage3_cost: formatNum(Math.floor(calculations.s3Cost)),
-            expenses: formatNum(Math.floor(calculations.expCost)),
-            total_days: formatTotalDays(calculations.totalDays) + ' days',
-            total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
-            final_cost: formatNum(formData.manualFinalCost),
-            vat_type: `VAT ${formData.vatType}`,
-            // 공평성 자가진단표 관련 필드
-            business_registration: formatText(formData.businessRegistration),
-            client_contact: formatText(formData.clientContact),
-            industry_type: formatText(formData.industryType),
+            hq_address: rawText(fd.hqAddress),
+            target_sites: rawText(fd.targetSites),
+            ghg_declaration_period: rawText(fd.ghgDeclarationPeriod),
+            materiality: fd.materiality,
+            stage1_days: fd.s1Days.toFixed(1),
+            stage1_cost: formatNum(Math.floor(s1Cost)),
+            stage2_days: fd.s2Days.toFixed(1),
+            stage2_cost: formatNum(Math.floor(s2Cost)),
+            stage3_days: fd.s3Days.toFixed(1),
+            stage3_cost: formatNum(Math.floor(s3Cost)),
+            expenses: formatNum(Math.floor(expCost)),
+            total_days: formatTotalDays(totalDays),
+            total_cost: formatNum(Math.floor(calculatedTotal)),
+            final_cost: formatNum(fd.manualFinalCost),
+            vat_type: fd.vatType,
+            business_registration: rawText(fd.businessRegistration),
+            client_contact: rawText(fd.clientContact),
+            industry_type: rawText(fd.industryType),
+        };
+
+        generateKetsDocx(data, fd.companyName);
+        if (!sourceData) saveToHistory();
+    };
+
+    const handlePrintPdf = async (sourceData?: any) => {
+        const fd = sourceData || formData;
+        const adm = ADM_DATA[fd.adminName] || ADM_DATA['권대근'];
+        const formatText = (val: string) => (val || '').replace(/ /g, '\u00a0').replace(/\n/g, '<br/>');
+
+        // 재계산
+        const rate = fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate;
+        const s1Cost = fd.s1Days * rate;
+        const s2Cost = fd.s2Days * rate;
+        const s3Cost = fd.s3Days * rate;
+        const expCost = fd.vatType === '포함' ? fd.expenses * 1.1 : fd.expenses;
+        const totalDays = fd.s1Days + fd.s2Days + fd.s3Days;
+        const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+
+        const data: Record<string, string> = {
+            company_name: formatText(fd.companyName),
+            proposal_date: formatDateLong(fd.proposalDate),
+            proposal_no: fd.proposalNo,
+            lrqa_contact_name: fd.adminName,
+            lrqa_contact_email: adm.email,
+            lrqa_contact_phone: adm.phone,
+            hq_address: formatText(fd.hqAddress),
+            target_sites: formatText(fd.targetSites),
+            ghg_declaration_period: formatText(fd.ghgDeclarationPeriod),
+            materiality: fd.materiality,
+            stage1_days: fd.s1Days.toFixed(1) + ' days',
+            stage1_cost: formatNum(Math.floor(s1Cost)),
+            stage2_days: fd.s2Days.toFixed(1) + ' days',
+            stage2_cost: formatNum(Math.floor(s2Cost)),
+            stage3_days: fd.s3Days.toFixed(1) + ' days',
+            stage3_cost: formatNum(Math.floor(s3Cost)),
+            expenses: formatNum(Math.floor(expCost)),
+            total_days: formatTotalDays(totalDays) + ' days',
+            total_cost: formatNum(Math.floor(calculatedTotal)),
+            final_cost: formatNum(fd.manualFinalCost),
+            vat_type: `VAT ${fd.vatType}`,
+            business_registration: formatText(fd.businessRegistration),
+            client_contact: formatText(fd.clientContact),
+            industry_type: formatText(fd.industryType),
         };
 
         try {
             const response = await fetch('/K-ETSemission_template.html');
             let htmlContent = await response.text();
 
-            // PDF 파일명 설정
-            const pdfFileName = `LRQA_온실가스 명세서 검증 제안서 계약서_${formData.companyName || "기업명"}`.replace(/[/\\?%*:|"<>]/g, '-');
+            const pdfFileName = `LRQA_온실가스 명세서 검증 제안서 계약서_${fd.companyName || "기업명"}`.replace(/[/\\?%*:|"<>]/g, '-');
             htmlContent = htmlContent.replace('<head>', `<head><title>${pdfFileName}</title>`);
 
-            // 플레이스홀더 치환 ({key} 형식)
             Object.entries(data).forEach(([key, val]) => {
                 const placeholder = `{${key}}`;
                 const wrappedVal = `<span class="dynamic-value">${val}</span>`;
                 htmlContent = htmlContent.split(placeholder).join(wrappedVal);
             });
 
-            // 인쇄 스타일 추가
             const printStyles = `
 <style>
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
+  @page { size: A4 portrait; margin: 0; }
   @media print {
-    html, body {
-      margin: 0 !important;
-      padding: 0 !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    .pf {
-      margin: 0 auto !important;
-      box-shadow: none !important;
-      page-break-after: always !important;
-      page-break-inside: avoid !important;
-    }
-    .dynamic-value {
-      font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", Dotum, sans-serif !important;
-      font-weight: 500 !important;
-      text-decoration: none !important;
-      display: inline !important;
-      white-space: nowrap !important;
-    }
-    #sidebar, .pi, .loading-indicator {
-      display: none !important;
-    }
+    html, body { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .pf { margin: 0 auto !important; box-shadow: none !important; page-break-after: always !important; page-break-inside: avoid !important; }
+    .dynamic-value { font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", Dotum, sans-serif !important; font-weight: 500 !important; text-decoration: none !important; display: inline !important; white-space: nowrap !important; }
+    #sidebar, .pi, .loading-indicator { display: none !important; }
   }
 </style>
 `;
@@ -230,14 +236,23 @@ export default function KetsContractPage() {
             if (printWindow) {
                 printWindow.document.write(htmlContent);
                 printWindow.document.close();
-                setTimeout(() => {
-                    printWindow.print();
-                }, 1000);
+                setTimeout(() => { printWindow.print(); }, 1000);
             }
+            if (!sourceData) saveToHistory();
         } catch (error) {
             console.error('Failed to load HTML template:', error);
             alert('PDF 템플릿을 불러올 수 없습니다.');
         }
+    };
+
+    // 이력에서 불러오기 (폼 채움)
+    const handleHistoryRestore = (savedFormData: any) => {
+        setFormData(savedFormData);
+    };
+
+    // 이력에서 다시 생성 (바로 PDF)
+    const handleHistoryRegenerate = (savedFormData: any) => {
+        handlePrintPdf(savedFormData);
     };
 
     return (
@@ -457,6 +472,14 @@ export default function KetsContractPage() {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* 생성 이력 */}
+                            <GenerationHistory
+                                pageType="kets-contract"
+                                pageLabel="K-ETS 계약서"
+                                onRestore={handleHistoryRestore}
+                                onRegenerate={handleHistoryRegenerate}
+                            />
 
                             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex gap-3 text-emerald-900 text-[11px] leading-relaxed font-medium">
                                 <span>ℹ️</span>

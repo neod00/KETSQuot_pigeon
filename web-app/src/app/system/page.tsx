@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { CONTRACT_TEMPLATE } from '../../constants/template';
 import { generateDocx } from '../../utils/docxGenerator';
+import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
 
 // --- Types ---
 interface QuotationData {
@@ -123,56 +124,68 @@ export default function GeneratorPage() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleGenerate = () => {
-        const rate_text = formatNum(Math.floor(formData.vatType === '포함' ? formData.auditRate * 1.1 : formData.auditRate));
-        const vat_note = formData.vatType === '별도'
+    const handleGenerate = (sourceData?: any) => {
+        const fd = sourceData || formData;
+        const rate_text = formatNum(Math.floor(fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate));
+        const vat_note = fd.vatType === '별도'
             ? '부가세(VAT)가 별도이며, 해당되는 요율로 청구됩니다.'
             : '부가세(VAT)가 포함된 금액이며, 해당되는 요율로 청구됩니다.';
 
-        const appFeeText = formData.appFeeType === 'exempt'
-            ? `면제 (${formatNum(formData.appFeeAmount)})`
-            : `${formatNum(formData.appFeeAmount)}`;
+        const appFeeText = fd.appFeeType === 'exempt'
+            ? `면제 (${formatNum(fd.appFeeAmount)})`
+            : `${formatNum(fd.appFeeAmount)}`;
 
-        const adm = ADM_DATA[formData.adminName] || ADM_DATA['권대근'];
+        const adm = ADM_DATA[fd.adminName] || ADM_DATA['권대근'];
         const formatText = (val: string) => (val || '').replace(/ /g, '\u00a0').replace(/\n/g, '<br/>');
 
+        const calcs = (() => {
+            const rate = fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate;
+            const s1Cost = fd.s1Days * rate;
+            const s2Cost = fd.s2Days * rate;
+            const s3Cost = fd.s3Days * rate;
+            const expCost = fd.vatType === '포함' ? fd.expenses * 1.1 : fd.expenses;
+            const totalDays = fd.s1Days + fd.s2Days + fd.s3Days;
+            const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+            return { s1Cost, s2Cost, s3Cost, expCost, totalDays, calculatedTotal };
+        })();
+
         const data: QuotationData = {
-            company_name: formatText(formData.companyName),
-            proposal_date: formData.proposalDate,
-            proposal_date_korean_long: formatDateLong(formData.proposalDate),
-            proposal_no: formData.proposalNo,
-            service_description: formatText(formData.serviceDesc),
-            lrqa_contact_name: formData.adminName,
+            company_name: formatText(fd.companyName),
+            proposal_date: fd.proposalDate,
+            proposal_date_korean_long: formatDateLong(fd.proposalDate),
+            proposal_no: fd.proposalNo,
+            service_description: formatText(fd.serviceDesc),
+            lrqa_contact_name: fd.adminName,
             lrqa_contact_email: adm.email,
             lrqa_contact_phone: adm.phone,
-            hq_address: formatText(formData.hqAddress),
-            target_sites: formatText(formData.targetSites),
-            verification_year: formData.vYear,
-            ghg_declaration_period: formatText(formData.ghgDeclarationPeriod),
-            reporting_period_full: `${formData.vYear}년 1월 ~ 12월 (12개월)`,
-            assurance_level: formData.assuranceLevel,
-            materiality_level: formData.materialityLevel,
+            hq_address: formatText(fd.hqAddress),
+            target_sites: formatText(fd.targetSites),
+            verification_year: fd.vYear,
+            ghg_declaration_period: formatText(fd.ghgDeclarationPeriod),
+            reporting_period_full: `${fd.vYear}년 1월 ~ 12월 (12개월)`,
+            assurance_level: fd.assuranceLevel,
+            materiality_level: fd.materialityLevel,
             audit_rate: rate_text,
-            stage1_days: formData.s1Days.toFixed(1),
-            stage1_cost: formatNum(Math.floor(calculations.s1Cost)),
-            stage2_days: formData.s2Days.toFixed(1),
-            stage2_cost: formatNum(Math.floor(calculations.s2Cost)),
-            stage3_days: formData.s3Days.toFixed(1),
-            stage3_cost: formatNum(Math.floor(calculations.s3Cost)),
-            expenses: formatNum(Math.floor(calculations.expCost)),
-            total_days: formatTotalDays(calculations.totalDays),
-            total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
-            final_cost: formatNum(formData.manualFinalCost),
-            vat_type: formData.vatType,
+            stage1_days: fd.s1Days.toFixed(1),
+            stage1_cost: formatNum(Math.floor(calcs.s1Cost)),
+            stage2_days: fd.s2Days.toFixed(1),
+            stage2_cost: formatNum(Math.floor(calcs.s2Cost)),
+            stage3_days: fd.s3Days.toFixed(1),
+            stage3_cost: formatNum(Math.floor(calcs.s3Cost)),
+            expenses: formatNum(Math.floor(calcs.expCost)),
+            total_days: formatTotalDays(calcs.totalDays),
+            total_cost: formatNum(Math.floor(calcs.calculatedTotal)),
+            final_cost: formatNum(fd.manualFinalCost),
+            vat_type: fd.vatType,
             vat_note_text: formatText(vat_note),
             application_fee_text: formatText(appFeeText),
-            quote_validity_days: formData.validity.toString(),
-            client_representative_name: formatText(formData.clientRepName),
-            client_representative_title: formatText(formData.clientRepTitle),
-            reporting_deadline: formatText(formData.reportingDeadline),
+            quote_validity_days: fd.validity.toString(),
+            client_representative_name: formatText(fd.clientRepName),
+            client_representative_title: formatText(fd.clientRepTitle),
+            reporting_deadline: formatText(fd.reportingDeadline),
         };
 
-        const pdfFileName = `LRQA_Service Agreement_GHG Protocol_${formData.companyName || "기업명"}_2026`.replace(/[/\\?%*:|"<>]/g, '-');
+        const pdfFileName = `LRQA_Service Agreement_GHG Protocol_${fd.companyName || "기업명"}_2026`.replace(/[/\\?%*:|"<>]/g, '-');
         let rendered = CONTRACT_TEMPLATE.replace('<head>', `<head><title>${pdfFileName}</title>`);
         Object.entries(data).forEach(([key, val]) => {
             const placeholder = `{{ ${key} }}`;
@@ -232,59 +245,93 @@ export default function GeneratorPage() {
                 printWindow.print();
             }, 1000);
         }
+        if (!sourceData) saveToHistory();
     };
 
-    const handleDownloadDocx = () => {
-        const rate_text = formatNum(Math.floor(formData.vatType === '포함' ? formData.auditRate * 1.1 : formData.auditRate));
-        const vat_note = formData.vatType === '별도'
+    // 이력 저장 헬퍼
+    const saveToHistory = () => {
+        saveHistoryRecord(
+            'system', 'P827 계약서',
+            formData.companyName, formData.manualFinalCost, formData.vatType,
+            formData,
+            { s1Days: formData.s1Days, s2Days: formData.s2Days, s3Days: formData.s3Days, expenses: formData.expenses, auditRate: formData.auditRate }
+        );
+    };
+
+    const handleDownloadDocx = (sourceData?: any) => {
+        const fd = sourceData || formData;
+        const rate_text = formatNum(Math.floor(fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate));
+        const vat_note = fd.vatType === '별도'
             ? '부가세(VAT)가 별도이며, 해당되는 요율로 청구됩니다.'
             : '부가세(VAT)가 포함된 금액이며, 해당되는 요율로 청구됩니다.';
 
-        const appFeeText = formData.appFeeType === 'exempt'
-            ? `면제 (${formatNum(formData.appFeeAmount)})`
-            : `${formatNum(formData.appFeeAmount)}`;
+        const appFeeText = fd.appFeeType === 'exempt'
+            ? `면제 (${formatNum(fd.appFeeAmount)})`
+            : `${formatNum(fd.appFeeAmount)}`;
 
-        const adm = ADM_DATA[formData.adminName] || ADM_DATA['권대근'];
+        const adm = ADM_DATA[fd.adminName] || ADM_DATA['권대근'];
 
         const rawText = (val: string) => (val || '').trim();
 
+        const calcs2 = (() => {
+            const rate = fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate;
+            const s1Cost = fd.s1Days * rate;
+            const s2Cost = fd.s2Days * rate;
+            const s3Cost = fd.s3Days * rate;
+            const expCost = fd.vatType === '포함' ? fd.expenses * 1.1 : fd.expenses;
+            const totalDays = fd.s1Days + fd.s2Days + fd.s3Days;
+            const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+            return { s1Cost, s2Cost, s3Cost, expCost, totalDays, calculatedTotal };
+        })();
+
         const data: QuotationData = {
-            company_name: rawText(formData.companyName),
-            proposal_date: formData.proposalDate,
-            proposal_date_korean_long: formatDateLong(formData.proposalDate),
-            proposal_no: formData.proposalNo,
-            service_description: rawText(formData.serviceDesc),
-            lrqa_contact_name: formData.adminName,
+            company_name: rawText(fd.companyName),
+            proposal_date: fd.proposalDate,
+            proposal_date_korean_long: formatDateLong(fd.proposalDate),
+            proposal_no: fd.proposalNo,
+            service_description: rawText(fd.serviceDesc),
+            lrqa_contact_name: fd.adminName,
             lrqa_contact_email: adm.email,
             lrqa_contact_phone: adm.phone,
-            hq_address: rawText(formData.hqAddress),
-            target_sites: rawText(formData.targetSites),
-            verification_year: formData.vYear,
-            ghg_declaration_period: rawText(formData.ghgDeclarationPeriod),
-            reporting_period_full: `${formData.vYear}년 1월 ~ 12월 (12개월)`,
-            assurance_level: formData.assuranceLevel,
-            materiality_level: formData.materialityLevel,
+            hq_address: rawText(fd.hqAddress),
+            target_sites: rawText(fd.targetSites),
+            verification_year: fd.vYear,
+            ghg_declaration_period: rawText(fd.ghgDeclarationPeriod),
+            reporting_period_full: `${fd.vYear}년 1월 ~ 12월 (12개월)`,
+            assurance_level: fd.assuranceLevel,
+            materiality_level: fd.materialityLevel,
             audit_rate: rate_text,
-            stage1_days: formData.s1Days.toFixed(1),
-            stage1_cost: formatNum(Math.floor(calculations.s1Cost)),
-            stage2_days: formData.s2Days.toFixed(1),
-            stage2_cost: formatNum(Math.floor(calculations.s2Cost)),
-            stage3_days: formData.s3Days.toFixed(1),
-            stage3_cost: formatNum(Math.floor(calculations.s3Cost)),
-            expenses: formatNum(Math.floor(calculations.expCost)),
-            total_days: formatTotalDays(calculations.totalDays),
-            total_cost: formatNum(Math.floor(calculations.calculatedTotal)),
-            final_cost: formatNum(formData.manualFinalCost),
-            vat_type: formData.vatType,
+            stage1_days: fd.s1Days.toFixed(1),
+            stage1_cost: formatNum(Math.floor(calcs2.s1Cost)),
+            stage2_days: fd.s2Days.toFixed(1),
+            stage2_cost: formatNum(Math.floor(calcs2.s2Cost)),
+            stage3_days: fd.s3Days.toFixed(1),
+            stage3_cost: formatNum(Math.floor(calcs2.s3Cost)),
+            expenses: formatNum(Math.floor(calcs2.expCost)),
+            total_days: formatTotalDays(calcs2.totalDays),
+            total_cost: formatNum(Math.floor(calcs2.calculatedTotal)),
+            final_cost: formatNum(fd.manualFinalCost),
+            vat_type: fd.vatType,
             vat_note_text: rawText(vat_note),
             application_fee_text: rawText(appFeeText),
-            quote_validity_days: formData.validity.toString(),
-            client_representative_name: rawText(formData.clientRepName),
-            client_representative_title: rawText(formData.clientRepTitle),
-            reporting_deadline: rawText(formData.reportingDeadline),
+            quote_validity_days: fd.validity.toString(),
+            client_representative_name: rawText(fd.clientRepName),
+            client_representative_title: rawText(fd.clientRepTitle),
+            reporting_deadline: rawText(fd.reportingDeadline),
         };
 
         generateDocx(data);
+        if (!sourceData) saveToHistory();
+    };
+
+    // 이력에서 불러오기 (폼 채움)
+    const handleHistoryRestore = (savedFormData: any) => {
+        setFormData(savedFormData);
+    };
+
+    // 이력에서 다시 생성 (바로 PDF)
+    const handleHistoryRegenerate = (savedFormData: any) => {
+        handleGenerate(savedFormData);
     };
 
     return (
@@ -485,6 +532,14 @@ export default function GeneratorPage() {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* 생성 이력 */}
+                            <GenerationHistory
+                                pageType="system"
+                                pageLabel="P827 계약서"
+                                onRestore={handleHistoryRestore}
+                                onRegenerate={handleHistoryRegenerate}
+                            />
 
                             <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex gap-3 text-blue-900 text-[11px] leading-relaxed font-medium">
                                 <span>ℹ️</span>

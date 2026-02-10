@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import FeedbackSidebar from '../components/FeedbackSidebar';
+import type { HistoryRecord } from '../components/GenerationHistory';
 
 export default function LandingPage() {
     return (
@@ -113,6 +115,9 @@ export default function LandingPage() {
                             </div>
                         </Link>
                     </div>
+
+                    {/* 최근 생성 이력 섹션 */}
+                    <RecentHistorySection />
                 </div>
 
                 {/* Right: Feedback Sidebar */}
@@ -127,5 +132,260 @@ export default function LandingPage() {
                 © 2026 LRQA Korea's DK. All rights reserved.
             </footer>
         </div>
+    );
+}
+
+// 최근 생성 이력 섹션 컴포넌트
+function RecentHistorySection() {
+    const [history, setHistory] = useState<HistoryRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterType, setFilterType] = useState<string>('all');
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    const PAGE_LABELS: Record<string, string> = {
+        'generator': 'K-ETS 견적서',
+        'system': 'P827 계약서',
+        'kets-contract': 'K-ETS 계약서',
+    };
+
+    const PAGE_LINKS: Record<string, string> = {
+        'generator': '/generator',
+        'system': '/system',
+        'kets-contract': '/kets-contract',
+    };
+
+    const PAGE_COLORS: Record<string, { bg: string, text: string, border: string, chip: string, dot: string }> = {
+        'generator': { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', chip: 'bg-slate-100', dot: 'bg-slate-400' },
+        'system': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', chip: 'bg-blue-100', dot: 'bg-blue-400' },
+        'kets-contract': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', chip: 'bg-emerald-100', dot: 'bg-emerald-400' },
+    };
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('admin') === 'lrqa2026') setIsAdmin(true);
+
+        fetch('/.netlify/functions/history?action=list')
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setHistory(data))
+            .catch(() => setHistory([]))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const formatCost = (n: number) => n.toLocaleString();
+    const formatDate = (iso: string) => {
+        const d = new Date(iso);
+        return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+    const formatDateFull = (iso: string) => {
+        const d = new Date(iso);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+
+    const recent5 = history.slice(0, 5);
+
+    const filteredHistory = (() => {
+        let list = history;
+        if (filterType !== 'all') list = list.filter(h => h.pageType === filterType);
+        if (searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            list = list.filter(h => h.companyName.toLowerCase().includes(q));
+        }
+        return list;
+    })();
+
+    const stats = (() => {
+        const now = new Date();
+        const thisMonth = history.filter(h => {
+            const d = new Date(h.createdAt);
+            return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        });
+        return { monthCount: thisMonth.length, monthTotal: thisMonth.reduce((s, h) => s + h.finalCost, 0), allCount: history.length };
+    })();
+
+    const handleCsvDownload = () => {
+        const csvHeader = '생성일시,문서유형,회사명,최종금액,VAT구분,Stage1,Stage2,Stage3,제경비,심사요율\n';
+        const csvRows = history.map(h =>
+            `"${formatDateFull(h.createdAt)}","${h.pageLabel}","${h.companyName}",${h.finalCost},"${h.vatType}",${h.summary?.s1Days || ''},${h.summary?.s2Days || ''},${h.summary?.s3Days || ''},${h.summary?.expenses || ''},${h.summary?.auditRate || ''}`
+        ).join('\n');
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `LRQA_생성이력_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    if (loading) {
+        return (
+            <div className="mt-6 bg-white rounded-2xl sm:rounded-[2rem] border border-slate-100 p-6">
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                    <div className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin"></div>
+                    이력 불러오는 중...
+                </div>
+            </div>
+        );
+    }
+
+    if (recent5.length === 0) return null;
+
+    return (
+        <>
+            <div className="mt-6 bg-white rounded-2xl sm:rounded-[2rem] border border-slate-100 p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-lg">📝</span>
+                        <h3 className="text-sm font-bold text-slate-700">최근 생성 이력</h3>
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{history.length}건</span>
+                        {isAdmin && <span className="text-[10px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded">ADMIN</span>}
+                    </div>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                    >
+                        전체 이력 보기 →
+                    </button>
+                </div>
+
+                <div className="space-y-2">
+                    {recent5.map(record => {
+                        const colors = PAGE_COLORS[record.pageType] || PAGE_COLORS['generator'];
+                        return (
+                            <Link
+                                key={record.id}
+                                href={PAGE_LINKS[record.pageType] || '/generator'}
+                                className={`flex items-center gap-3 p-3 ${colors.bg} ${colors.border} border rounded-xl hover:shadow-sm transition-all group`}
+                            >
+                                <div className={`w-2 h-2 rounded-full ${colors.dot} flex-shrink-0`}></div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-800 truncate">{record.companyName}</span>
+                                        <span className={`text-[10px] font-bold ${colors.text} ${colors.chip} px-1.5 py-0.5 rounded flex-shrink-0`}>
+                                            {PAGE_LABELS[record.pageType]}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                    <div className="text-xs font-semibold text-slate-700">₩{formatCost(record.finalCost)}</div>
+                                    <div className="text-[10px] text-slate-400">{formatDate(record.createdAt)}</div>
+                                </div>
+                                <span className="text-slate-300 group-hover:text-slate-500 transition-colors text-xs">›</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* 전체 이력 팝업 모달 */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg">📋</span>
+                                <h2 className="text-lg font-black text-slate-800">전체 생성 이력</h2>
+                                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{filteredHistory.length}건</span>
+                                {isAdmin && <span className="text-[10px] font-bold text-white bg-red-500 px-1.5 py-0.5 rounded">ADMIN</span>}
+                            </div>
+                            <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">✕</button>
+                        </div>
+
+                        {/* 관리자 통계 */}
+                        {isAdmin && (
+                            <div className="mx-5 mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
+                                <div className="flex items-center gap-4 text-xs font-medium">
+                                    <span className="text-blue-600">📊 이번 달: <strong>{stats.monthCount}건</strong></span>
+                                    <span className="text-purple-600">💰 총 ₩<strong>{formatCost(stats.monthTotal)}</strong></span>
+                                    <span className="text-slate-500">전체 {stats.allCount}건</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 검색 & 필터 */}
+                        <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-50">
+                            <div className="relative flex-1">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+                                <input
+                                    type="text" placeholder="회사명으로 검색..."
+                                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex gap-1">
+                                {[{ key: 'all', label: '전체' }, { key: 'generator', label: '견적서' }, { key: 'system', label: 'P827' }, { key: 'kets-contract', label: 'K-ETS' }].map(f => (
+                                    <button key={f.key} onClick={() => setFilterType(f.key)} className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-colors ${filterType === f.key ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                                        {f.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 이력 목록 */}
+                        <div className="flex-1 overflow-y-auto p-5 space-y-2">
+                            {filteredHistory.length === 0 ? (
+                                <div className="text-center py-12 text-slate-400">
+                                    <p className="text-3xl mb-2">📭</p>
+                                    <p className="text-sm font-medium">이력이 없습니다</p>
+                                </div>
+                            ) : (
+                                filteredHistory.map(record => {
+                                    const colors = PAGE_COLORS[record.pageType] || PAGE_COLORS['generator'];
+                                    return (
+                                        <Link
+                                            key={record.id}
+                                            href={PAGE_LINKS[record.pageType] || '/generator'}
+                                            className={`block ${colors.bg} ${colors.border} border rounded-xl p-4 hover:shadow-md transition-all`}
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-bold text-slate-800 truncate">{record.companyName}</span>
+                                                        <span className={`text-[10px] font-bold ${colors.text} ${colors.chip} px-1.5 py-0.5 rounded`}>{PAGE_LABELS[record.pageType]}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                                        <span className="font-semibold text-slate-700">₩{formatCost(record.finalCost)}</span>
+                                                        <span>VAT {record.vatType}</span>
+                                                        <span>{formatDateFull(record.createdAt)}</span>
+                                                    </div>
+                                                    {record.summary && (
+                                                        <div className="mt-1 text-[11px] text-slate-400">
+                                                            Stage: {record.summary.s1Days} / {record.summary.s2Days} / {record.summary.s3Days}
+                                                            {record.summary.expenses ? ` · 제경비 ₩${formatCost(record.summary.expenses)}` : ''}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="text-slate-300 text-xs ml-2">›</span>
+                                            </div>
+                                        </Link>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-slate-50/50">
+                            <span className="text-[11px] text-slate-400 font-medium">총 {history.length}건 (최대 100건)</span>
+                            {isAdmin && (
+                                <button onClick={handleCsvDownload} className="text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors">
+                                    📥 CSV 다운로드
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`
+                @keyframes slideUp {
+                    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+            `}</style>
+        </>
     );
 }

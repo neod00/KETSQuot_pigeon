@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
 
 const STANDARD_RATE = 1050000;
 const EXPENSES_DEFAULT = 600000;
@@ -87,6 +88,45 @@ export default function GeneratorPage() {
         document.title = fileName;
         window.print();
         document.title = originalTitle;
+
+        // 이력 저장
+        const totalFinal = (showInv ? invFinalCost : 0) + (showMp ? mpFinalCost : 0);
+        saveHistoryRecord(
+            'generator', 'K-ETS 견적서',
+            companyName, totalFinal, vatType,
+            { quotType, companyName, contactPerson, docId, issueDate, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType },
+            { s1Days: parseFloat(invS1Days) || 0, s2Days: parseFloat(invS2Days) || 0, s3Days: parseFloat(invS3Days) || 0, expenses: invExpenses, auditRate: STANDARD_RATE }
+        );
+    };
+
+    // 이력에서 불러오기 (폼 채움)
+    const handleHistoryRestore = (savedData: any) => {
+        setQuotType(savedData.quotType || '3');
+        setCompanyName(savedData.companyName || '');
+        setContactPerson(savedData.contactPerson || '');
+        setDocId(savedData.docId || '');
+        setIssueDate(savedData.issueDate || '');
+        setInvYear(savedData.invYear || '2025년');
+        setInvS1Days(savedData.invS1Days || '1.0');
+        setInvS2Days(savedData.invS2Days || '5.0');
+        setInvS3Days(savedData.invS3Days || '3.0');
+        setInvExpenses(savedData.invExpenses || EXPENSES_DEFAULT);
+        setInvFinalCost(savedData.invFinalCost || 0);
+        setMpYear(savedData.mpYear || '2026년');
+        setMpS1Days(savedData.mpS1Days || '1.0');
+        setMpS2Days(savedData.mpS2Days || '5.0');
+        setMpS3Days(savedData.mpS3Days || '3.0');
+        setMpExpenses(savedData.mpExpenses || EXPENSES_DEFAULT);
+        setMpFinalCost(savedData.mpFinalCost || 0);
+        setVatType(savedData.vatType || '별도');
+    };
+
+    // 이력에서 다시 생성 (폼 채우고 자동 인쇄)
+    const handleHistoryRegenerate = (savedData: any) => {
+        handleHistoryRestore(savedData);
+        setTimeout(() => {
+            window.print();
+        }, 500);
     };
 
     const showInv = quotType === '1' || quotType === '3';
@@ -309,6 +349,14 @@ export default function GeneratorPage() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                     견적서 인쇄 / PDF 저장
                 </button>
+
+                {/* 생성 이력 */}
+                <GenerationHistory
+                    pageType="generator"
+                    pageLabel="K-ETS 견적서"
+                    onRestore={handleHistoryRestore}
+                    onRegenerate={handleHistoryRegenerate}
+                />
             </div>
 
             {/* Preview Section - The actual Invoice */}
