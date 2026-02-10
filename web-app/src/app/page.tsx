@@ -227,6 +227,18 @@ function RecentHistorySection() {
         URL.revokeObjectURL(url);
     };
 
+    const handleDeleteOne = async (id: string) => {
+        if (!confirm('이 이력을 삭제하시겠습니까?')) return;
+        await fetch(`/.netlify/functions/history?action=delete&id=${id}`, { method: 'DELETE' });
+        setHistory(prev => prev.filter(h => h.id !== id));
+    };
+
+    const handleDeleteAll = async () => {
+        if (!confirm('모든 이력을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+        await fetch('/.netlify/functions/history?action=deleteAll', { method: 'DELETE' });
+        setHistory([]);
+    };
+
     if (loading) {
         return (
             <div className="mt-6 bg-white rounded-2xl sm:rounded-[2rem] border border-slate-100 p-6">
@@ -376,11 +388,20 @@ function RecentHistorySection() {
                                                 </button>
                                                 <button
                                                     onClick={() => navigateWithData(record, 'regenerate')}
-                                                    className={`flex-1 text-[11px] font-bold text-white ${colors.dot.replace('bg-', 'bg-')} hover:opacity-80 rounded-lg py-1.5 transition-colors`}
+                                                    className={`flex-1 text-[11px] font-bold text-white hover:opacity-80 rounded-lg py-1.5 transition-colors`}
                                                     style={{ backgroundColor: record.pageType === 'system' ? '#3b82f6' : record.pageType === 'kets-contract' ? '#10b981' : '#64748b' }}
                                                 >
                                                     🔄 다시 생성
                                                 </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleDeleteOne(record.id)}
+                                                        className="text-[11px] font-bold text-red-400 hover:text-red-600 bg-white hover:bg-red-50 border border-red-200 rounded-lg px-2 py-1.5 transition-colors"
+                                                        title="삭제"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -392,9 +413,14 @@ function RecentHistorySection() {
                         <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-slate-50/50">
                             <span className="text-[11px] text-slate-400 font-medium">총 {history.length}건 (최대 100건)</span>
                             {isAdmin && (
-                                <button onClick={handleCsvDownload} className="text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors">
-                                    📥 CSV 다운로드
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={handleDeleteAll} className="text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-3 py-1.5 transition-colors">
+                                        🗑️ 전체 삭제
+                                    </button>
+                                    <button onClick={handleCsvDownload} className="text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-3 py-1.5 transition-colors">
+                                        📥 CSV 다운로드
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
