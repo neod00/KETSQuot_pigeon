@@ -115,6 +115,25 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         </Link>
+                        <Link href="/iso" className="group md:col-span-2">
+                            <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-indigo-900/10 hover:-translate-y-1 transition-all duration-300 border border-indigo-50 h-full flex flex-col relative overflow-hidden group-hover:border-indigo-200">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-50 to-sky-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60 group-hover:opacity-100 transition-opacity"></div>
+                                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                                    <div className="mb-4 md:mb-0 w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300 shadow-indigo-100 shadow-inner flex-shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2.25 4.5H6.75A2.25 2.25 0 014.5 18.25V5.75A2.25 2.25 0 016.75 3.5h7.5L19.5 8.75v9.5a2.25 2.25 0 01-2.25 2.25z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-grow">
+                                        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
+                                            <h2 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">ISO 견적/계약서 생성기</h2>
+                                            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600 ring-1 ring-inset ring-indigo-600/20 w-fit">ISO</span>
+                                        </div>
+                                        <p className="text-slate-500 leading-relaxed text-sm">ISO 인증 견적과 계약 조건을 심사일수, 경비, 할인, VAT 기준으로 계산하고 A4 문서로 출력합니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
                     </div>
 
                     {/* 최근 생성 이력 섹션 */}
