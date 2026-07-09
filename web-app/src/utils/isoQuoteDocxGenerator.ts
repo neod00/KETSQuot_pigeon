@@ -64,13 +64,22 @@ const safeFilePart = (value: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const isRenewalQuote = (auditType: string) => auditType.includes('갱신');
+const isSurveillanceQuote = (auditType: string) => auditType.includes('사후');
+const isCurrentCycleQuote = (auditType: string) => isRenewalQuote(auditType) || isSurveillanceQuote(auditType);
+
 const auditPhrase = (auditType: string) => {
-  if (auditType.includes('갱신')) return '갱신 심사';
+  if (isRenewalQuote(auditType)) return '갱신 심사';
   if (auditType.includes('전환') || auditType.includes('인수')) return '인수인증 심사';
   if (auditType.includes('범위')) return '범위 확장 심사';
-  if (auditType.includes('사후')) return '사후관리 심사';
+  if (isSurveillanceQuote(auditType)) return '사후관리 심사';
   return '최초 심사';
 };
+
+const REMOVE_ROW_MARKER = '__LRQA_REMOVE_TABLE_ROW__';
+
+const removeMarkedRows = (xml: string) =>
+  xml.replace(/<w:tr[\s\S]*?<\/w:tr>/g, (row) => (row.includes(REMOVE_ROW_MARKER) ? '' : row));
 
 const patchTextNodes = (xml: string, updates: Record<number, string>) => {
   let index = 0;
@@ -110,10 +119,14 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   const title = `${standardDisplay} ${auditPhrase(data.auditType)} 제안서`;
   const stage1Fee = data.stage1Days * data.dayRate;
   const stage2Fee = data.stage2Days * data.dayRate;
+  const initialAuditFee = stage1Fee + stage2Fee;
   const annualSurveillanceFee = data.surveillanceDays * data.dayRate;
   const recertificationFee = data.recertDays * data.dayRate;
-  const totalCycleDays = data.stage1Days + data.stage2Days + data.surveillanceDays * 2 + data.recertDays;
-  const quoteSubtotal = stage1Fee + stage2Fee + annualSurveillanceFee * 2 + recertificationFee + data.expenses + data.certFee;
+  const currentCycleQuote = isCurrentCycleQuote(data.auditType);
+  const currentCycleDays = isRenewalQuote(data.auditType) ? data.recertDays : data.surveillanceDays;
+  const currentCycleFee = isRenewalQuote(data.auditType) ? recertificationFee : annualSurveillanceFee;
+  const quotedAuditDays = currentCycleQuote ? currentCycleDays : data.stage1Days + data.stage2Days;
+  const quoteSubtotal = (currentCycleQuote ? currentCycleFee : initialAuditFee) + data.expenses + data.certFee;
   const discountedTotal = Math.max(quoteSubtotal - data.discount, 0);
 
   const updates: Record<number, string> = {};
@@ -136,22 +149,23 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   setRange(97, 98, `${data.employeeCount || '0'}명`);
 
   setRange(120, 121, formatWon(data.certFee));
-  setRange(123, 123, `${standardDisplay} ${auditPhrase(data.auditType)}`);
-  setRange(125, 128, `${formatDays(data.stage1Days)}일`);
-  setRange(130, 133, `${formatDays(data.stage2Days)}일`);
-  setRange(134, 138, formatWon(stage1Fee));
-  setRange(139, 142, formatWon(stage2Fee));
-  setRange(143, 146, `${formatDays(data.surveillanceDays)}일`);
-
-  setRange(148, 148, '사후관리 및 갱신 심사');
-  setRange(150, 153, `사후관리: ${formatDays(data.surveillanceDays)}일`);
-  setRange(155, 156, `갱신심사: ${formatDays(data.recertDays)}일`);
-  setRange(157, 160, formatWon(annualSurveillanceFee));
-  setRange(161, 164, formatWon(recertificationFee));
-  setRange(165, 168, `${formatDays(data.surveillanceDays * 2 + data.recertDays)}일`);
-  setRange(169, 169, `${data.contractYears || '3'}년 주기`);
-
-  setRange(177, 181, `${formatDays(totalCycleDays)}일`);
+  if (currentCycleQuote) {
+    setRange(123, 123, REMOVE_ROW_MARKER);
+    setRange(148, 148, `${standardDisplay} ${auditPhrase(data.auditType)}`);
+    setRange(150, 156, `${formatDays(currentCycleDays)}일`);
+    setRange(157, 164, formatWon(currentCycleFee));
+    setRange(165, 168, '-');
+    setRange(169, 169, isRenewalQuote(data.auditType) ? '3년 주기 갱신' : '12개월 주기');
+  } else {
+    setRange(123, 123, `${standardDisplay} ${auditPhrase(data.auditType)}`);
+    setRange(125, 128, `${formatDays(data.stage1Days)}일`);
+    setRange(130, 133, `${formatDays(data.stage2Days)}일`);
+    setRange(134, 138, formatWon(stage1Fee));
+    setRange(139, 142, formatWon(stage2Fee));
+    setRange(143, 146, `${formatDays(data.surveillanceDays)}일`);
+    setRange(148, 148, REMOVE_ROW_MARKER);
+  }
+  setRange(177, 181, `${formatDays(quotedAuditDays)}일`);
   setRange(182, 186, formatWon(discountedTotal));
   setRange(188, 189, `제경비 ${formatWon(data.expenses)} / VAT ${data.vatType}`);
   setRange(192, 194, `: ${formatWon(data.dayRate)}/일`);
@@ -163,7 +177,7 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   setRange(234, 234, data.companyName || '고객');
   setRange(236, 236, data.companyName || '고객');
 
-  const patchedXml = patchTextNodes(documentFile.asText(), updates);
+  const patchedXml = removeMarkedRows(patchTextNodes(documentFile.asText(), updates));
   zip.file('word/document.xml', patchedXml);
 
   const output = zip.generate({

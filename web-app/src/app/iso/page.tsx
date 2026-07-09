@@ -47,6 +47,10 @@ const toInputNumber = (value: unknown, fallback: string) => {
   return String(value);
 };
 
+const isRenewalQuote = (auditType: string) => auditType.includes('갱신');
+const isSurveillanceQuote = (auditType: string) => auditType.includes('사후');
+const isCurrentCycleQuote = (auditType: string) => isRenewalQuote(auditType) || isSurveillanceQuote(auditType);
+
 export default function ISOQuotePage() {
   const today = new Date().toISOString().slice(0, 10);
   const [documentType, setDocumentType] = useState<DocumentType>('quote');
@@ -120,19 +124,22 @@ export default function ISOQuotePage() {
   const surveillance = parseFloat(surveillanceDays) || 0;
   const recert = parseFloat(recertDays) || 0;
   const initialDays = stage1 + stage2;
-  const totalCycleDays = initialDays + surveillance * 2 + recert;
+  const currentCycleQuote = isCurrentCycleQuote(auditType);
+  const renewalQuote = isRenewalQuote(auditType);
+  const activeAuditDays = currentCycleQuote ? (renewalQuote ? recert : surveillance) : initialDays;
 
   const quote = useMemo(() => {
     const initialAuditFee = initialDays * rate;
     const annualSurveillanceFee = surveillance * rate;
     const recertificationFee = recert * rate;
-    const subtotal = initialAuditFee + annualSurveillanceFee * 2 + recertificationFee + expensesValue + certFeeValue;
+    const activeAuditFee = currentCycleQuote ? (renewalQuote ? recertificationFee : annualSurveillanceFee) : initialAuditFee;
+    const subtotal = activeAuditFee + expensesValue + certFeeValue;
     const discounted = Math.max(subtotal - discountValue, 0);
     const vat = vatType === '포함' ? Math.round(discounted / 11) : Math.round(discounted * 0.1);
     const total = vatType === '포함' ? discounted : discounted + vat;
 
-    return { initialAuditFee, annualSurveillanceFee, recertificationFee, subtotal, discounted, vat, total };
-  }, [certFeeValue, discountValue, expensesValue, initialDays, rate, recert, surveillance, vatType]);
+    return { initialAuditFee, annualSurveillanceFee, recertificationFee, activeAuditFee, subtotal, discounted, vat, total };
+  }, [certFeeValue, currentCycleQuote, discountValue, expensesValue, initialDays, rate, recert, renewalQuote, surveillance, vatType]);
 
   const toggleStandard = (standard: StandardKey) => {
     setStandards(current => {
@@ -340,15 +347,26 @@ export default function ISOQuotePage() {
           <table style={{ width: '100%', border: '1.2pt solid black', borderCollapse: 'collapse', textAlign: 'center', fontSize: '9.5pt' }}>
             <thead><tr style={{ background: '#f3f4f6' }}><th style={cellHeader}>구분</th><th style={cellHeader}>심사일수</th><th style={cellHeader}>금액</th><th style={cellHeader}>비고</th></tr></thead>
             <tbody>
-              <QuoteRow label="최초 인증심사(Stage 1 + Stage 2)" days={initialDays} amount={quote.initialAuditFee} note={`${stage1Days} + ${stage2Days} MD`} />
-              <QuoteRow label="1차 사후심사" days={surveillance} amount={quote.annualSurveillanceFee} note="인증 후 1년차" />
-              <QuoteRow label="2차 사후심사" days={surveillance} amount={quote.annualSurveillanceFee} note="인증 후 2년차" />
-              <QuoteRow label="갱신심사" days={recert} amount={quote.recertificationFee} note="3년 주기 갱신" />
+              {currentCycleQuote ? (
+                <QuoteRow
+                  label={renewalQuote ? '갱신심사' : '사후관리 심사'}
+                  days={activeAuditDays}
+                  amount={renewalQuote ? quote.recertificationFee : quote.annualSurveillanceFee}
+                  note={renewalQuote ? '3년 주기 갱신' : '12개월 주기'}
+                />
+              ) : (
+                <QuoteRow
+                  label="최초 인증심사(Stage 1 + Stage 2)"
+                  days={initialDays}
+                  amount={quote.initialAuditFee}
+                  note={`Stage 1 ${stage1Days} MD / Stage 2 ${stage2Days} MD, 사후관리 ${surveillanceDays} MD`}
+                />
+              )}
               <SimpleAmountRow label="제경비/출장비" amount={expensesValue} />
               <SimpleAmountRow label="인증비/관리비" amount={certFeeValue} />
               {discountValue > 0 && <SimpleAmountRow label="할인 금액" amount={-discountValue} />}
-              <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}><td style={cell}>합계</td><td style={cell}>{formatDays(totalCycleDays)}</td><td style={amountCell}>{formatCurrency(quote.discounted)}</td><td style={cell}>VAT {vatType}</td></tr>
-              <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}><td style={cell}>최종 금액</td><td style={cell}>{formatDays(totalCycleDays)}</td><td style={amountCell}>{formatCurrency(quote.total)}</td><td style={cell}>{vatType === '별도' ? `VAT ${formatCurrency(quote.vat)} 별도` : 'VAT 포함'}</td></tr>
+              <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}><td style={cell}>합계</td><td style={cell}>{formatDays(activeAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.discounted)}</td><td style={cell}>VAT {vatType}</td></tr>
+              <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}><td style={cell}>최종 금액</td><td style={cell}>{formatDays(activeAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.total)}</td><td style={cell}>{vatType === '별도' ? `VAT ${formatCurrency(quote.vat)} 별도` : 'VAT 포함'}</td></tr>
             </tbody>
           </table>
 
