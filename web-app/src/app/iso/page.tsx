@@ -117,6 +117,7 @@ export default function ISOQuotePage() {
 
   const rate = parseNumber(dayRate);
   const expensesValue = parseNumber(expenses);
+  const hasExpenses = expenses.trim() !== '' && expensesValue > 0;
   const certFeeValue = parseNumber(certFee);
   const discountValue = parseNumber(discount);
   const stage1 = parseFloat(stage1Days) || 0;
@@ -133,13 +134,13 @@ export default function ISOQuotePage() {
     const annualSurveillanceFee = surveillance * rate;
     const recertificationFee = recert * rate;
     const activeAuditFee = currentCycleQuote ? (renewalQuote ? recertificationFee : annualSurveillanceFee) : initialAuditFee;
-    const subtotal = activeAuditFee + expensesValue + certFeeValue;
+    const subtotal = activeAuditFee + (hasExpenses ? expensesValue : 0) + certFeeValue;
     const discounted = Math.max(subtotal - discountValue, 0);
     const vat = vatType === '포함' ? Math.round(discounted / 11) : Math.round(discounted * 0.1);
     const total = vatType === '포함' ? discounted : discounted + vat;
 
     return { initialAuditFee, annualSurveillanceFee, recertificationFee, activeAuditFee, subtotal, discounted, vat, total };
-  }, [certFeeValue, currentCycleQuote, discountValue, expensesValue, initialDays, rate, recert, renewalQuote, surveillance, vatType]);
+  }, [certFeeValue, currentCycleQuote, discountValue, expensesValue, hasExpenses, initialDays, rate, recert, renewalQuote, surveillance, vatType]);
 
   const toggleStandard = (standard: StandardKey) => {
     setStandards(current => {
@@ -174,7 +175,7 @@ export default function ISOQuotePage() {
         surveillanceDays: surveillance,
         recertDays: recert,
         dayRate: rate,
-        expenses: expensesValue,
+        expenses: hasExpenses ? expensesValue : 0,
         certFee: certFeeValue,
         discount: discountValue,
         vatType,
@@ -190,6 +191,7 @@ export default function ISOQuotePage() {
 
   const handlePrint = () => window.print();
   const documentTitle = documentType === 'quote' ? 'ISO 인증 심사 견적서' : 'ISO 인증 계약서';
+  const totalNote = hasExpenses ? `VAT ${vatType}` : `제경비/VAT ${vatType}`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center">
@@ -362,10 +364,10 @@ export default function ISOQuotePage() {
                   note={`Stage 1 ${stage1Days} MD / Stage 2 ${stage2Days} MD, 사후관리 ${surveillanceDays} MD`}
                 />
               )}
-              <SimpleAmountRow label="제경비/출장비" amount={expensesValue} />
+              {hasExpenses && <SimpleAmountRow label="제경비/출장비" amount={expensesValue} />}
               <SimpleAmountRow label="인증비/관리비" amount={certFeeValue} />
               {discountValue > 0 && <SimpleAmountRow label="할인 금액" amount={-discountValue} />}
-              <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}><td style={cell}>합계</td><td style={cell}>{formatDays(activeAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.discounted)}</td><td style={cell}>VAT {vatType}</td></tr>
+              <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}><td style={cell}>합계</td><td style={cell}>{formatDays(activeAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.discounted)}</td><td style={cell}>{totalNote}</td></tr>
               <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}><td style={cell}>최종 금액</td><td style={cell}>{formatDays(activeAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.total)}</td><td style={cell}>{vatType === '별도' ? `VAT ${formatCurrency(quote.vat)} 별도` : 'VAT 포함'}</td></tr>
             </tbody>
           </table>

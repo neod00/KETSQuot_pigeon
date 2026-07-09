@@ -125,8 +125,9 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   const currentCycleQuote = isCurrentCycleQuote(data.auditType);
   const currentCycleDays = isRenewalQuote(data.auditType) ? data.recertDays : data.surveillanceDays;
   const currentCycleFee = isRenewalQuote(data.auditType) ? recertificationFee : annualSurveillanceFee;
+  const hasExpenses = data.expenses > 0;
   const quotedAuditDays = currentCycleQuote ? currentCycleDays : data.stage1Days + data.stage2Days;
-  const quoteSubtotal = (currentCycleQuote ? currentCycleFee : initialAuditFee) + data.expenses + data.certFee;
+  const quoteSubtotal = (currentCycleQuote ? currentCycleFee : initialAuditFee) + (hasExpenses ? data.expenses : 0) + data.certFee;
   const discountedTotal = Math.max(quoteSubtotal - data.discount, 0);
 
   const updates: Record<number, string> = {};
@@ -150,12 +151,11 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
 
   setRange(120, 121, formatWon(data.certFee));
   if (currentCycleQuote) {
-    setRange(123, 123, REMOVE_ROW_MARKER);
-    setRange(148, 148, `${standardDisplay} ${auditPhrase(data.auditType)}`);
-    setRange(150, 156, `${formatDays(currentCycleDays)}일`);
-    setRange(157, 164, formatWon(currentCycleFee));
-    setRange(165, 168, '-');
-    setRange(169, 169, isRenewalQuote(data.auditType) ? '3년 주기 갱신' : '12개월 주기');
+    setRange(123, 123, `${standardDisplay} ${auditPhrase(data.auditType)}`);
+    setRange(124, 133, `${formatDays(currentCycleDays)}일`);
+    setRange(134, 142, formatWon(currentCycleFee));
+    setRange(143, 146, '-');
+    setRange(147, 147, isRenewalQuote(data.auditType) ? '3년 주기 갱신' : '12개월 주기');
   } else {
     setRange(123, 123, `${standardDisplay} ${auditPhrase(data.auditType)}`);
     setRange(125, 128, `${formatDays(data.stage1Days)}일`);
@@ -163,11 +163,20 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
     setRange(134, 138, formatWon(stage1Fee));
     setRange(139, 142, formatWon(stage2Fee));
     setRange(143, 146, `${formatDays(data.surveillanceDays)}일`);
+  }
+
+  if (hasExpenses) {
+    setRange(148, 148, '제경비/출장비');
+    setRange(149, 156, '-');
+    setRange(157, 164, formatWon(data.expenses));
+    setRange(165, 168, '-');
+    setRange(169, 169, '-');
+  } else {
     setRange(148, 148, REMOVE_ROW_MARKER);
   }
   setRange(177, 181, `${formatDays(quotedAuditDays)}일`);
   setRange(182, 186, formatWon(discountedTotal));
-  setRange(188, 189, `제경비 ${formatWon(data.expenses)} / VAT ${data.vatType}`);
+  setRange(188, 189, hasExpenses ? `VAT ${data.vatType}` : `제경비/VAT ${data.vatType}`);
   setRange(192, 194, `: ${formatWon(data.dayRate)}/일`);
   setRange(197, 197, data.vatType === '포함'
     ? '상기 비용은 부가세(VAT)가 포함된 금액입니다.'
