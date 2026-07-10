@@ -249,6 +249,7 @@ let codeFinderQuery = "";
 let codeFinderMode = "activity";
 let codeFinderApplyAll = true;
 let codeFinderError = "";
+const pinnedEaTranslations = new Set();
 
 function loadPrefill() {
   try {
@@ -426,6 +427,10 @@ function activityCodeResults() {
         item.code,
         item.number,
         item.title,
+        item.titleKo,
+        item.naceHeadingKo,
+        item.naceSummaryKo,
+        item.naceDetailsKo,
         item.koreanKeywords,
         item.naceHeading,
         item.naceDescription,
@@ -453,28 +458,47 @@ function oldCodeResults() {
 function renderEaCodeResult(item) {
   const description = String(item.naceDescription || "");
   const excerpt = description.length > 270 ? `${description.slice(0, 270)}...` : description;
+  const pinned = pinnedEaTranslations.has(item.code);
   return `
-    <article class="code-result">
+    <article class="code-result translatable-code ${pinned ? "translation-pinned" : ""}" data-translation-card="${escapeAttr(item.code)}">
       <div class="code-result-head">
-        <div>
+        <div class="translation-copy english-translation-copy">
           <strong>${escapeHtml(item.code)} · ${escapeHtml(item.title)}</strong>
           <p>${escapeHtml(item.naceHeading)}</p>
         </div>
-        <button class="btn primary code-select" data-action="select-ea-code" data-ea-code="${escapeAttr(item.code)}">
-          ${finderText("Select", "선택")}
-        </button>
+        <div class="translation-copy korean-translation-copy" lang="ko">
+          <strong>${escapeHtml(item.code)} · ${escapeHtml(item.titleKo || item.title)}</strong>
+          <p>${escapeHtml(item.naceHeadingKo || item.naceHeading)}</p>
+        </div>
+        <div class="code-result-actions">
+          <button class="translation-pin ${pinned ? "active" : ""}" data-action="toggle-ea-translation" data-ea-code="${escapeAttr(item.code)}" aria-pressed="${pinned}" title="${pinned ? "영문 원문으로 전환" : "한글 번역 고정"}">
+            ${pinned ? "EN" : "한글"}
+          </button>
+          <button class="btn primary code-select" data-action="select-ea-code" data-ea-code="${escapeAttr(item.code)}">
+            ${finderText("Select", "선택")}
+          </button>
+        </div>
       </div>
-      <div class="code-keywords">${escapeHtml(item.koreanKeywords)}</div>
-      <p class="code-excerpt">${escapeHtml(excerpt)}</p>
-      <details>
-        <summary>${finderText("View NACE details", "NACE 상세 설명")}</summary>
-        <p>${escapeHtml(description)}</p>
-      </details>
+      <div class="translation-copy english-translation-copy">
+        <div class="code-keywords">${escapeHtml(item.koreanKeywords)}</div>
+        <p class="code-excerpt">${escapeHtml(excerpt)}</p>
+        <details>
+          <summary>${finderText("View NACE details", "NACE 상세 설명")}</summary>
+          <p>${escapeHtml(description)}</p>
+        </details>
+      </div>
+      <div class="translation-copy korean-translation-copy" lang="ko">
+        <div class="translation-badge">한글 번역</div>
+        <p class="korean-summary">${escapeHtml(item.naceSummaryKo || item.koreanKeywords)}</p>
+        <details>
+          <summary>한글 NACE 상세 번역</summary>
+          <p>${escapeHtml(item.naceDetailsKo || item.naceSummaryKo || item.koreanKeywords)}</p>
+        </details>
+      </div>
       <div class="code-source">EA/NACE V2 · p.${escapeHtml(item.source?.nacePage || "-")} · ${finderText("Previous codes", "구 코드")} ${(item.oldCodes || []).length}</div>
     </article>
   `;
 }
-
 function renderOldCodeResult(item) {
   const multiple = (item.newCodes || []).length > 1;
   return `
@@ -488,7 +512,7 @@ function renderOldCodeResult(item) {
         ${(item.newCodes || []).map((code) => {
           const ea = codeById(code);
           return `<button class="mapped-code" data-action="select-ea-code" data-ea-code="${escapeAttr(code)}">
-            <strong>${escapeHtml(code)}</strong><span>${escapeHtml(ea?.title || "")}</span>
+            <strong>${escapeHtml(code)}</strong><span>${escapeHtml(ea?.title || "")}<small>${escapeHtml(ea?.titleKo || "")}</small></span>
           </button>`;
         }).join("")}
       </div>
@@ -534,6 +558,7 @@ function renderCodeFinder() {
           ? finderText("For existing-client conversion only. Confirm the final sector with the auditor and Client Operations.", "기존 고객 코드 전환용입니다. 최종 업종은 Auditor 및 Client Operations와 확인하세요.")
           : finderText("For new clients, search the EA/NACE description and confirm the actual certified activity.", "신규 고객은 EA/NACE 설명으로 검색한 뒤 실제 인증 활동을 확인하세요.")}
         <strong>${finderText("Risk and complexity must be assessed separately.", "Risk와 Complexity는 별도로 평가해야 합니다.")}</strong>
+        <span class="hover-translation-hint">${finderText("Hover over an EA card to view its Korean translation.", "EA 카드에 마우스를 올리면 한글 번역을 볼 수 있습니다.")}</span>
       </div>
       <div class="code-results">${codeFinderResultsHtml()}</div>
       <footer class="code-finder-footer">
@@ -1125,6 +1150,11 @@ document.addEventListener("click", (event) => {
     codeFinderQuery = "";
     render();
     requestAnimationFrame(() => document.querySelector("[data-code-search]")?.focus());
+  } else if (action === "toggle-ea-translation") {
+    const code = button.dataset.eaCode;
+    if (pinnedEaTranslations.has(code)) pinnedEaTranslations.delete(code);
+    else pinnedEaTranslations.add(code);
+    updateCodeFinderResults();
   } else if (action === "select-ea-code") {
     selectEaCode(button.dataset.eaCode);
   } else if (action === "lang") {
