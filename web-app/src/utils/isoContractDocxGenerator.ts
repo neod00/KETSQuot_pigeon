@@ -189,6 +189,58 @@ const replaceTokenInTextNodes = (xml: string, token: string, value: string) => {
   return next;
 };
 
+const unwrapContentControls = (xml: string) => {
+  let next = xml;
+
+  for (let pass = 0; pass < 20; pass += 1) {
+    const controls = collectElements(next, 'w:sdt');
+    if (controls.length === 0) return next;
+    const maxDepth = Math.max(...controls.map((control) => control.depth));
+    const patches = controls
+      .filter((control) => control.depth === maxDepth)
+      .map((control) => {
+        const content = control.xml.match(/<w:sdtContent(?:\s[^>]*)?>([\s\S]*?)<\/w:sdtContent>/);
+        return { ...control, replacement: content ? content[1] : '' };
+      })
+      .sort((a, b) => b.start - a.start);
+
+    next = patches.reduce(
+      (current, patch) => current.slice(0, patch.start) + patch.replacement + current.slice(patch.end),
+      next,
+    );
+  }
+
+  return next;
+};
+
+const getInstructionText = (xml: string) =>
+  [...xml.matchAll(/<w:instrText(?:\s[^>]*)?>([\s\S]*?)<\/w:instrText>/g)]
+    .map((match) => match[1])
+    .join('');
+
+const flattenMergeFieldParagraph = (xml: string, fieldName: string, value: string) =>
+  xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g, (paragraphXml) => {
+    if (!getInstructionText(paragraphXml).includes(fieldName)) return paragraphXml;
+    const fieldRuns = collectElements(paragraphXml, 'w:r')
+      .filter((run) => run.xml.includes('<w:fldChar') || run.xml.includes('<w:instrText'))
+      .sort((a, b) => b.start - a.start);
+    const withoutField = fieldRuns.reduce(
+      (current, run) => current.slice(0, run.start) + current.slice(run.end),
+      paragraphXml,
+    );
+    return setTextNodes(withoutField, value);
+  });
+
+const replacePlaceholdersInParagraphs = (xml: string, replacements: Record<string, string>) =>
+  xml.replace(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g, (paragraphXml) => {
+    const original = getText(paragraphXml);
+    const replaced = Object.entries(replacements).reduce(
+      (plainText, [token, value]) => plainText.split(token).join(value),
+      original,
+    );
+    return replaced === original ? paragraphXml : setTextNodes(paragraphXml, replaced);
+  });
+
 const setTextNodes = (xml: string, value: string) => {
   let used = false;
   const replaced = xml.replace(/<w:t(\s[^>]*)?>([\s\S]*?)<\/w:t>/g, (_full, attrs = '') => {
@@ -305,6 +357,7 @@ export const buildIsoContractDocumentXml = (templateXml: string, data: IsoContra
   const rateNote = uniqueRates.length === 1 ? `${formatWon(uniqueRates[0])}/일` : '규격별 입력 단가 적용';
 
   let xml = replaceTemplateTokens(templateXml, data, standardDisplay);
+  xml = flattenMergeFieldParagraph(xml, 'OPPORTUNITY_SCOPE', data.scope || '경영시스템 인증심사');
   xml = replaceStandardRows(xml, costRows, data);
   xml = patchRowExact(xml, '연간 관리 수수료', { 2: formatWon(data.certFee) });
   xml = patchRowExact(xml, '총합', {
@@ -336,6 +389,24 @@ export const buildIsoContractDocumentXml = (templateXml: string, data: IsoContra
   xml = patchRowExact(xml, '휴대폰 번호', { 1: data.customerPhone || '-', 2: data.customerPhone || '-' });
   xml = patchRowExact(xml, '이메일', { 1: data.customerEmail || '-', 2: data.customerEmail || '-' });
   xml = patchRowExact(xml, '사업자등록번호', { 1: data.businessRegistrationNumber || '-' });
+
+  xml = replacePlaceholdersInParagraphs(xml, {
+    '«ACCOUNT NAME»': data.companyName || '고객사명',
+    '«PRODUCT _NAME»': standardDisplay,
+    '«COMPANY ADDRESS»': data.siteAddress || '-',
+    '«ASSESSMENT SCOPE»': data.scope || '경영시스템 인증심사',
+    '«NUMBER OF PERSON»': (data.employeeCount || '0') + '명',
+    'YYYY년 MM월 DD일': formatKoreanDate(data.issueDate),
+  });
+  xml = unwrapContentControls(xml);
+
+  const unresolvedText = getText(xml);
+  const unresolvedTokens = ['«ACCOUNT NAME»', '«PRODUCT _NAME»', '«COMPANY ADDRESS»', 'YYYY년 MM월 DD일']
+    .filter((token) => unresolvedText.includes(token));
+  if (unresolvedTokens.length > 0 || getInstructionText(xml).includes('MERGEFIELD')) {
+    throw new Error('ISO contract template fields were not fully resolved: ' + (unresolvedTokens.join(', ') || 'MERGEFIELD'));
+  }
+
   return xml;
 };
 export const generateIsoContractDocx = async (data: IsoContractDocxData) => {
