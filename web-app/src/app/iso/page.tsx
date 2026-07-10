@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { generateIsoQuoteDocx } from '../../utils/isoQuoteDocxGenerator';
+import { generateIsoContractDocx } from '../../utils/isoContractDocxGenerator';
 
 const DEFAULT_RATE = 1300000;
 const DEFAULT_EXPENSES = 300000;
@@ -112,6 +113,12 @@ export default function ISOQuotePage() {
   const [contractYears, setContractYears] = useState('3');
   const [paymentTerms, setPaymentTerms] = useState('송장 일자로부터 30일 이내 현금으로 지급');
   const [validity, setValidity] = useState('1개월');
+  const [signerTitle, setSignerTitle] = useState('대표이사');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [businessRegistrationNumber, setBusinessRegistrationNumber] = useState('');
+  const [billingAddress, setBillingAddress] = useState('');
   const [importMessage, setImportMessage] = useState('');
 
   useEffect(() => {
@@ -141,6 +148,12 @@ export default function ISOQuotePage() {
       setVatType(imported.vatType === 'included' || imported.vatType === '포함' ? '포함' : '별도');
       setContractYears(String(imported.contractYears || '3'));
       setPaymentTerms(imported.paymentTerms || '송장 일자로부터 30일 이내 현금으로 지급');
+      setSignerTitle(imported.signerTitle || '대표이사');
+      setCustomerPhone(imported.customerPhone || imported.phone || '');
+      setCustomerEmail(imported.customerEmail || imported.email || '');
+      setPostalCode(imported.postalCode || '');
+      setBusinessRegistrationNumber(imported.businessRegistrationNumber || '');
+      setBillingAddress(imported.billingAddress || '');
       setStandardInputs(current => {
         const next = { ...current };
         nextStandards.forEach((standard) => {
@@ -237,14 +250,14 @@ export default function ISOQuotePage() {
   };
 
   const handleDownloadWord = async () => {
-    if (documentType === 'contract') {
-      alert('계약서 서식이 아직 제공되지 않았습니다. 서식이 추가되면 같은 화면에서 계약서를 생성하도록 연결하겠습니다.');
+    if (documentType === 'contract' && !companyName.trim()) {
+      alert('계약서 생성을 위해 고객사명을 입력해주세요.');
       return;
     }
 
     try {
       const firstRow = standardCostRows[0];
-      await generateIsoQuoteDocx({
+      const documentData = {
         companyName,
         contactPerson,
         docId,
@@ -275,10 +288,24 @@ export default function ISOQuotePage() {
         contractYears,
         paymentTerms,
         validity,
-      });
+      };
+
+      if (documentType === 'contract') {
+        await generateIsoContractDocx({
+          ...documentData,
+          signerTitle,
+          customerPhone,
+          customerEmail,
+          postalCode,
+          businessRegistrationNumber,
+          billingAddress,
+        });
+      } else {
+        await generateIsoQuoteDocx(documentData);
+      }
     } catch (error) {
       console.error(error);
-      alert('ISO 견적서 Word 파일 생성 중 오류가 발생했습니다.');
+      alert('ISO ' + (documentType === 'contract' ? '계약서' : '견적서') + ' Word 파일 생성 중 오류가 발생했습니다.');
     }
   };
 
@@ -312,7 +339,7 @@ export default function ISOQuotePage() {
             <label className={`cursor-pointer rounded-lg border p-4 ${documentType === 'contract' ? 'border-blue-500 bg-white ring-2 ring-blue-100' : 'border-slate-200 bg-white'}`}>
               <input className="mr-2" type="radio" name="documentType" checked={documentType === 'contract'} onChange={() => setDocumentType('contract')} />
               <span className="font-bold">계약서</span>
-              <span className="ml-2 text-xs text-slate-500">서식 제공 후 활성화 예정</span>
+              <span className="ml-2 text-xs text-slate-500">SEO Assessment Contract Word 서식 사용</span>
             </label>
           </div>
         </section>
@@ -412,9 +439,23 @@ export default function ISOQuotePage() {
           </div>
         </section>
 
+        {documentType === 'contract' && (
+          <section className="mt-8 border-t pt-6">
+            <h2 className="text-lg font-semibold text-slate-800">5. 계약 및 인보이스 정보</h2>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <TextInput label="서명자 직책" value={signerTitle} onChange={setSignerTitle} />
+              <TextInput label="휴대폰 번호" value={customerPhone} onChange={setCustomerPhone} />
+              <TextInput label="이메일" value={customerEmail} onChange={setCustomerEmail} />
+              <TextInput label="우편번호" value={postalCode} onChange={setPostalCode} />
+              <TextInput label="사업자등록번호" value={businessRegistrationNumber} onChange={setBusinessRegistrationNumber} />
+              <TextInput label="청구 주소 (등록 주소와 다를 경우)" value={billingAddress} onChange={setBillingAddress} />
+            </div>
+          </section>
+        )}
+
         <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
           <button onClick={handleDownloadWord} className="rounded-lg bg-blue-700 px-4 py-3 font-bold text-white shadow-md hover:bg-blue-800">
-            {documentType === 'quote' ? 'Word 견적서 다운로드' : '계약서 서식 준비 중'}
+            {documentType === 'quote' ? 'Word 견적서 다운로드' : 'Word 계약서 다운로드'}
           </button>
           <button onClick={handlePrint} className="rounded-lg border border-slate-300 px-4 py-3 font-bold text-slate-700 hover:bg-slate-50">
             현재 미리보기 인쇄 / PDF 저장
@@ -427,7 +468,7 @@ export default function ISOQuotePage() {
           <HeaderLine />
           <div style={{ textAlign: 'center', margin: '22px 0' }}>
             <h1 style={{ fontSize: '23pt', fontWeight: 'bold' }}>{documentTitle}</h1>
-            {documentType === 'contract' && <p style={{ color: '#64748b' }}>계약서 Word 서식은 추후 제공 예정입니다.</p>}
+            {documentType === 'contract' && <p style={{ color: '#64748b' }}>SEO Assessment Contract 서식으로 Word 계약서를 생성합니다.</p>}
           </div>
 
           <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
