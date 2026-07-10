@@ -243,6 +243,12 @@ let state = loadState();
 let currentStep = "client";
 let exportResult = null;
 let isExporting = false;
+let eaCodeCatalog = { metadata: null, codes: [], oldMappings: [] };
+let codeFinderTarget = null;
+let codeFinderQuery = "";
+let codeFinderMode = "activity";
+let codeFinderApplyAll = true;
+let codeFinderError = "";
 
 function loadPrefill() {
   try {
@@ -399,6 +405,188 @@ function renderClient() {
   `;
 }
 
+function finderText(en, ko) {
+  return language === "ko" ? ko : en;
+}
+
+function normalizeFinderText(value) {
+  return String(value || "").toLowerCase().replace(/[^0-9a-z가-힣]+/gi, " ").trim();
+}
+
+function codeById(code) {
+  return eaCodeCatalog.codes.find((item) => item.code === code);
+}
+
+function activityCodeResults() {
+  const terms = normalizeFinderText(codeFinderQuery).split(/\s+/).filter(Boolean);
+  return eaCodeCatalog.codes
+    .filter((item) => {
+      if (!terms.length) return true;
+      const searchable = normalizeFinderText([
+        item.code,
+        item.number,
+        item.title,
+        item.koreanKeywords,
+        item.naceHeading,
+        item.naceDescription,
+        ...(item.oldCodes || []),
+      ].join(" "));
+      return terms.every((term) => searchable.includes(term));
+    })
+    .sort((a, b) => {
+      const query = normalizeFinderText(codeFinderQuery);
+      const aStarts = normalizeFinderText(`${a.code} ${a.title} ${a.koreanKeywords}`).startsWith(query) ? 0 : 1;
+      const bStarts = normalizeFinderText(`${b.code} ${b.title} ${b.koreanKeywords}`).startsWith(query) ? 0 : 1;
+      return aStarts - bStarts || a.number - b.number;
+    });
+}
+
+function oldCodeResults() {
+  const terms = normalizeFinderText(codeFinderQuery).split(/\s+/).filter(Boolean);
+  return eaCodeCatalog.oldMappings.filter((item) => {
+    if (!terms.length) return false;
+    const searchable = normalizeFinderText(`${item.code} ${item.title} ${(item.newCodes || []).join(" ")}`);
+    return terms.every((term) => searchable.includes(term));
+  });
+}
+
+function renderEaCodeResult(item) {
+  const description = String(item.naceDescription || "");
+  const excerpt = description.length > 270 ? `${description.slice(0, 270)}...` : description;
+  return `
+    <article class="code-result">
+      <div class="code-result-head">
+        <div>
+          <strong>${escapeHtml(item.code)} · ${escapeHtml(item.title)}</strong>
+          <p>${escapeHtml(item.naceHeading)}</p>
+        </div>
+        <button class="btn primary code-select" data-action="select-ea-code" data-ea-code="${escapeAttr(item.code)}">
+          ${finderText("Select", "선택")}
+        </button>
+      </div>
+      <div class="code-keywords">${escapeHtml(item.koreanKeywords)}</div>
+      <p class="code-excerpt">${escapeHtml(excerpt)}</p>
+      <details>
+        <summary>${finderText("View NACE details", "NACE 상세 설명")}</summary>
+        <p>${escapeHtml(description)}</p>
+      </details>
+      <div class="code-source">EA/NACE V2 · p.${escapeHtml(item.source?.nacePage || "-")} · ${finderText("Previous codes", "구 코드")} ${(item.oldCodes || []).length}</div>
+    </article>
+  `;
+}
+
+function renderOldCodeResult(item) {
+  const multiple = (item.newCodes || []).length > 1;
+  return `
+    <article class="code-result old-code-result">
+      <div class="old-code-title">
+        <strong>${escapeHtml(item.code)} · ${escapeHtml(item.title)}</strong>
+        <span class="source-badge">New Code Map p.${escapeHtml(item.sourcePage)}</span>
+      </div>
+      ${multiple ? `<div class="mapping-warning">${finderText("Multiple EA codes are mapped. Confirm the client's actual sector.", "여러 EA 코드가 연결됩니다. 고객의 실제 사업 분야를 확인해 선택하세요.")}</div>` : ""}
+      <div class="mapped-code-list">
+        ${(item.newCodes || []).map((code) => {
+          const ea = codeById(code);
+          return `<button class="mapped-code" data-action="select-ea-code" data-ea-code="${escapeAttr(code)}">
+            <strong>${escapeHtml(code)}</strong><span>${escapeHtml(ea?.title || "")}</span>
+          </button>`;
+        }).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function codeFinderResultsHtml() {
+  if (codeFinderError) return `<div class="finder-empty error">${escapeHtml(codeFinderError)}</div>`;
+  if (!eaCodeCatalog.codes.length) return `<div class="finder-empty">${finderText("Loading EA code guidance...", "EA 코드 가이드를 불러오는 중입니다...")}</div>`;
+  const results = codeFinderMode === "old" ? oldCodeResults() : activityCodeResults();
+  if (!results.length) {
+    return `<div class="finder-empty">${codeFinderMode === "old" && !codeFinderQuery.trim()
+      ? finderText("Enter an old six-digit LR code or title.", "기존 6자리 LR 코드 또는 명칭을 입력하세요.")
+      : finderText("No matching code found. Try another activity term.", "일치하는 코드가 없습니다. 다른 활동명으로 검색해보세요.")}</div>`;
+  }
+  return results.slice(0, 40).map((item) => codeFinderMode === "old" ? renderOldCodeResult(item) : renderEaCodeResult(item)).join("");
+}
+
+function renderCodeFinder() {
+  if (!codeFinderTarget) return "";
+  const selectedStandards = state.standards.filter((standard) => ["ISO 9001", "ISO 14001", "ISO 45001"].includes(standard));
+  return `
+    <button class="code-finder-backdrop" data-action="close-code-finder" aria-label="${finderText("Close code finder", "코드 찾기 닫기")}"></button>
+    <aside class="code-finder" role="dialog" aria-modal="true" aria-label="${finderText("EA code finder", "EA 코드 찾기")}">
+      <header class="code-finder-header">
+        <div>
+          <span class="section-title">${escapeHtml(codeFinderTarget.standard)} · Activity ${codeFinderTarget.index + 1}</span>
+          <h2>${finderText("EA Code Finder", "EA 코드 찾기")}</h2>
+        </div>
+        <button class="icon-close" data-action="close-code-finder" title="${finderText("Close", "닫기")}" aria-label="${finderText("Close", "닫기")}">×</button>
+      </header>
+      <div class="finder-mode" role="tablist">
+        <button class="${codeFinderMode === "activity" ? "active" : ""}" data-action="code-finder-mode" data-mode="activity">${finderText("Activity / EA search", "활동 / EA 검색")}</button>
+        <button class="${codeFinderMode === "old" ? "active" : ""}" data-action="code-finder-mode" data-mode="old">${finderText("Convert old code", "구 코드 변환")}</button>
+      </div>
+      <div class="finder-search">
+        <label for="ea-code-search">${codeFinderMode === "old" ? finderText("Old LR code or title", "기존 LR 코드 또는 명칭") : finderText("Business activity, EA code or keyword", "사업 활동, EA 코드 또는 키워드")}</label>
+        <input id="ea-code-search" data-code-search value="${escapeAttr(codeFinderQuery)}" placeholder="${codeFinderMode === "old" ? "107902, Utilities" : finderText("food manufacturing, software, 병원", "식품 제조, 소프트웨어, 병원")}" autocomplete="off" />
+      </div>
+      <div class="finder-guidance">
+        ${codeFinderMode === "old"
+          ? finderText("For existing-client conversion only. Confirm the final sector with the auditor and Client Operations.", "기존 고객 코드 전환용입니다. 최종 업종은 Auditor 및 Client Operations와 확인하세요.")
+          : finderText("For new clients, search the EA/NACE description and confirm the actual certified activity.", "신규 고객은 EA/NACE 설명으로 검색한 뒤 실제 인증 활동을 확인하세요.")}
+        <strong>${finderText("Risk and complexity must be assessed separately.", "Risk와 Complexity는 별도로 평가해야 합니다.")}</strong>
+      </div>
+      <div class="code-results">${codeFinderResultsHtml()}</div>
+      <footer class="code-finder-footer">
+        <label class="apply-all-toggle">
+          <input type="checkbox" data-code-apply-all ${codeFinderApplyAll ? "checked" : ""} ${selectedStandards.length < 2 ? "disabled" : ""} />
+          <span>${finderText("Apply to all selected core standards", "선택된 모든 핵심 표준에 적용")}</span>
+        </label>
+        <span>${finderText("Maximum 3 entries per standard", "표준별 최대 3개")}</span>
+      </footer>
+    </aside>
+  `;
+}
+
+function selectEaCode(code) {
+  const item = codeById(code);
+  if (!item || !codeFinderTarget) return;
+  const targetStandards = codeFinderApplyAll
+    ? state.standards.filter((standard) => ["ISO 9001", "ISO 14001", "ISO 45001"].includes(standard))
+    : [codeFinderTarget.standard];
+  const value = `${item.code} - ${item.title}`;
+  for (const standard of targetStandards) {
+    const values = state.activityCodes[standard] || ["", "", ""];
+    const duplicate = values.some((existing, index) => index !== codeFinderTarget.index && String(existing).startsWith(`${item.code} `));
+    if (duplicate) {
+      alert(finderText(`${item.code} is already selected for ${standard}.`, `${standard}에 ${item.code}가 이미 선택되어 있습니다.`));
+      return;
+    }
+  }
+  for (const standard of targetStandards) {
+    state.activityCodes[standard] ||= ["", "", ""];
+    state.activityCodes[standard][codeFinderTarget.index] = value;
+  }
+  saveState();
+  codeFinderTarget = null;
+  render();
+}
+
+function updateCodeFinderResults() {
+  const container = document.querySelector(".code-results");
+  if (container) container.innerHTML = codeFinderResultsHtml();
+}
+
+async function loadEaCodeCatalog() {
+  try {
+    const response = await fetch("/adj/ea-code-data.json", { cache: "force-cache" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    eaCodeCatalog = await response.json();
+    codeFinderError = "";
+  } catch (error) {
+    codeFinderError = finderText(`Unable to load EA code guidance: ${error.message}`, `EA 코드 가이드를 불러오지 못했습니다: ${error.message}`);
+  }
+  if (codeFinderTarget) render();
+}
 function renderStandards() {
   const codeFields = ["ISO 9001", "ISO 14001", "ISO 45001"]
     .filter((standard) => state.standards.includes(standard))
@@ -413,7 +601,10 @@ function renderStandards() {
                 (idx) => `
                 <div class="field">
                   <label>${standard} activity ${idx + 1}</label>
-                  <input value="${escapeAttr(values[idx] || "")}" data-code-standard="${standard}" data-code-index="${idx}" placeholder="EA code or activity description" />
+                  <div class="activity-code-row">
+                    <input value="${escapeAttr(values[idx] || "")}" data-code-standard="${standard}" data-code-index="${idx}" placeholder="EA code or activity description" />
+                    <button class="btn code-finder-open" data-action="open-code-finder" data-code-standard="${standard}" data-code-index="${idx}">${finderText("Find code", "코드 찾기")}</button>
+                  </div>
                 </div>
               `,
               )
@@ -810,6 +1001,7 @@ function render() {
         <aside class="inspector">${renderInspector()}</aside>
       </main>
     </div>
+    ${renderCodeFinder()}
   `;
   applyLanguage(app);
 }
@@ -871,7 +1063,10 @@ function downloadSummary() {
 
 document.addEventListener("input", (event) => {
   const target = event.target;
-  if (target.matches("[data-path]")) {
+  if (target.matches("[data-code-search]")) {
+    codeFinderQuery = target.value;
+    updateCodeFinderResults();
+  } else if (target.matches("[data-path]")) {
     const value = target.type === "checkbox" ? target.checked : target.type === "number" ? Number(target.value) : target.value;
     set(target.dataset.path, value);
   } else if (target.matches("[data-site-index]")) {
@@ -892,7 +1087,9 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("change", (event) => {
   const target = event.target;
-  if (target.matches("[data-standard]")) {
+  if (target.matches("[data-code-apply-all]")) {
+    codeFinderApplyAll = target.checked;
+  } else if (target.matches("[data-standard]")) {
     const standard = target.dataset.standard;
     state.standards = target.checked
       ? [...new Set([...state.standards, standard])]
@@ -913,7 +1110,24 @@ document.addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button) return;
   const action = button.dataset.action;
-  if (action === "lang") {
+  if (action === "open-code-finder") {
+    codeFinderTarget = { standard: button.dataset.codeStandard, index: Number(button.dataset.codeIndex) };
+    codeFinderQuery = "";
+    codeFinderMode = "activity";
+    codeFinderApplyAll = true;
+    render();
+    requestAnimationFrame(() => document.querySelector("[data-code-search]")?.focus());
+  } else if (action === "close-code-finder") {
+    codeFinderTarget = null;
+    render();
+  } else if (action === "code-finder-mode") {
+    codeFinderMode = button.dataset.mode;
+    codeFinderQuery = "";
+    render();
+    requestAnimationFrame(() => document.querySelector("[data-code-search]")?.focus());
+  } else if (action === "select-ea-code") {
+    selectEaCode(button.dataset.eaCode);
+  } else if (action === "lang") {
     setLanguage(button.dataset.lang);
   } else if (button.dataset.step) {
     currentStep = button.dataset.step;
@@ -970,3 +1184,4 @@ function escapeAttr(value) {
 }
 
 render();
+loadEaCodeCatalog();
