@@ -688,11 +688,13 @@ export default function ISOQuotePage() {
 }
 
 function TextInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <div><label className="block text-sm font-medium text-slate-600">{label}</label><input className="mt-1 w-full rounded-md border p-2" value={value} onChange={e => onChange(e.target.value)} /></div>;
+  const id = React.useId();
+  return <div><label htmlFor={id} className="block text-sm font-medium text-slate-600">{label}</label><input id={id} className="mt-1 w-full rounded-md border p-2" value={value} onChange={e => onChange(e.target.value)} /></div>;
 }
 
 function NumberInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <div><label className="block text-xs font-medium text-slate-500">{label}</label><input inputMode="decimal" className="mt-1 w-full rounded border p-2" value={value} onChange={e => onChange(e.target.value)} /></div>;
+  const id = React.useId();
+  return <div><label htmlFor={id} className="block text-xs font-medium text-slate-500">{label}</label><input id={id} inputMode="decimal" className="mt-1 w-full rounded border p-2" value={value} onChange={e => onChange(e.target.value)} /></div>;
 }
 
 function HeaderLine() {
@@ -711,13 +713,6 @@ const cell: React.CSSProperties = { border: '0.5pt solid black', padding: '6px' 
 const cellHeader: React.CSSProperties = { ...cell, fontWeight: 'bold' };
 const amountCell: React.CSSProperties = { ...cell, textAlign: 'right', paddingRight: '8px' };
 
-function QuoteRow({ label, days, amount, note }: { label: string; days: number; amount: number; note: string }) {
-  return <tr><td style={cell}>{label}</td><td style={cell}>{formatDays(days)}</td><td style={amountCell}>{formatCurrency(amount)}</td><td style={cell}>{note}</td></tr>;
-}
-
-function SimpleAmountRow({ label, amount }: { label: string; amount: number }) {
-  return <tr><td style={cell}>{label}</td><td style={cell}>-</td><td style={amountCell}>{formatCurrency(amount)}</td><td style={cell}></td></tr>;
-}
 
 function Footer() {
   return <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '35mm', background: 'white', borderTop: '1px solid #ddd', padding: '10px 15mm 0', boxSizing: 'border-box' }}><table style={{ width: '100%' }}><tbody><tr><td style={{ width: '85px', verticalAlign: 'middle', padding: '5px 0' }}><img src="https://www.lrqa.com/cdn-cgi/image/width=300,format=auto/globalassets/logos/lrqa-white-logo---dark-background-cropped.png" style={{ width: '85px', height: 'auto', display: 'block', backgroundColor: '#000', padding: '5px' }} alt="LRQA Logo" /></td><td style={{ verticalAlign: 'top', paddingLeft: '10px' }}><p style={{ margin: 0, fontSize: '11pt', color: '#3b8ede', fontWeight: 'bold' }}>YOUR FUTURE. OUR FOCUS.</p><p style={{ margin: 0, fontSize: '8pt' }}>for more information or call <strong>+82 (0)2 736 6231</strong></p></td><td style={{ textAlign: 'right', verticalAlign: 'top', fontSize: '9pt', color: '#666' }}><p style={{ margin: 0, fontWeight: 'bold' }}>로이드인증원</p><p style={{ margin: 0 }}>서울특별시 중구 소월로 2길 30 T타워 2층</p></td></tr></tbody></table></div>;

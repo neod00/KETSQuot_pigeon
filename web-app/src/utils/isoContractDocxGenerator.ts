@@ -213,6 +213,23 @@ const unwrapContentControls = (xml: string) => {
   return next;
 };
 
+const setFirstContentControlFontSize = (xml: string, alias: string, halfPoints: number) => {
+  const aliasMarker = '<w:alias w:val="' + alias + '"';
+  const control = collectElements(xml, 'w:sdt').find((candidate) => candidate.xml.includes(aliasMarker));
+  if (!control) return xml;
+
+  const sizeValue = String(halfPoints);
+  let replacement = control.xml
+    .replace(/<w:sz(?:\s[^>]*)?\/>/g, '<w:sz w:val="' + sizeValue + '"/>')
+    .replace(/<w:szCs(?:\s[^>]*)?\/>/g, '<w:szCs w:val="' + sizeValue + '"/>');
+
+  if (!replacement.includes('<w:sz ')) {
+    replacement = replacement.replace(/<w:rPr([^>]*)>/g, '<w:rPr$1><w:sz w:val="' + sizeValue + '"/><w:szCs w:val="' + sizeValue + '"/>');
+  }
+
+  return xml.slice(0, control.start) + replacement + xml.slice(control.end);
+};
+
 const getInstructionText = (xml: string) =>
   [...xml.matchAll(/<w:instrText(?:\s[^>]*)?>([\s\S]*?)<\/w:instrText>/g)]
     .map((match) => match[1])
@@ -398,6 +415,7 @@ export const buildIsoContractDocumentXml = (templateXml: string, data: IsoContra
     '«NUMBER OF PERSON»': (data.employeeCount || '0') + '명',
     'YYYY년 MM월 DD일': formatKoreanDate(data.issueDate),
   });
+  xml = setFirstContentControlFontSize(xml, 'Company', 32);
   xml = unwrapContentControls(xml);
 
   const unresolvedText = getText(xml);
