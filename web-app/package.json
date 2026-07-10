@@ -14,6 +14,7 @@
     "@types/file-saver": "^2.0.7",
     "docxtemplater": "^3.67.6",
     "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
     "jszip-utils": "^0.1.0",
     "next": "16.1.1",
     "pizzip": "^3.2.0",

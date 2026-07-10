@@ -321,9 +321,14 @@ export default function ISOQuotePage() {
             <h1 className="text-2xl font-bold text-blue-700">LRQA ISO 견적/계약서 생성기</h1>
             <p className="mt-1 text-sm text-slate-500">문서 종류를 선택한 뒤 ISO 심사 비용 정보를 입력하고 Word 또는 PDF로 출력합니다.</p>
           </div>
-          <Link href="/" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            포털로 돌아가기
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/iso/adj" className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
+              ADJ 작성
+            </Link>
+            <Link href="/" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              포털로 돌아가기
+            </Link>
+          </div>
         </div>
 
         {importMessage && <div className="mt-4 rounded-md border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800">{importMessage}</div>}
