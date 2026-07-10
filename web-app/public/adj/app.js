@@ -250,6 +250,7 @@ let codeFinderMode = "activity";
 let codeFinderApplyAll = true;
 let codeFinderError = "";
 const pinnedEaTranslations = new Set();
+const EA_CODE_CATALOG_VERSION = "2026-07-10-full-ko-v2";
 
 function loadPrefill() {
   try {
@@ -602,9 +603,16 @@ function updateCodeFinderResults() {
 
 async function loadEaCodeCatalog() {
   try {
-    const response = await fetch("/adj/ea-code-data.json", { cache: "force-cache" });
+    const dataUrl = `/adj/ea-code-data.json?v=${encodeURIComponent(EA_CODE_CATALOG_VERSION)}`;
+    const response = await fetch(dataUrl, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    eaCodeCatalog = await response.json();
+    const catalog = await response.json();
+    const hasCompleteKoreanCatalog =
+      catalog.metadata?.koreanTranslationCoverage === "39/39" &&
+      catalog.codes?.length === 39 &&
+      catalog.codes.every((item) => item.titleKo && item.naceHeadingKo && item.naceDetailsKo);
+    if (!hasCompleteKoreanCatalog) throw new Error("Korean translation catalog is incomplete or outdated");
+    eaCodeCatalog = catalog;
     codeFinderError = "";
   } catch (error) {
     codeFinderError = finderText(`Unable to load EA code guidance: ${error.message}`, `EA 코드 가이드를 불러오지 못했습니다: ${error.message}`);
