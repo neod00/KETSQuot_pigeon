@@ -26,6 +26,9 @@ const STANDARD_VERSION: Record<StandardKey, string> = {
   'ISO 50001': 'ISO 50001:2018',
 };
 
+const getStandardDisplay = (standard: string) =>
+  STANDARD_VERSION[standard as StandardKey] || standard;
+
 const defaultCostInput = (): StandardCostInput => ({
   stage1Days: '1.0',
   stage2Days: '2.0',
@@ -101,6 +104,8 @@ export default function ISOQuotePage() {
   const [auditType, setAuditType] = useState('신규 인증');
   const [standards, setStandards] = useState<StandardKey[]>(['ISO 9001']);
   const [standardInputs, setStandardInputs] = useState<Record<StandardKey, StandardCostInput>>(createDefaultStandardInputs);
+  const [customStandard, setCustomStandard] = useState('');
+  const [customStandardInput, setCustomStandardInput] = useState<StandardCostInput>(defaultCostInput);
   const [scope, setScope] = useState('경영시스템 인증심사');
   const [siteName, setSiteName] = useState('본사');
   const [siteAddress, setSiteAddress] = useState('');
@@ -132,11 +137,19 @@ export default function ISOQuotePage() {
         ? imported.standards.filter((item: string) => ISO_STANDARDS.includes(item as StandardKey)) as StandardKey[]
         : [];
       const nextStandards: StandardKey[] = importedStandards.length > 0 ? importedStandards : ['ISO 9001'];
+      const importedCustomStandard = String(
+        imported.customStandard ||
+        (Array.isArray(imported.standards)
+          ? imported.standards.find((item: string) => typeof item === 'string' && !ISO_STANDARDS.includes(item as StandardKey))
+          : '') ||
+        '',
+      ).trim();
 
       setCompanyName(imported.companyName || '');
       setContactPerson(imported.contactPerson || '');
       setAuditType(auditTypeLabel(imported.auditType));
       if (importedStandards.length > 0) setStandards(importedStandards);
+      setCustomStandard(importedCustomStandard);
       setScope(imported.scope || '경영시스템 인증심사');
       setSiteName(imported.siteName || '본사');
       setSiteAddress(imported.siteAddress || '');
@@ -154,6 +167,18 @@ export default function ISOQuotePage() {
       setPostalCode(imported.postalCode || '');
       setBusinessRegistrationNumber(imported.businessRegistrationNumber || '');
       setBillingAddress(imported.billingAddress || '');
+      if (importedCustomStandard) {
+        const importedCustomCost = Array.isArray(imported.standardCosts)
+          ? imported.standardCosts.find((item: { standard?: string }) => item.standard === importedCustomStandard)
+          : undefined;
+        setCustomStandardInput({
+          stage1Days: toInputNumber(importedCustomCost?.stage1Days, '1.0'),
+          stage2Days: toInputNumber(importedCustomCost?.stage2Days, '2.0'),
+          surveillanceDays: toInputNumber(importedCustomCost?.surveillanceDays, '1.0'),
+          recertDays: toInputNumber(importedCustomCost?.recertDays, '2.0'),
+          dayRate: toInputNumber(importedCustomCost?.dayRate, DEFAULT_RATE.toLocaleString()),
+        });
+      }
       setStandardInputs(current => {
         const next = { ...current };
         nextStandards.forEach((standard) => {
@@ -183,39 +208,48 @@ export default function ISOQuotePage() {
   const currentCycleQuote = isCurrentCycleQuote(auditType);
   const renewalQuote = isRenewalQuote(auditType);
 
-  const standardCostRows = useMemo(() => standards.map((standard) => {
-    const input = standardInputs[standard] || defaultCostInput();
-    const stage1Days = parseDays(input.stage1Days);
-    const stage2Days = parseDays(input.stage2Days);
-    const surveillanceDays = parseDays(input.surveillanceDays);
-    const recertDays = parseDays(input.recertDays);
-    const dayRate = parseNumber(input.dayRate);
-    const stage1Fee = stage1Days * dayRate;
-    const stage2Fee = stage2Days * dayRate;
-    const initialAuditFee = stage1Fee + stage2Fee;
-    const annualSurveillanceFee = surveillanceDays * dayRate;
-    const recertificationFee = recertDays * dayRate;
-    const activeAuditDays = currentCycleQuote ? (renewalQuote ? recertDays : surveillanceDays) : stage1Days + stage2Days;
-    const activeAuditFee = currentCycleQuote ? (renewalQuote ? recertificationFee : annualSurveillanceFee) : initialAuditFee;
+  const customStandardName = customStandard.trim();
 
-    return {
+  const standardCostRows = useMemo(() => {
+    const selectedInputs: Array<{ standard: string; input: StandardCostInput }> = standards.map((standard) => ({
       standard,
-      label: `${STANDARD_VERSION[standard]} ${auditPhrase(auditType)}`,
-      input,
-      stage1Days,
-      stage2Days,
-      surveillanceDays,
-      recertDays,
-      dayRate,
-      stage1Fee,
-      stage2Fee,
-      initialAuditFee,
-      annualSurveillanceFee,
-      recertificationFee,
-      activeAuditDays,
-      activeAuditFee,
-    };
-  }), [auditType, currentCycleQuote, renewalQuote, standardInputs, standards]);
+      input: standardInputs[standard] || defaultCostInput(),
+    }));
+    if (customStandardName) selectedInputs.push({ standard: customStandardName, input: customStandardInput });
+
+    return selectedInputs.map(({ standard, input }) => {
+      const stage1Days = parseDays(input.stage1Days);
+      const stage2Days = parseDays(input.stage2Days);
+      const surveillanceDays = parseDays(input.surveillanceDays);
+      const recertDays = parseDays(input.recertDays);
+      const dayRate = parseNumber(input.dayRate);
+      const stage1Fee = stage1Days * dayRate;
+      const stage2Fee = stage2Days * dayRate;
+      const initialAuditFee = stage1Fee + stage2Fee;
+      const annualSurveillanceFee = surveillanceDays * dayRate;
+      const recertificationFee = recertDays * dayRate;
+      const activeAuditDays = currentCycleQuote ? (renewalQuote ? recertDays : surveillanceDays) : stage1Days + stage2Days;
+      const activeAuditFee = currentCycleQuote ? (renewalQuote ? recertificationFee : annualSurveillanceFee) : initialAuditFee;
+
+      return {
+        standard,
+        label: getStandardDisplay(standard) + ' ' + auditPhrase(auditType),
+        input,
+        stage1Days,
+        stage2Days,
+        surveillanceDays,
+        recertDays,
+        dayRate,
+        stage1Fee,
+        stage2Fee,
+        initialAuditFee,
+        annualSurveillanceFee,
+        recertificationFee,
+        activeAuditDays,
+        activeAuditFee,
+      };
+    });
+  }, [auditType, currentCycleQuote, customStandardInput, customStandardName, renewalQuote, standardInputs, standards]);
 
   const totalAuditDays = standardCostRows.reduce((sum, row) => sum + row.activeAuditDays, 0);
 
@@ -237,6 +271,10 @@ export default function ISOQuotePage() {
         [field]: value,
       },
     }));
+  };
+
+  const updateCustomStandardInput = (field: CostField, value: string) => {
+    setCustomStandardInput(current => ({ ...current, [field]: value }));
   };
 
   const toggleStandard = (standard: StandardKey) => {
@@ -263,7 +301,7 @@ export default function ISOQuotePage() {
         docId,
         issueDate,
         auditType,
-        standards,
+        standards: standardCostRows.map(row => row.standard),
         standardCosts: standardCostRows.map(row => ({
           standard: row.standard,
           stage1Days: row.stage1Days,
@@ -309,6 +347,59 @@ export default function ISOQuotePage() {
     }
   };
 
+  const handleOpenAdj = () => {
+    const supportedStandards = standards.filter(standard =>
+      ['ISO 9001', 'ISO 14001', 'ISO 45001'].includes(standard),
+    );
+    const otherStandards = [
+      ...standards.filter(standard => !supportedStandards.includes(standard)),
+      ...(customStandardName ? [customStandardName] : []),
+    ];
+    const parsedSiteCount = Math.max(1, Math.min(100, Number.parseInt(siteCount, 10) || 1));
+    const parsedEmployeeCount = Math.max(0, Number.parseInt(employeeCount.replace(/[^0-9]/g, ''), 10) || 0);
+    const sites = Array.from({ length: parsedSiteCount }, (_, index) => ({
+      name: index === 0 ? (siteName || 'Main Site') : `Site ${index + 1}`,
+      type: 'Permanent',
+      address: index === 0 ? siteAddress : '',
+      scope,
+      riskJustification: '',
+      samplingNote: '',
+      headcount: { fullTime: index === 0 ? parsedEmployeeCount : 0, partTime: 0, contractors: 0 },
+      employeeReductionReason: '',
+      furtherReductionJustification: '',
+    }));
+    const notes = [
+      contactPerson ? `Customer contact: ${contactPerson}` : '',
+      auditType ? `Audit type: ${auditType}` : '',
+    ].filter(Boolean).join('\n');
+
+    localStorage.setItem('adj-builder-prefill', JSON.stringify({
+      createdAt: Date.now(),
+      data: {
+        client: {
+          name: companyName,
+          contactPerson,
+          createdDate: issueDate,
+          contractId: 'New',
+          opportunity: docId,
+          comments: notes,
+          scope,
+        },
+        standards: supportedStandards,
+        integration: {
+          otherStandards: otherStandards.length > 0,
+          otherStandardsText: otherStandards.join(', '),
+        },
+        transfer: {
+          isToa: auditType.includes('전환'),
+          stage: auditType.includes('전환') ? auditType : '',
+        },
+        sites,
+      },
+    }));
+    window.open('/iso/adj', '_blank', 'noopener,noreferrer');
+  };
+
   const handlePrint = () => window.print();
   const documentTitle = documentType === 'quote' ? 'ISO 인증 심사 견적서' : 'ISO 인증 계약서';
   const totalNote = hasExpenses ? `VAT ${vatType}` : `제경비/VAT ${vatType}`;
@@ -322,9 +413,9 @@ export default function ISOQuotePage() {
             <p className="mt-1 text-sm text-slate-500">문서 종류를 선택한 뒤 ISO 심사 비용 정보를 입력하고 Word 또는 PDF로 출력합니다.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/iso/adj" className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
+            <button type="button" onClick={handleOpenAdj} className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
               ADJ 작성
-            </Link>
+            </button>
             <Link href="/" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               포털로 돌아가기
             </Link>
@@ -349,19 +440,17 @@ export default function ISOQuotePage() {
           </div>
         </section>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-800">1. 기본 정보</h2>
-            <TextInput label="고객사명" value={companyName} onChange={setCompanyName} />
-            <TextInput label="담당자명" value={contactPerson} onChange={setContactPerson} />
-            <div className="grid grid-cols-2 gap-3">
-              <TextInput label="문서 번호" value={docId} onChange={setDocId} />
-              <div>
-                <label className="block text-sm font-medium text-slate-600">발행 일자</label>
-                <input type="date" className="mt-1 w-full rounded-md border p-2" value={issueDate} onChange={e => setIssueDate(e.target.value)} />
-              </div>
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold text-slate-800">1. 기본 정보</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-6">
+            <div className="md:col-span-3"><TextInput label="고객사명" value={companyName} onChange={setCompanyName} /></div>
+            <div className="md:col-span-3"><TextInput label="담당자명" value={contactPerson} onChange={setContactPerson} /></div>
+            <div className="md:col-span-2"><TextInput label="문서 번호" value={docId} onChange={setDocId} /></div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-600">발행 일자</label>
+              <input type="date" className="mt-1 w-full rounded-md border p-2" value={issueDate} onChange={e => setIssueDate(e.target.value)} />
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-600">심사 유형</label>
               <select className="mt-1 w-full rounded-md border p-2" value={auditType} onChange={e => setAuditType(e.target.value)}>
                 <option>신규 인증</option>
@@ -371,34 +460,42 @@ export default function ISOQuotePage() {
                 <option>사후 심사</option>
               </select>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-800">2. 인증 범위</h2>
-            <div>
-              <label className="block text-sm font-medium text-slate-600">ISO 표준</label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {ISO_STANDARDS.map(standard => (
-                  <label key={standard} className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                    <input type="checkbox" checked={standards.includes(standard)} onChange={() => toggleStandard(standard)} />
-                    {standard}
-                  </label>
-                ))}
-              </div>
+        <section className="mt-8 border-t pt-6">
+          <h2 className="text-lg font-semibold text-slate-800">2. 인증 범위</h2>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-600">ISO 표준</label>
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {ISO_STANDARDS.map(standard => (
+                <label key={standard} className="flex min-h-11 items-center gap-2 rounded-md border bg-white p-2 text-sm">
+                  <input type="checkbox" checked={standards.includes(standard)} onChange={() => toggleStandard(standard)} />
+                  {standard}
+                </label>
+              ))}
+              <label className="min-h-11 rounded-md border bg-white px-2 py-1.5">
+                <span className="block text-xs font-medium text-slate-500">기타 표준</span>
+                <input
+                  className="mt-0.5 w-full border-0 bg-transparent p-0 text-sm outline-none"
+                  value={customStandard}
+                  onChange={e => setCustomStandard(e.target.value)}
+                  placeholder="예: ISO 22301:2019"
+                />
+              </label>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600">인증 범위</label>
-              <textarea className="mt-1 h-20 w-full rounded-md border p-2" value={scope} onChange={e => setScope(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <TextInput label="사업장명" value={siteName} onChange={setSiteName} />
-              <TextInput label="사업장 수" value={siteCount} onChange={setSiteCount} />
-            </div>
-            <TextInput label="사업장 주소" value={siteAddress} onChange={setSiteAddress} />
-            <TextInput label="직원 수" value={employeeCount} onChange={setEmployeeCount} />
-          </section>
-        </div>
-
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-600">인증 범위</label>
+            <textarea className="mt-1 h-24 w-full rounded-md border p-2" value={scope} onChange={e => setScope(e.target.value)} />
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-6">
+            <div className="md:col-span-2"><TextInput label="사업장명" value={siteName} onChange={setSiteName} /></div>
+            <div><TextInput label="사업장 수" value={siteCount} onChange={setSiteCount} /></div>
+            <div><TextInput label="직원 수" value={employeeCount} onChange={setEmployeeCount} /></div>
+            <div className="md:col-span-2"><TextInput label="사업장 주소" value={siteAddress} onChange={setSiteAddress} /></div>
+          </div>
+        </section>
         <section className="mt-8 border-t pt-6">
           <h2 className="text-lg font-semibold text-slate-800">3. 심사일수 및 비용</h2>
           <div className="mt-4 space-y-4">
@@ -406,7 +503,7 @@ export default function ISOQuotePage() {
               const input = standardInputs[standard] || defaultCostInput();
               return (
                 <div key={standard} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-sm font-bold text-blue-700">{STANDARD_VERSION[standard]}</h3>
+                  <h3 className="text-sm font-bold text-blue-700">{getStandardDisplay(standard)}</h3>
                   <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
                     <NumberInput label="Stage 1 일수" value={input.stage1Days} onChange={value => updateStandardInput(standard, 'stage1Days', value)} />
                     <NumberInput label="Stage 2 일수" value={input.stage2Days} onChange={value => updateStandardInput(standard, 'stage2Days', value)} />
@@ -417,6 +514,18 @@ export default function ISOQuotePage() {
                 </div>
               );
             })}
+            {customStandardName && (
+              <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
+                <h3 className="text-sm font-bold text-teal-800">{customStandardName}</h3>
+                <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
+                  <NumberInput label="Stage 1 일수" value={customStandardInput.stage1Days} onChange={value => updateCustomStandardInput('stage1Days', value)} />
+                  <NumberInput label="Stage 2 일수" value={customStandardInput.stage2Days} onChange={value => updateCustomStandardInput('stage2Days', value)} />
+                  <NumberInput label="사후심사 일수" value={customStandardInput.surveillanceDays} onChange={value => updateCustomStandardInput('surveillanceDays', value)} />
+                  <NumberInput label="갱신심사 일수" value={customStandardInput.recertDays} onChange={value => updateCustomStandardInput('recertDays', value)} />
+                  <NumberInput label="Manday 단가" value={customStandardInput.dayRate} onChange={value => updateCustomStandardInput('dayRate', value)} />
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
             <NumberInput label="제경비/출장비" value={expenses} onChange={setExpenses} />
@@ -468,66 +577,103 @@ export default function ISOQuotePage() {
         </div>
       </div>
 
-      <div className="invoice-container mb-20 bg-white shadow-2xl" style={{ width: '210mm', minHeight: '297mm' }}>
-        <div className="page-content" style={{ padding: '18mm 15mm 42mm' }}>
-          <HeaderLine />
-          <div style={{ textAlign: 'center', margin: '22px 0' }}>
-            <h1 style={{ fontSize: '23pt', fontWeight: 'bold' }}>{documentTitle}</h1>
-            {documentType === 'contract' && <p style={{ color: '#64748b' }}>SEO Assessment Contract 서식으로 Word 계약서를 생성합니다.</p>}
+      <div className="preview-stage mb-20 w-full overflow-x-auto px-4 pb-6">
+        {documentType === 'contract' ? (
+          <div className="invoice-container contract-preview mx-auto flex-none bg-white shadow-2xl" style={{ width: '210mm', minHeight: '297mm' }}>
+            <div style={{ position: 'relative', minHeight: '297mm', padding: '22mm 20mm', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <div style={{ width: '72px', height: '7px', background: '#00a499', marginBottom: '16mm' }} />
+              <h1 style={{ margin: 0, maxWidth: '150mm', color: '#008f87', fontSize: '32pt', lineHeight: 1.12, fontWeight: 700 }}>
+                LRQA 서비스 제공을<br />위한 제안서
+              </h1>
+              <div style={{ marginTop: '22mm', display: 'grid', gap: '11mm' }}>
+                <p style={{ margin: 0, fontSize: '16pt', fontWeight: 700 }}>{companyName || '고객사명'}</p>
+                <p style={{ margin: 0, fontSize: '15pt', fontWeight: 700 }}>
+                  {standardCostRows.map(row => getStandardDisplay(row.standard)).join(', ')}
+                </p>
+                <p style={{ margin: 0, fontSize: '12pt' }}>일자: {formatDateKorean(issueDate)}</p>
+                <p style={{ margin: 0, fontSize: '11pt', color: '#475569' }}>{docId}</p>
+              </div>
+              <div style={{ position: 'absolute', top: '84mm', right: 0, width: '11mm', height: '84mm', background: '#00a499' }} />
+              <div style={{ position: 'absolute', left: '20mm', right: '20mm', bottom: '22mm', borderTop: '1px solid #cbd5e1', paddingTop: '7mm', fontSize: '10pt', lineHeight: 1.65 }}>
+                <strong>김 달 실장</strong><br />
+                사업개발본부 실장 | 로이드인증원(LRQA)<br />
+                dal.kim@lrqa.com | +82 2-3703-7527 | +82 10-3776-0837
+              </div>
+            </div>
           </div>
+        ) : (
+          <div className="invoice-container quote-preview mx-auto flex-none bg-white shadow-2xl" style={{ width: '210mm', minHeight: '297mm' }}>
+            <div className="page-content" style={{ padding: '15mm 12mm 40mm' }}>
+              <HeaderLine />
+              <div style={{ textAlign: 'center', margin: '15px 0 18px' }}>
+                <h1 style={{ margin: 0, fontSize: '20pt', fontWeight: 700 }}>ISO 인증 심사 견적서</h1>
+              </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
-            <tbody>
-              <tr><td style={{ width: '60px' }}>수신:</td><td style={{ fontWeight: 'bold' }}>{companyName || '고객사명'}</td><td style={{ textAlign: 'right' }}>{docId}</td></tr>
-              <tr><td>참조:</td><td>{contactPerson || '담당자'} 귀하</td><td></td></tr>
-              <tr><td>발신:</td><td>로이드인증원(LRQA)</td><td style={{ textAlign: 'right' }}>{formatDateKorean(issueDate)}</td></tr>
-            </tbody>
-          </table>
-          <hr style={{ border: '0.5pt solid black' }} />
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px', fontSize: '9.5pt' }}>
+                <tbody>
+                  <tr><td style={{ width: '58px' }}>수신:</td><td style={{ fontWeight: 700 }}>{companyName || '고객사명'}</td><td style={{ textAlign: 'right' }}>{docId}</td></tr>
+                  <tr><td>참조:</td><td>{contactPerson || '담당자'} 귀하</td><td></td></tr>
+                  <tr><td>발신:</td><td>로이드인증원(LRQA)</td><td style={{ textAlign: 'right' }}>{formatDateKorean(issueDate)}</td></tr>
+                </tbody>
+              </table>
+              <hr style={{ border: 0, borderTop: '1px solid #111827' }} />
 
-          <SectionTitle number="1" title="인증심사 범위" />
-          <InfoTable rows={[
-            ['적용 표준', standards.map(standard => STANDARD_VERSION[standard]).join(', ')],
-            ['심사 유형', auditType],
-            ['인증 범위', scope],
-            ['사업장', `${siteName || '본사'} / ${siteCount || '1'}개`],
-            ['사업장 주소', siteAddress || '-'],
-            ['직원 수', `${employeeCount || '0'}명`],
-            ['계약 기간', `${contractYears}년`],
-          ]} />
+              <SectionTitle number="1" title="인증심사 범위" />
+              <InfoTable rows={[
+                ['적용 표준', standardCostRows.map(row => getStandardDisplay(row.standard)).join(', ')],
+                ['심사 유형', auditType],
+                ['인증 범위', scope],
+                ['사업장', (siteName || '본사') + ' / ' + (siteCount || '1') + '개'],
+                ['사업장 주소', siteAddress || '-'],
+                ['직원 수', (employeeCount || '0') + '명'],
+              ]} />
 
-          <SectionTitle number="2" title="심사 비용" />
-          <table style={{ width: '100%', border: '1.2pt solid black', borderCollapse: 'collapse', textAlign: 'center', fontSize: '9.5pt' }}>
-            <thead><tr style={{ background: '#f3f4f6' }}><th style={cellHeader}>구분</th><th style={cellHeader}>심사일수</th><th style={cellHeader}>금액</th><th style={cellHeader}>비고</th></tr></thead>
-            <tbody>
-              {standardCostRows.map(row => (
-                <QuoteRow
-                  key={row.standard}
-                  label={row.label}
-                  days={row.activeAuditDays}
-                  amount={row.activeAuditFee}
-                  note={currentCycleQuote ? (renewalQuote ? '3년 주기 갱신' : '12개월 주기') : `Stage 1 ${row.input.stage1Days} MD / Stage 2 ${row.input.stage2Days} MD, 사후관리 ${row.input.surveillanceDays} MD`}
-                />
-              ))}
-              {hasExpenses && <SimpleAmountRow label="제경비/출장비" amount={expensesValue} />}
-              <SimpleAmountRow label="인증비/관리비" amount={certFeeValue} />
-              {discountValue > 0 && <SimpleAmountRow label="할인 금액" amount={-discountValue} />}
-              <tr style={{ background: '#e0ffff', fontWeight: 'bold' }}><td style={cell}>합계</td><td style={cell}>{formatDays(totalAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.discounted)}</td><td style={cell}>{totalNote}</td></tr>
-              <tr style={{ background: '#000080', color: 'white', fontWeight: 'bold' }}><td style={cell}>최종 금액</td><td style={cell}>{formatDays(totalAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.total)}</td><td style={cell}>{vatType === '별도' ? `VAT ${formatCurrency(quote.vat)} 별도` : 'VAT 포함'}</td></tr>
-            </tbody>
-          </table>
+              <SectionTitle number="2" title="심사 비용" />
+              <table style={{ width: '100%', tableLayout: 'fixed', border: '1.2pt solid black', borderCollapse: 'collapse', textAlign: 'center', fontSize: '8.8pt' }}>
+                <colgroup><col style={{ width: '29%' }} /><col style={{ width: '20%' }} /><col style={{ width: '21%' }} /><col style={{ width: '16%' }} /><col style={{ width: '14%' }} /></colgroup>
+                <thead>
+                  <tr style={{ background: '#0f172a', color: '#2dd4bf' }}>
+                    <th style={cellHeader}>비용 항목</th>
+                    <th style={cellHeader}>심사 일수</th>
+                    <th style={cellHeader}>심사 비용</th>
+                    <th style={cellHeader}>사후관리 심사<br />(12개월 주기)</th>
+                    <th style={cellHeader}>비고</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td style={cell}>신청비</td><td style={cell}>-</td><td style={cell}>면제(720,000원)</td><td style={cell}>-</td><td style={cell}>무상 제공</td></tr>
+                  <tr><td style={cell}>연간 관리 수수료</td><td style={cell}>-</td><td style={amountCell}>{formatCurrency(certFeeValue)}</td><td style={cell}>-</td><td style={cell}>-</td></tr>
+                  {standardCostRows.map(row => (
+                    <tr key={row.standard}>
+                      <td style={cell}>{row.label}</td>
+                      <td style={cell}>
+                        {currentCycleQuote ? formatDays(row.activeAuditDays) : <><span>1단계: {row.input.stage1Days}일</span><br /><span>2단계: {row.input.stage2Days}일</span></>}
+                      </td>
+                      <td style={amountCell}>
+                        {currentCycleQuote ? formatCurrency(row.activeAuditFee) : <><span>{formatCurrency(row.stage1Fee)}</span><br /><span>{formatCurrency(row.stage2Fee)}</span></>}
+                      </td>
+                      <td style={cell}>{currentCycleQuote ? '-' : row.input.surveillanceDays + '일'}</td>
+                      <td style={cell}>{currentCycleQuote ? (renewalQuote ? '3년 주기' : '12개월 주기') : '-'}</td>
+                    </tr>
+                  ))}
+                  {hasExpenses && <tr><td style={cell}>제경비/출장비</td><td style={cell}>-</td><td style={amountCell}>{formatCurrency(expensesValue)}</td><td style={cell}>-</td><td style={cell}>-</td></tr>}
+                  {discountValue > 0 && <tr><td style={cell}>할인 금액</td><td style={cell}>-</td><td style={amountCell}>-{formatCurrency(discountValue)}</td><td style={cell}>-</td><td style={cell}>-</td></tr>}
+                  <tr><td style={cell}>고객포털(Client Portal fee)</td><td style={cell}>-</td><td style={cell}>면제(£150)</td><td style={cell}>면제(£150)</td><td style={cell}>무상 제공</td></tr>
+                  <tr style={{ background: '#ccfbf1', fontWeight: 700 }}><td style={cell}>총합</td><td style={cell}>{formatDays(totalAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.discounted)}</td><td style={cell}>-</td><td style={cell}>{totalNote}</td></tr>
+                </tbody>
+              </table>
 
-          <SectionTitle number="3" title="조건" />
-          <div style={{ fontSize: '10pt', lineHeight: '1.55' }}>
-            <p>1) 본 견적은 제공된 정보에 근거한 제안이며, 최종 심사일수와 비용은 신청서 검토 및 계약 검토 결과에 따라 조정될 수 있습니다.</p>
-            <p>2) 지급 조건은 {paymentTerms}입니다.</p>
-            <p>3) 견적 유효기간은 발행일로부터 {validity}입니다.</p>
-            <p>4) 심사는 LRQA의 공평성 및 인증 절차에 따라 수행되며, 본 문서는 인증 결과를 보장하지 않습니다.</p>
+              <SectionTitle number="3" title="조건" />
+              <div style={{ fontSize: '9.3pt', lineHeight: 1.55 }}>
+                <p style={{ margin: '3px 0' }}>1) 최종 심사일수와 비용은 신청서 및 계약 검토 결과에 따라 조정될 수 있습니다.</p>
+                <p style={{ margin: '3px 0' }}>2) 지급 조건은 {paymentTerms}입니다.</p>
+                <p style={{ margin: '3px 0' }}>3) 견적 유효기간은 발행일로부터 {validity}입니다.</p>
+              </div>
+            </div>
+            <Footer />
           </div>
-        </div>
-        <Footer />
+        )}
       </div>
-
       <style jsx>{`
         .invoice-container { position: relative; }
         @media print {

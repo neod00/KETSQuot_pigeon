@@ -1,4 +1,4 @@
-﻿const steps = [
+const steps = [
   { id: "client", label: "Client Info" },
   { id: "standards", label: "Standards" },
   { id: "sites", label: "Sites & Employees" },
@@ -23,6 +23,7 @@ const translations = {
   "Client Information": "고객 정보",
   "Basic report data and scope are mapped into the Client Info tab.": "기본 보고 정보와 인증 범위가 ADJ의 Client Info 탭에 입력됩니다.",
   "Client / Account name": "고객 / 계정명",
+  "Customer contact person": "고객 담당자",
   "Created by": "작성자",
   "Date created": "작성일",
   "BOS Contract ID": "BOS 계약 ID",
@@ -173,6 +174,7 @@ function applyLanguage(root = document) {
 const defaultState = {
   client: {
     name: "",
+    contactPerson: "",
     createdBy: "",
     createdDate: new Date().toISOString().slice(0, 10),
     contractId: "New",
@@ -242,13 +244,30 @@ let currentStep = "client";
 let exportResult = null;
 let isExporting = false;
 
+function loadPrefill() {
+  try {
+    const raw = localStorage.getItem("adj-builder-prefill");
+    localStorage.removeItem("adj-builder-prefill");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.data || Date.now() - Number(parsed.createdAt || 0) > 15 * 60 * 1000) return null;
+    return parsed.data;
+  } catch {
+    localStorage.removeItem("adj-builder-prefill");
+    return null;
+  }
+}
+
 function loadState() {
+  let next = structuredClone(defaultState);
   try {
     const saved = localStorage.getItem("adj-builder-draft");
-    return saved ? mergeState(defaultState, JSON.parse(saved)) : structuredClone(defaultState);
+    if (saved) next = mergeState(next, JSON.parse(saved));
   } catch {
-    return structuredClone(defaultState);
+    next = structuredClone(defaultState);
   }
+  const prefill = loadPrefill();
+  return prefill ? mergeState(next, prefill) : next;
 }
 
 function mergeState(base, incoming) {
@@ -354,6 +373,7 @@ function renderClient() {
     <p class="page-subtitle">Basic report data and scope are mapped into the Client Info tab.</p>
     <div class="form-grid">
       ${input("client.name", "Client / Account name", { required: true })}
+      ${input("client.contactPerson", "Customer contact person")}
       ${input("client.createdBy", "Created by", { required: true })}
       ${input("client.createdDate", "Date created", { type: "date", required: true })}
       ${input("client.contractId", "BOS Contract ID", { placeholder: "New" })}
@@ -950,6 +970,3 @@ function escapeAttr(value) {
 }
 
 render();
-
-
-
