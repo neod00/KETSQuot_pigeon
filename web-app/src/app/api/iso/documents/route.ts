@@ -10,9 +10,9 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MAX_PART_BYTES = 3 * 1024 * 1024;
+const MAX_PART_BYTES = 768 * 1024;
 const isUploadId = (value: string) => /^UP-[A-Z0-9]{16,64}$/.test(value);
-const isPartCount = (value: number) => Number.isInteger(value) && value >= 1 && value <= 20;
+const isPartCount = (value: number) => Number.isInteger(value) && value >= 1 && value <= 64;
 
 const parseStandards = (value: unknown) => {
   try {
@@ -49,6 +49,27 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const uploadId = String(body.uploadId || '');
     const partCount = Number(body.partCount);
+
+    if (body.mode === 'chunk') {
+      const partIndex = Number(body.partIndex);
+      const encoded = String(body.data || '');
+      if (!isUploadId(uploadId) || !isPartCount(partCount) || !Number.isInteger(partIndex) ||
+          partIndex < 0 || partIndex >= partCount || !encoded) {
+        return NextResponse.json({ error: '문서 조각 정보가 올바르지 않습니다.' }, { status: 400 });
+      }
+
+      try {
+        const bytes = new Uint8Array(Buffer.from(encoded, 'base64'));
+        if (bytes.byteLength <= 0 || bytes.byteLength > MAX_PART_BYTES) {
+          return NextResponse.json({ error: '문서 조각은 768KB 이하여야 합니다.' }, { status: 413 });
+        }
+        await saveIsoDocumentPart(uploadId, partIndex, bytes);
+        return NextResponse.json({ uploaded: partIndex + 1, partCount });
+      } catch (error) {
+        return NextResponse.json({ error: error instanceof Error ? error.message : '문서 조각을 저장하지 못했습니다.' }, { status: 500 });
+      }
+    }
+
     const documentType = String(body.documentType || '');
     const fileName = String(body.fileName || '');
     if (body.mode !== 'finalize' || !isUploadId(uploadId) || !isPartCount(partCount) ||
@@ -68,7 +89,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error instanceof Error ? error.message : '문서를 결합하지 못했습니다.' }, { status: 400 });
     }
   }
-
   const form = await request.formData();
   const mode = String(form.get('mode') || 'direct');
   const file = form.get('file');
@@ -84,7 +104,7 @@ export async function POST(request: Request) {
     if (file.size <= 0 || file.size > MAX_PART_BYTES) {
       return NextResponse.json({ error: '문서 조각은 3MB 이하여야 합니다.' }, { status: 413 });
     }
-    await saveIsoDocumentPart(uploadId, partIndex, file);
+    await saveIsoDocumentPart(uploadId, partIndex, new Uint8Array(await file.arrayBuffer()));
     return NextResponse.json({ uploaded: partIndex + 1, partCount });
   }
 

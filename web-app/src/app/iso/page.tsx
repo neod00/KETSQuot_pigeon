@@ -402,19 +402,32 @@ export default function ISOQuotePage() {
       }
     };
 
-    const chunkSize = 2 * 1024 * 1024;
+    const toBase64 = (bytes: Uint8Array) => {
+      let binary = '';
+      const batchSize = 0x8000;
+      for (let offset = 0; offset < bytes.length; offset += batchSize) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + batchSize));
+      }
+      return btoa(binary);
+    };
+
+    const chunkSize = 512 * 1024;
     const partCount = Math.ceil(blob.size / chunkSize);
     const uploadId = `UP-${crypto.randomUUID().replace(/-/g, '').toUpperCase()}`;
 
     for (let partIndex = 0; partIndex < partCount; partIndex += 1) {
       const part = blob.slice(partIndex * chunkSize, Math.min(blob.size, (partIndex + 1) * chunkSize));
-      const form = new FormData();
-      form.append('mode', 'chunk');
-      form.append('uploadId', uploadId);
-      form.append('partIndex', String(partIndex));
-      form.append('partCount', String(partCount));
-      form.append('file', part, `${uploadId}-${partIndex}.part`);
-      const response = await fetch('/api/iso/documents', { method: 'POST', body: form });
+      const response = await fetch('/api/iso/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'chunk',
+          uploadId,
+          partIndex,
+          partCount,
+          data: toBase64(new Uint8Array(await part.arrayBuffer())),
+        }),
+      });
       const payload = await parseResponse(response);
       if (!response.ok) throw new Error(payload.error || `문서 조각 ${partIndex + 1} 업로드에 실패했습니다.`);
       setDraftMessage(`내부 문서함 업로드 중 ${partIndex + 1}/${partCount}`);

@@ -36,8 +36,8 @@ export async function saveIsoDocument(file: File, input: IsoDocumentInput) {
   return saveIsoDocumentBinary(new Uint8Array(await file.arrayBuffer()), file.type, input);
 }
 
-export const saveIsoDocumentPart = async (uploadId: string, index: number, file: File) => {
-  await setIsoBinary(STORE, uploadPartKey(uploadId, index), new Uint8Array(await file.arrayBuffer()));
+export const saveIsoDocumentPart = async (uploadId: string, index: number, bytes: Uint8Array) => {
+  await setIsoBinary(STORE, uploadPartKey(uploadId, index), bytes);
 };
 
 export async function finalizeIsoDocumentUpload(

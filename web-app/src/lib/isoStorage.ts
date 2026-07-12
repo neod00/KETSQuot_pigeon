@@ -61,7 +61,7 @@ export async function listIsoJson<T>(storeName: string, prefix: string): Promise
 export async function setIsoBinary(storeName: string, key: string, value: Uint8Array) {
   if (shouldUseNetlifyBlobs()) {
     const buffer = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength) as ArrayBuffer;
-    await getStore(storeName).set(key, buffer);
+    await getStore(storeName).set(key, new Blob([buffer], { type: 'application/octet-stream' }));
     return;
   }
 
