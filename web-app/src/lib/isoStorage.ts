@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { getStore } from '@netlify/blobs';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const LOCAL_ROOT = path.join(process.cwd(), '.local-data', 'iso');
@@ -80,5 +80,18 @@ export async function getIsoBinary(storeName: string, key: string): Promise<Uint
     return new Uint8Array(await readFile(safeLocalPath(storeName, key)));
   } catch {
     return null;
+  }
+}
+
+export async function deleteIsoValue(storeName: string, key: string) {
+  if (shouldUseNetlifyBlobs()) {
+    await getStore(storeName).delete(key);
+    return;
+  }
+
+  try {
+    await unlink(safeLocalPath(storeName, key));
+  } catch {
+    // A missing temporary upload part is already clean.
   }
 }

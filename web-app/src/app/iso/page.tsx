@@ -392,19 +392,54 @@ export default function ISOQuotePage() {
 
   const saveGeneratedDocument = async (blob: Blob, fileName: string) => {
     if (!activeDraftId) return;
-    const form = new FormData();
-    form.append('file', blob, fileName);
-    form.append('applicationId', activeApplicationId);
-    form.append('draftId', activeDraftId);
-    form.append('documentType', documentType);
-    form.append('version', String(draftVersion));
-    form.append('companyName', companyName);
-    form.append('standards', JSON.stringify(standardCostRows.map((row) => row.standard)));
-    const response = await fetch('/api/iso/documents', { method: 'POST', body: form });
-    const payload = await response.json();
+
+    const parseResponse = async (response: Response) => {
+      const text = await response.text();
+      try {
+        return JSON.parse(text) as { error?: string };
+      } catch {
+        return { error: response.ok ? '' : 'Netlify가 문서 업로드를 처리하지 못했습니다.' };
+      }
+    };
+
+    const chunkSize = 2 * 1024 * 1024;
+    const partCount = Math.ceil(blob.size / chunkSize);
+    const uploadId = `UP-${crypto.randomUUID().replace(/-/g, '').toUpperCase()}`;
+
+    for (let partIndex = 0; partIndex < partCount; partIndex += 1) {
+      const part = blob.slice(partIndex * chunkSize, Math.min(blob.size, (partIndex + 1) * chunkSize));
+      const form = new FormData();
+      form.append('mode', 'chunk');
+      form.append('uploadId', uploadId);
+      form.append('partIndex', String(partIndex));
+      form.append('partCount', String(partCount));
+      form.append('file', part, `${uploadId}-${partIndex}.part`);
+      const response = await fetch('/api/iso/documents', { method: 'POST', body: form });
+      const payload = await parseResponse(response);
+      if (!response.ok) throw new Error(payload.error || `문서 조각 ${partIndex + 1} 업로드에 실패했습니다.`);
+      setDraftMessage(`내부 문서함 업로드 중 ${partIndex + 1}/${partCount}`);
+    }
+
+    const response = await fetch('/api/iso/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'finalize',
+        uploadId,
+        partCount,
+        fileName,
+        contentType: blob.type,
+        applicationId: activeApplicationId,
+        draftId: activeDraftId,
+        documentType,
+        version: draftVersion,
+        companyName,
+        standards: standardCostRows.map((row) => row.standard),
+      }),
+    });
+    const payload = await parseResponse(response);
     if (!response.ok) throw new Error(payload.error || '생성 문서를 내부 문서함에 저장하지 못했습니다.');
   };
-
   const handleDownloadWord = async () => {
     if (documentType === 'contract' && !companyName.trim()) {
       alert('계약서 생성을 위해 고객사명을 입력해주세요.');
