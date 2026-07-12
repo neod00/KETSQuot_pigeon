@@ -430,7 +430,7 @@ export const buildIsoContractDocumentXml = (templateXml: string, data: IsoContra
 export const generateIsoContractDocx = async (data: IsoContractDocxData) => {
   if (typeof window === 'undefined') return;
 
-  const [{ default: PizZip }, { default: PizZipUtils }, { saveAs }] = await Promise.all([
+  const [{ default: PizZip }, { default: PizZipUtils }, { default: saveAs }] = await Promise.all([
     import('pizzip'),
     import('pizzip/utils/index.js'),
     import('file-saver'),
@@ -451,4 +451,5 @@ export const generateIsoContractDocx = async (data: IsoContractDocxData) => {
 
   const fileName = `SEO_Assessment_Contract_Kor_${safeFilePart(data.companyName || '고객사')}_${formatYmd(data.issueDate)}.docx`;
   saveAs(output, fileName);
+  return { blob: output, fileName };
 };

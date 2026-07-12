@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { generateIsoQuoteDocx } from '../../utils/isoQuoteDocxGenerator';
 import { generateIsoContractDocx } from '../../utils/isoContractDocxGenerator';
+import type { IsoQuoteDraft, IsoQuoteDraftStatus, IsoQuoteInput } from '../../lib/isoTypes';
 
 const DEFAULT_RATE = 1300000;
 const DEFAULT_EXPENSES = 300000;
@@ -125,14 +126,20 @@ export default function ISOQuotePage() {
   const [businessRegistrationNumber, setBusinessRegistrationNumber] = useState('');
   const [billingAddress, setBillingAddress] = useState('');
   const [importMessage, setImportMessage] = useState('');
+  const [activeDraftId, setActiveDraftId] = useState('');
+  const [activeApplicationId, setActiveApplicationId] = useState('');
+  const [draftVersion, setDraftVersion] = useState(1);
+  const [draftStatus, setDraftStatus] = useState<IsoQuoteDraftStatus>('draft');
+  const [draftMessage, setDraftMessage] = useState('');
+  const [draftLoading, setDraftLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const data = params.get('data');
-    if (!data) return;
+    const encodedData = params.get('data');
+    const requestedDraftId = params.get('draftId');
 
-    try {
-      const imported = JSON.parse(decodeURIComponent(data));
+    const applyImported = (input: IsoQuoteInput) => {
+      const imported = input as IsoQuoteInput & Record<string, unknown>;
       const importedStandards = Array.isArray(imported.standards)
         ? imported.standards.filter((item: string) => ISO_STANDARDS.includes(item as StandardKey)) as StandardKey[]
         : [];
@@ -161,15 +168,17 @@ export default function ISOQuotePage() {
       setVatType(imported.vatType === 'included' || imported.vatType === '포함' ? '포함' : '별도');
       setContractYears(String(imported.contractYears || '3'));
       setPaymentTerms(imported.paymentTerms || '송장 일자로부터 30일 이내 현금으로 지급');
+      setValidity(imported.validity || '1개월');
       setSignerTitle(imported.signerTitle || '대표이사');
-      setCustomerPhone(imported.customerPhone || imported.phone || '');
-      setCustomerEmail(imported.customerEmail || imported.email || '');
+      setCustomerPhone(imported.customerPhone || '');
+      setCustomerEmail(imported.customerEmail || '');
       setPostalCode(imported.postalCode || '');
       setBusinessRegistrationNumber(imported.businessRegistrationNumber || '');
       setBillingAddress(imported.billingAddress || '');
+
       if (importedCustomStandard) {
         const importedCustomCost = Array.isArray(imported.standardCosts)
-          ? imported.standardCosts.find((item: { standard?: string }) => item.standard === importedCustomStandard)
+          ? imported.standardCosts.find((item) => item.standard === importedCustomStandard)
           : undefined;
         setCustomStandardInput({
           stage1Days: toInputNumber(importedCustomCost?.stage1Days, '1.0'),
@@ -179,26 +188,62 @@ export default function ISOQuotePage() {
           dayRate: toInputNumber(importedCustomCost?.dayRate, DEFAULT_RATE.toLocaleString()),
         });
       }
+
       setStandardInputs(current => {
         const next = { ...current };
         nextStandards.forEach((standard) => {
           const importedCost = Array.isArray(imported.standardCosts)
-            ? imported.standardCosts.find((item: { standard?: string }) => item.standard === standard)
+            ? imported.standardCosts.find((item) => item.standard === standard)
             : undefined;
           next[standard] = {
-            stage1Days: toInputNumber(importedCost?.stage1Days ?? imported.stage1Days, '1.0'),
-            stage2Days: toInputNumber(importedCost?.stage2Days ?? imported.stage2Days, '2.0'),
-            surveillanceDays: toInputNumber(importedCost?.surveillanceDays ?? imported.surveillanceDays, '1.0'),
-            recertDays: toInputNumber(importedCost?.recertDays ?? imported.recertDays, '2.0'),
-            dayRate: toInputNumber(importedCost?.dayRate ?? imported.dayRate, DEFAULT_RATE.toLocaleString()),
+            stage1Days: toInputNumber(importedCost?.stage1Days, '1.0'),
+            stage2Days: toInputNumber(importedCost?.stage2Days, '2.0'),
+            surveillanceDays: toInputNumber(importedCost?.surveillanceDays, '1.0'),
+            recertDays: toInputNumber(importedCost?.recertDays, '2.0'),
+            dayRate: toInputNumber(importedCost?.dayRate, DEFAULT_RATE.toLocaleString()),
           };
         });
         return next;
       });
-      setImportMessage('Intake에서 전달된 ISO 입력값을 불러왔습니다. 고객 발송 전 규격별 심사일수, 단가, 경비, 할인, VAT를 검토하세요.');
-    } catch {
-      setImportMessage('전달된 Intake 데이터를 읽지 못했습니다. URL data 파라미터를 확인하세요.');
-    }
+    };
+
+    const loadInput = async () => {
+      if (requestedDraftId) {
+        setDraftLoading(true);
+        try {
+          const response = await fetch(`/api/iso/quote-drafts/${encodeURIComponent(requestedDraftId)}`, { cache: 'no-store' });
+          if (response.status === 401) {
+            const returnTo = window.location.pathname + window.location.search;
+            window.location.assign(`/iso/login?returnTo=${encodeURIComponent(returnTo)}`);
+            return;
+          }
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || '견적 초안을 불러오지 못했습니다.');
+          const draft = payload.draft as IsoQuoteDraft;
+          setActiveDraftId(draft.id);
+          setActiveApplicationId(draft.applicationId);
+          setDraftVersion(draft.version);
+          setDraftStatus(draft.status);
+          applyImported(draft.quoteInput);
+          setImportMessage('신청서에 연결된 견적 초안을 불러왔습니다. 심사일수와 비용을 검토한 뒤 저장하세요.');
+        } catch (error) {
+          setImportMessage(error instanceof Error ? error.message : '견적 초안을 불러오지 못했습니다.');
+        } finally {
+          setDraftLoading(false);
+        }
+        return;
+      }
+
+      if (!encodedData) return;
+      try {
+        applyImported(JSON.parse(decodeURIComponent(encodedData)) as IsoQuoteInput);
+        setImportMessage('Intake에서 전달된 ISO 입력값을 불러왔습니다. 고객 발송 전 규격별 심사일수, 단가, 경비, 할인, VAT를 검토하세요.');
+      } catch {
+        setImportMessage('전달된 Intake 데이터를 읽지 못했습니다. URL data 파라미터를 확인하세요.');
+      }
+    };
+
+    void loadInput();
   }, []);
 
   const expensesValue = parseNumber(expenses);
@@ -287,9 +332,86 @@ export default function ISOQuotePage() {
     });
   };
 
+  const getCurrentQuoteInput = (): IsoQuoteInput => ({
+    companyName,
+    contactPerson,
+    auditType,
+    standards,
+    customStandard: customStandardName || undefined,
+    scope,
+    siteName,
+    siteAddress,
+    siteCount: Math.max(1, Number.parseInt(siteCount.replace(/[^0-9]/g, ''), 10) || 1),
+    employeeCount: Math.max(0, Number.parseInt(employeeCount.replace(/[^0-9]/g, ''), 10) || 0),
+    customerPhone,
+    customerEmail,
+    postalCode,
+    businessRegistrationNumber,
+    billingAddress,
+    standardCosts: standardCostRows.map((row) => ({
+      standard: row.standard,
+      stage1Days: row.stage1Days,
+      stage2Days: row.stage2Days,
+      surveillanceDays: row.surveillanceDays,
+      recertDays: row.recertDays,
+      dayRate: row.dayRate,
+    })),
+    expenses: hasExpenses ? expensesValue : 0,
+    certFee: certFeeValue,
+    discount: discountValue,
+    vatType,
+    contractYears,
+    paymentTerms,
+    validity,
+    signerTitle,
+  });
+
+  const saveDraft = async (status: IsoQuoteDraftStatus) => {
+    if (!activeDraftId) return;
+    setDraftMessage('저장 중...');
+    try {
+      const response = await fetch(`/api/iso/quote-drafts/${encodeURIComponent(activeDraftId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quoteInput: getCurrentQuoteInput(), status }),
+      });
+      if (response.status === 401) {
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.assign(`/iso/login?returnTo=${encodeURIComponent(returnTo)}`);
+        return;
+      }
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '견적 초안을 저장하지 못했습니다.');
+      setDraftVersion(payload.draft.version);
+      setDraftStatus(payload.draft.status);
+      setDraftMessage(status === 'draft' ? '초안을 저장했습니다.' : status === 'review_requested' ? '내부 검토 요청 상태로 저장했습니다.' : '내부 승인 완료 상태로 저장했습니다.');
+    } catch (error) {
+      setDraftMessage(error instanceof Error ? error.message : '견적 초안을 저장하지 못했습니다.');
+    }
+  };
+
+  const saveGeneratedDocument = async (blob: Blob, fileName: string) => {
+    if (!activeDraftId) return;
+    const form = new FormData();
+    form.append('file', blob, fileName);
+    form.append('applicationId', activeApplicationId);
+    form.append('draftId', activeDraftId);
+    form.append('documentType', documentType);
+    form.append('version', String(draftVersion));
+    form.append('companyName', companyName);
+    form.append('standards', JSON.stringify(standardCostRows.map((row) => row.standard)));
+    const response = await fetch('/api/iso/documents', { method: 'POST', body: form });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || '생성 문서를 내부 문서함에 저장하지 못했습니다.');
+  };
+
   const handleDownloadWord = async () => {
     if (documentType === 'contract' && !companyName.trim()) {
       alert('계약서 생성을 위해 고객사명을 입력해주세요.');
+      return;
+    }
+    if (activeDraftId && draftStatus !== 'approved') {
+      alert('신청서 연결 문서는 내부 승인 완료 후 생성할 수 있습니다.');
       return;
     }
 
@@ -328,21 +450,30 @@ export default function ISOQuotePage() {
         validity,
       };
 
-      if (documentType === 'contract') {
-        await generateIsoContractDocx({
-          ...documentData,
-          signerTitle,
-          customerPhone,
-          customerEmail,
-          postalCode,
-          businessRegistrationNumber,
-          billingAddress,
-        });
-      } else {
-        await generateIsoQuoteDocx(documentData);
+      const generated = documentType === 'contract'
+        ? await generateIsoContractDocx({
+            ...documentData,
+            signerTitle,
+            customerPhone,
+            customerEmail,
+            postalCode,
+            businessRegistrationNumber,
+            billingAddress,
+          })
+        : await generateIsoQuoteDocx(documentData);
+
+      if (generated && activeDraftId) {
+        try {
+          await saveGeneratedDocument(generated.blob, generated.fileName);
+          setDraftMessage('Word 문서를 다운로드하고 내부 문서함에도 저장했습니다.');
+        } catch (storageError) {
+          setDraftMessage(storageError instanceof Error ? storageError.message : '다운로드는 완료했지만 내부 문서함 저장에 실패했습니다.');
+        }
       }
     } catch (error) {
       console.error(error);
+      const reason = error instanceof Error ? error.message : '알 수 없는 오류';
+      setDraftMessage(`Word 파일 생성 실패: ${reason}`);
       alert('ISO ' + (documentType === 'contract' ? '계약서' : '견적서') + ' Word 파일 생성 중 오류가 발생했습니다.');
     }
   };
@@ -401,7 +532,6 @@ export default function ISOQuotePage() {
   };
 
   const handlePrint = () => window.print();
-  const documentTitle = documentType === 'quote' ? 'ISO 인증 심사 견적서' : 'ISO 인증 계약서';
   const totalNote = hasExpenses ? `VAT ${vatType}` : `제경비/VAT ${vatType}`;
 
   return (
@@ -412,7 +542,9 @@ export default function ISOQuotePage() {
             <h1 className="text-2xl font-bold text-blue-700">LRQA ISO 견적/계약서 생성기</h1>
             <p className="mt-1 text-sm text-slate-500">문서 종류를 선택한 뒤 ISO 심사 비용 정보를 입력하고 Word 또는 PDF로 출력합니다.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/iso/applications" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">신청서 접수함</Link>
+            <Link href="/iso/documents" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">문서함</Link>
             <button type="button" onClick={handleOpenAdj} className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
               ADJ 작성
             </button>
@@ -423,6 +555,25 @@ export default function ISOQuotePage() {
         </div>
 
         {importMessage && <div className="mt-4 rounded-md border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800">{importMessage}</div>}
+
+        {draftLoading && <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">견적 초안을 불러오는 중입니다...</div>}
+
+        {activeDraftId && (
+          <section className="mt-4 border-y border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-mono text-xs font-bold text-slate-700">{activeDraftId}</p>
+                <p className="mt-1 text-sm text-slate-600">v{draftVersion} · {draftStatus === 'draft' ? '초안' : draftStatus === 'review_requested' ? '검토 요청' : '승인 완료'}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => saveDraft('draft')} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">초안 저장</button>
+                <button type="button" onClick={() => saveDraft('review_requested')} className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 hover:bg-amber-100">검토 요청</button>
+                <button type="button" onClick={() => saveDraft('approved')} className="rounded-md bg-teal-700 px-3 py-2 text-sm font-bold text-white hover:bg-teal-800">승인 완료</button>
+              </div>
+            </div>
+            {draftMessage && <p className="mt-2 text-sm font-semibold text-slate-700">{draftMessage}</p>}
+          </section>
+        )}
 
         <section className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <h2 className="text-sm font-bold text-slate-700">문서 종류</h2>
@@ -568,7 +719,7 @@ export default function ISOQuotePage() {
         )}
 
         <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <button onClick={handleDownloadWord} className="rounded-lg bg-blue-700 px-4 py-3 font-bold text-white shadow-md hover:bg-blue-800">
+          <button onClick={handleDownloadWord} disabled={Boolean(activeDraftId) && draftStatus !== 'approved'} className="rounded-lg bg-blue-700 px-4 py-3 font-bold text-white shadow-md hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
             {documentType === 'quote' ? 'Word 견적서 다운로드' : 'Word 계약서 다운로드'}
           </button>
           <button onClick={handlePrint} className="rounded-lg border border-slate-300 px-4 py-3 font-bold text-slate-700 hover:bg-slate-50">

@@ -222,7 +222,7 @@ const replaceCostRows = (xml: string, costRows: CostRow[], data: IsoQuoteDocxDat
 export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   if (typeof window === 'undefined') return;
 
-  const [{ default: PizZip }, { default: PizZipUtils }, { saveAs }] = await Promise.all([
+  const [{ default: PizZip }, { default: PizZipUtils }, { default: saveAs }] = await Promise.all([
     import('pizzip'),
     import('pizzip/utils/index.js'),
     import('file-saver'),
@@ -291,4 +291,5 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   const companyFileLabel = safeFilePart(data.companyName || '고객사');
   const fileName = `LRQA_심사 견적서_${standardFileLabel} 심사 견적서_${companyFileLabel}_${formatYmd(data.issueDate)}.docx`;
   saveAs(output, fileName);
+  return { blob: output, fileName };
 };
