@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { generateIsoQuoteDocx } from '../../utils/isoQuoteDocxGenerator';
 import { generateIsoContractDocx } from '../../utils/isoContractDocxGenerator';
 import type { IsoQuoteDraft, IsoQuoteDraftStatus, IsoQuoteInput } from '../../lib/isoTypes';
+import {
+  calculateIsoQuoteCost,
+  futureAuditHeader,
+  isCurrentCycleQuote,
+  isRenewalQuote,
+} from '../../lib/isoQuoteRules';
 
 const DEFAULT_RATE = 1300000;
 const DEFAULT_EXPENSES = 300000;
@@ -91,9 +97,6 @@ const toInputNumber = (value: unknown, fallback: string) => {
   return String(value);
 };
 
-const isRenewalQuote = (auditType: string) => auditType.includes('갱신');
-const isSurveillanceQuote = (auditType: string) => auditType.includes('사후');
-const isCurrentCycleQuote = (auditType: string) => isRenewalQuote(auditType) || isSurveillanceQuote(auditType);
 
 export default function ISOQuotePage() {
   const today = new Date().toISOString().slice(0, 10);
@@ -268,13 +271,14 @@ export default function ISOQuotePage() {
       const surveillanceDays = parseDays(input.surveillanceDays);
       const recertDays = parseDays(input.recertDays);
       const dayRate = parseNumber(input.dayRate);
-      const stage1Fee = stage1Days * dayRate;
-      const stage2Fee = stage2Days * dayRate;
-      const initialAuditFee = stage1Fee + stage2Fee;
-      const annualSurveillanceFee = surveillanceDays * dayRate;
-      const recertificationFee = recertDays * dayRate;
-      const activeAuditDays = currentCycleQuote ? (renewalQuote ? recertDays : surveillanceDays) : stage1Days + stage2Days;
-      const activeAuditFee = currentCycleQuote ? (renewalQuote ? recertificationFee : annualSurveillanceFee) : initialAuditFee;
+      const calculated = calculateIsoQuoteCost({
+        standard,
+        stage1Days,
+        stage2Days,
+        surveillanceDays,
+        recertDays,
+        dayRate,
+      }, auditType);
 
       return {
         standard,
@@ -285,16 +289,10 @@ export default function ISOQuotePage() {
         surveillanceDays,
         recertDays,
         dayRate,
-        stage1Fee,
-        stage2Fee,
-        initialAuditFee,
-        annualSurveillanceFee,
-        recertificationFee,
-        activeAuditDays,
-        activeAuditFee,
+        ...calculated,
       };
     });
-  }, [auditType, currentCycleQuote, customStandardInput, customStandardName, renewalQuote, standardInputs, standards]);
+  }, [auditType, customStandardInput, customStandardName, standardInputs, standards]);
 
   const totalAuditDays = standardCostRows.reduce((sum, row) => sum + row.activeAuditDays, 0);
 
@@ -581,7 +579,7 @@ export default function ISOQuotePage() {
 
   const handlePrint = () => window.print();
   const totalNote = hasExpenses ? `VAT ${vatType}` : `제경비/VAT ${vatType}`;
-
+  const futureAuditColumn = futureAuditHeader(auditType);
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center">
       <div className="no-print w-full max-w-6xl p-6 sm:p-8 bg-white shadow-lg my-8 rounded-xl border border-slate-100">
@@ -835,7 +833,7 @@ export default function ISOQuotePage() {
                     <th style={cellHeader}>비용 항목</th>
                     <th style={cellHeader}>심사 일수</th>
                     <th style={cellHeader}>심사 비용</th>
-                    <th style={cellHeader}>사후관리 심사<br />(12개월 주기)</th>
+                    <th style={cellHeader}>{futureAuditColumn.title}<br />({futureAuditColumn.cycle})</th>
                     <th style={cellHeader}>비고</th>
                   </tr>
                 </thead>
@@ -846,19 +844,23 @@ export default function ISOQuotePage() {
                     <tr key={row.standard}>
                       <td style={cell}>{row.label}</td>
                       <td style={cell}>
-                        {currentCycleQuote ? formatDays(row.activeAuditDays) : <><span>1단계: {row.input.stage1Days}일</span><br /><span>2단계: {row.input.stage2Days}일</span></>}
+                        {row.singleLineAudit ? row.activeAuditDays.toFixed(1) + '일' : <><span>1단계: {row.input.stage1Days}일</span><br /><span>2단계: {row.input.stage2Days}일</span></>}
                       </td>
                       <td style={amountCell}>
-                        {currentCycleQuote ? formatCurrency(row.activeAuditFee) : <><span>{formatCurrency(row.stage1Fee)}</span><br /><span>{formatCurrency(row.stage2Fee)}</span></>}
+                        {row.freeTransfer
+                          ? '무상(' + row.activeAuditDays.toFixed(1) + '일, ' + formatCurrency(row.dayRate) + '/일)'
+                          : row.singleLineAudit
+                            ? formatCurrency(row.activeAuditFee)
+                            : <><span>{formatCurrency(row.stage1Fee)}</span><br /><span>{formatCurrency(row.stage2Fee)}</span></>}
                       </td>
-                      <td style={cell}>{currentCycleQuote ? '-' : row.input.surveillanceDays + '일'}</td>
+                      <td style={cell}>{row.futureAuditDays === null ? '-' : row.futureAuditDays.toFixed(1) + '일'}</td>
                       <td style={cell}>{currentCycleQuote ? (renewalQuote ? '3년 주기' : '12개월 주기') : '-'}</td>
                     </tr>
                   ))}
                   {hasExpenses && <tr><td style={cell}>제경비/출장비</td><td style={cell}>-</td><td style={amountCell}>{formatCurrency(expensesValue)}</td><td style={cell}>-</td><td style={cell}>-</td></tr>}
                   {discountValue > 0 && <tr><td style={cell}>할인 금액</td><td style={cell}>-</td><td style={amountCell}>-{formatCurrency(discountValue)}</td><td style={cell}>-</td><td style={cell}>-</td></tr>}
                   <tr><td style={cell}>고객포털(Client Portal fee)</td><td style={cell}>-</td><td style={cell}>면제(£150)</td><td style={cell}>면제(£150)</td><td style={cell}>무상 제공</td></tr>
-                  <tr style={{ background: '#ccfbf1', fontWeight: 700 }}><td style={cell}>총합</td><td style={cell}>{formatDays(totalAuditDays)}</td><td style={amountCell}>{formatCurrency(quote.discounted)}</td><td style={cell}>-</td><td style={cell}>{totalNote}</td></tr>
+                  <tr style={{ background: '#ccfbf1', fontWeight: 700 }}><td style={boldCell}>총합</td><td style={boldCell}>{formatDays(totalAuditDays)}</td><td style={boldAmountCell}>{formatCurrency(quote.discounted)}</td><td style={boldCell}>-</td><td style={boldCell}>{totalNote}</td></tr>
                 </tbody>
               </table>
 
@@ -911,6 +913,8 @@ function InfoTable({ rows }: { rows: string[][] }) {
 const cell: React.CSSProperties = { border: '0.5pt solid black', padding: '6px' };
 const cellHeader: React.CSSProperties = { ...cell, fontWeight: 'bold' };
 const amountCell: React.CSSProperties = { ...cell, textAlign: 'right', paddingRight: '8px' };
+const boldCell: React.CSSProperties = { ...cell, fontWeight: 700 };
+const boldAmountCell: React.CSSProperties = { ...amountCell, fontWeight: 700 };
 
 
 function Footer() {

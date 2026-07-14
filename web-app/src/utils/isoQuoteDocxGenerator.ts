@@ -1,3 +1,11 @@
+import {
+  calculateIsoQuoteCost,
+  futureAuditHeader,
+  isRenewalQuote,
+  isSurveillanceQuote,
+  isTransferQuote,
+} from '../lib/isoQuoteRules';
+
 export interface IsoStandardCostData {
   standard: string;
   stage1Days: number;
@@ -74,13 +82,9 @@ const safeFilePart = (value: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const isRenewalQuote = (auditType: string) => auditType.includes('갱신');
-const isSurveillanceQuote = (auditType: string) => auditType.includes('사후');
-const isCurrentCycleQuote = (auditType: string) => isRenewalQuote(auditType) || isSurveillanceQuote(auditType);
-
 const auditPhrase = (auditType: string) => {
   if (isRenewalQuote(auditType)) return '갱신 심사';
-  if (auditType.includes('전환') || auditType.includes('인수')) return '인수인증 심사';
+  if (isTransferQuote(auditType)) return '인수인증 심사';
   if (auditType.includes('범위')) return '범위 확장 심사';
   if (isSurveillanceQuote(auditType)) return '사후관리 심사';
   return '최초 심사';
@@ -106,6 +110,22 @@ const patchRowTextNodes = (rowXml: string, updates: Record<number, string>) => {
   });
 };
 
+const patchCellTextNodes = (rowXml: string, cellIndex: number, values: string[]) => {
+  let currentCell = 0;
+  return rowXml.replace(/<w:tc[\s\S]*?<\/w:tc>/g, (cellXml) => {
+    const targetCell = currentCell === cellIndex;
+    currentCell += 1;
+    if (!targetCell) return cellXml;
+
+    let textIndex = 0;
+    return cellXml.replace(/<w:t(\s[^>]*)?>([\s\S]*?)<\/w:t>/g, (_full, attrs = '') => {
+      const value = values[textIndex] ?? '';
+      textIndex += 1;
+      return '<w:t' + attrs + '>' + escapeXml(value) + '</w:t>';
+    });
+  });
+};
+
 const setRowRange = (updates: Record<number, string>, start: number, end: number, value: string) => {
   updates[start] = value;
   for (let i = start + 1; i <= end; i += 1) updates[i] = '';
@@ -117,6 +137,49 @@ const collectRows = (xml: string) =>
     start: match.index ?? 0,
     end: (match.index ?? 0) + match[0].length,
   }));
+
+const collapseRowCellsToOneParagraph = (rowXml: string) =>
+  rowXml.replace(/<w:tc[\s\S]*?<\/w:tc>/g, (cellXml) => {
+    const paragraphs = [...cellXml.matchAll(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g)];
+    if (paragraphs.length <= 1) return cellXml;
+
+    const first = paragraphs[0];
+    const last = paragraphs[paragraphs.length - 1];
+    const firstEnd = (first.index ?? 0) + first[0].length;
+    const lastEnd = (last.index ?? 0) + last[0].length;
+    return cellXml.slice(0, firstEnd) + cellXml.slice(lastEnd);
+  });
+
+const addBoldToRuns = (rowXml: string) =>
+  rowXml.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g, (runXml) => {
+    if (/<w:b(?:\s[^>]*)?\/>/.test(runXml)) return runXml;
+    if (/<w:rPr(?:\s[^>]*)?>/.test(runXml)) {
+      return runXml.replace(/<w:rPr(?:\s[^>]*)?>/, (open) => open + '<w:b/>');
+    }
+    return runXml.replace(/<w:r(?:\s[^>]*)?>/, (open) => open + '<w:rPr><w:b/></w:rPr>');
+  });
+
+const patchFutureAuditHeader = (xml: string, auditType: string) => {
+  const headerRow = collectRows(xml).find((row) =>
+    row.xml.includes('사후관리') && row.xml.includes('12개월 주기'));
+  if (!headerRow) return xml;
+
+  const header = futureAuditHeader(auditType);
+  const patchedRow = patchCellTextNodes(
+    headerRow.xml,
+    3,
+    [header.title, '', '(', header.cycle, ')'],
+  );
+  return xml.slice(0, headerRow.start) + patchedRow + xml.slice(headerRow.end);
+};
+
+const boldTotalRow = (xml: string) => {
+  const totalRow = collectRows(xml).find((row) => row.xml.includes('총합'));
+  if (!totalRow) return xml;
+
+  const patchedRow = addBoldToRuns(totalRow.xml);
+  return xml.slice(0, totalRow.start) + patchedRow + xml.slice(totalRow.end);
+};
 
 const getBinaryContent = async (path: string, PizZipUtils: { getBinaryContent: (path: string, callback: (error: Error | null, content: string) => void) => void }) =>
   new Promise<string>((resolve, reject) => {
@@ -140,55 +203,42 @@ const normalizeStandardCosts = (data: IsoQuoteDocxData): IsoStandardCostData[] =
   }));
 };
 
-const toCostRows = (data: IsoQuoteDocxData) => {
-  const currentCycleQuote = isCurrentCycleQuote(data.auditType);
-  const renewalQuote = isRenewalQuote(data.auditType);
-
-  return normalizeStandardCosts(data).map((input) => {
-    const stage1Fee = input.stage1Days * input.dayRate;
-    const stage2Fee = input.stage2Days * input.dayRate;
-    const initialAuditFee = stage1Fee + stage2Fee;
-    const annualSurveillanceFee = input.surveillanceDays * input.dayRate;
-    const recertificationFee = input.recertDays * input.dayRate;
-    const activeAuditDays = currentCycleQuote ? (renewalQuote ? input.recertDays : input.surveillanceDays) : input.stage1Days + input.stage2Days;
-    const activeAuditFee = currentCycleQuote ? (renewalQuote ? recertificationFee : annualSurveillanceFee) : initialAuditFee;
-
-    return {
-      ...input,
-      label: `${STANDARD_VERSION[input.standard] || input.standard} ${auditPhrase(data.auditType)}`,
-      stage1Fee,
-      stage2Fee,
-      initialAuditFee,
-      annualSurveillanceFee,
-      recertificationFee,
-      activeAuditDays,
-      activeAuditFee,
-      note: currentCycleQuote ? (renewalQuote ? '3년 주기 갱신' : '12개월 주기') : '-',
-    };
-  });
-};
+const toCostRows = (data: IsoQuoteDocxData) =>
+  normalizeStandardCosts(data).map((input) => ({
+    ...input,
+    label: (STANDARD_VERSION[input.standard] || input.standard) + ' ' + auditPhrase(data.auditType),
+    ...calculateIsoQuoteCost(input, data.auditType),
+  }));
 
 type CostRow = ReturnType<typeof toCostRows>[number];
 
-const buildAuditCostRow = (templateXml: string, row: CostRow, currentCycleQuote: boolean) => {
+const buildAuditCostRow = (templateXml: string, row: CostRow) => {
   const updates: Record<number, string> = {};
   setRowRange(updates, 0, 0, row.label);
 
-  if (currentCycleQuote) {
-    setRowRange(updates, 1, 10, `${formatDays(row.activeAuditDays)}일`);
-    setRowRange(updates, 11, 19, formatWon(row.activeAuditFee));
-    setRowRange(updates, 20, 23, '-');
+  if (row.singleLineAudit) {
+    setRowRange(updates, 1, 10, formatDays(row.activeAuditDays) + '일');
+    setRowRange(
+      updates,
+      11,
+      19,
+      row.freeTransfer
+        ? '무상(' + formatDays(row.activeAuditDays) + '일, ' + formatWon(row.dayRate) + '/일)'
+        : formatWon(row.activeAuditFee),
+    );
+    setRowRange(updates, 20, 23, row.futureAuditDays === null ? '-' : formatDays(row.futureAuditDays) + '일');
     setRowRange(updates, 24, 24, row.note);
   } else {
-    setRowRange(updates, 1, 5, `1단계 심사: ${formatDays(row.stage1Days)}일`);
-    setRowRange(updates, 6, 10, `2단계 심사: ${formatDays(row.stage2Days)}일`);
+    setRowRange(updates, 1, 5, '1단계 심사: ' + formatDays(row.stage1Days) + '일');
+    setRowRange(updates, 6, 10, '2단계 심사: ' + formatDays(row.stage2Days) + '일');
     setRowRange(updates, 11, 15, formatWon(row.stage1Fee));
     setRowRange(updates, 16, 19, formatWon(row.stage2Fee));
-    setRowRange(updates, 20, 23, `${formatDays(row.surveillanceDays)}일`);
+    setRowRange(updates, 20, 23, row.futureAuditDays === null ? '-' : formatDays(row.futureAuditDays) + '일');
     setRowRange(updates, 24, 24, '-');
   }
 
-  return patchRowTextNodes(templateXml, updates);
+  const patchedRow = patchRowTextNodes(templateXml, updates);
+  return row.singleLineAudit ? collapseRowCellsToOneParagraph(patchedRow) : patchedRow;
 };
 
 const buildExpenseRow = (templateXml: string, expenses: number) => {
@@ -198,7 +248,8 @@ const buildExpenseRow = (templateXml: string, expenses: number) => {
   setRowRange(updates, 11, 19, formatWon(expenses));
   setRowRange(updates, 20, 23, '-');
   setRowRange(updates, 24, 24, '-');
-  return patchRowTextNodes(templateXml, updates);
+  const patchedRow = collapseRowCellsToOneParagraph(patchRowTextNodes(templateXml, updates));
+  return patchCellTextNodes(patchedRow, 4, ['-']);
 };
 
 const replaceCostRows = (xml: string, costRows: CostRow[], data: IsoQuoteDocxData) => {
@@ -209,8 +260,7 @@ const replaceCostRows = (xml: string, costRows: CostRow[], data: IsoQuoteDocxDat
   if (!firstTemplateRow || !secondTemplateRow) return xml;
 
   const templates = [firstTemplateRow.xml, secondTemplateRow.xml];
-  const currentCycleQuote = isCurrentCycleQuote(data.auditType);
-  const nextRows = costRows.map((row, index) => buildAuditCostRow(templates[index % templates.length], row, currentCycleQuote));
+  const nextRows = costRows.map((row, index) => buildAuditCostRow(templates[index % templates.length], row));
 
   if (data.expenses > 0) {
     nextRows.push(buildExpenseRow(templates[nextRows.length % templates.length], data.expenses));
@@ -279,7 +329,10 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   setRange(234, 234, data.companyName || '고객');
   setRange(236, 236, data.companyName || '고객');
 
-  const patchedXml = replaceCostRows(patchTextNodes(documentFile.asText(), updates), costRows, data);
+  let patchedXml = patchTextNodes(documentFile.asText(), updates);
+  patchedXml = patchFutureAuditHeader(patchedXml, data.auditType);
+  patchedXml = replaceCostRows(patchedXml, costRows, data);
+  patchedXml = boldTotalRow(patchedXml);
   zip.file('word/document.xml', patchedXml);
 
   const output = zip.generate({
