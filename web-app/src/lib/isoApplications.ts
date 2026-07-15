@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createHash } from 'node:crypto';
+import { listDeletedIsoApplicationIds } from './isoApplicationInbox';
 import type { IsoApplication, IsoApplicationStatus, IsoQuoteInput } from './isoTypes';
 
 type LegacyRecord = Record<string, unknown>;
@@ -142,7 +143,11 @@ export async function fetchIsoApplications(): Promise<IsoApplication[]> {
   if (!response.ok) throw new Error(`신청서 API 응답 오류: ${response.status}`);
   const payload = await response.json() as { data?: { applications?: LegacyRecord[] }; applications?: LegacyRecord[] };
   const records = payload.data?.applications || payload.applications || [];
-  return records.map(normalizeLegacyApplication).sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+  const deletedIds = await listDeletedIsoApplicationIds();
+  return records
+    .map(normalizeLegacyApplication)
+    .filter((application) => !deletedIds.has(application.id))
+    .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
 }
 
 export async function findIsoApplication(applicationId: string) {
