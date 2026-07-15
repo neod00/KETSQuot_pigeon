@@ -1,0 +1,398 @@
+.viewport {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d9dee3;
+  background: #eef2f5;
+  padding: 28px 16px;
+  color: #333;
+}
+
+.paper {
+  position: relative;
+  width: 800px;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  font-family: "Malgun Gothic", Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.page {
+  box-sizing: border-box;
+  min-height: 1080px;
+  padding: 20px;
+  background: #fff;
+}
+
+.page + .page {
+  border-top: 12px solid #eef2f5;
+  padding-top: 60px;
+}
+
+.language {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 3;
+}
+
+.language select {
+  min-width: 120px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  color: #222;
+  font-size: 14px;
+  opacity: 1;
+}
+
+.header {
+  position: relative;
+  overflow: hidden;
+  margin: -20px -20px 30px;
+  padding: 40px 30px;
+  min-height: 200px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  color: #fff;
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 200px 150px;
+  border-color: transparent transparent #00d4aa transparent;
+}
+
+.header h1 {
+  position: relative;
+  z-index: 1;
+  margin: 60px 0 10px;
+  color: #fff;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.header h2 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #00d4aa;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.intro {
+  margin: 0 0 30px;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.section {
+  margin: 0 0 30px;
+}
+
+.sectionTitle {
+  margin: 0 0 20px;
+  padding: 12px 15px;
+  background: #00d4aa;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+.row {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.pair {
+  display: flex;
+  gap: 16px;
+}
+
+.pair > .row {
+  min-width: 0;
+}
+
+.label {
+  min-width: 140px;
+  margin-right: 15px;
+  color: #333;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.required {
+  color: #e74c3c;
+  font-weight: 700;
+}
+
+.line {
+  display: block;
+  min-height: 23px;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  margin-right: 20px;
+  padding: 4px 8px;
+  border-bottom: 1px solid #333;
+  overflow-wrap: anywhere;
+  color: #222;
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+.line.short { flex: 0 0 100px; }
+.line.medium { flex: 0 0 150px; }
+.line.wide { flex: 1 1 auto; }
+
+.fullRow {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 12px;
+}
+
+.prompt {
+  margin: 0 0 10px;
+  color: #333;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid #333;
+  background: #fff;
+  color: #222;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.question {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: #333;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.question > span:first-child { flex: 0 1 auto; }
+
+.yesNo,
+.standardChoices,
+.choiceGrid,
+.documents {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.standardChoices {
+  gap: 30px;
+  margin-bottom: 15px;
+}
+
+.documents {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  color: #333;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.tick {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  border: 1px solid #333;
+  background: #fff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tick.checked {
+  border-color: #00d4aa;
+  background: #00d4aa;
+}
+
+.table {
+  width: 100%;
+  margin: 15px 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table th,
+.table td {
+  height: 34px;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid #333;
+  color: #333;
+  font-size: 11px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.table th {
+  background: #f8f9fa;
+  font-weight: 700;
+}
+
+.signature {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  margin: 30px 0;
+}
+
+.signature .row {
+  flex: 1 1 0;
+}
+
+.legalCopy {
+  margin: 0 0 15px;
+  color: #333;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 40px;
+  color: #666;
+  font-size: 10px;
+  text-align: right;
+}
+
+.footer strong {
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.contact {
+  position: relative;
+  display: flex;
+  min-height: 250px;
+  overflow: hidden;
+  margin-top: 20px;
+  padding: 30px;
+  background: #00d4aa;
+}
+
+.contactLeft {
+  z-index: 1;
+  flex: 1 1 auto;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.contactLeft h3 {
+  display: inline-block;
+  margin: 0 0 15px;
+  padding: 8px 15px;
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+  font-size: 14px;
+}
+
+.contactLine {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  font-size: 13px;
+}
+
+.contactLeft p {
+  margin: 15px 0 0;
+  color: #333;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.contactRight {
+  display: flex;
+  flex: 0 0 190px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  color: #253746;
+}
+
+.contactRight span {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.contactRight strong {
+  padding: 7px 10px;
+  background: #111;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+}
+
+@media (max-width: 860px) {
+  .viewport { padding: 16px 0; }
+  .paper { margin-left: 0; }
+}
+
+@media print {
+  .viewport { overflow: visible; border: 0; padding: 0; background: #fff; }
+  .paper { width: 100%; box-shadow: none; }
+  .page { min-height: 0; break-after: page; }
+  .page + .page { border: 0; padding-top: 40px; }
+}

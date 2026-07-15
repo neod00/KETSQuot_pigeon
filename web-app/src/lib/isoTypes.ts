@@ -30,6 +30,7 @@ export interface IsoApplication {
   consultingOrg: string;
   businessRegistrationNumber: string;
   dataConsent: boolean;
+  sourceFields: Record<string, string>;
   missingFields: string[];
   quoteReady: boolean;
 }

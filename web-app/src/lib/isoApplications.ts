@@ -19,6 +19,15 @@ const normalizedRecord = (record: LegacyRecord) => Object.fromEntries(
   Object.entries(record).map(([key, value]) => [repairText(key), typeof value === 'string' ? repairText(value) : value]),
 ) as LegacyRecord;
 
+const toSourceFields = (record: LegacyRecord) => Object.fromEntries(
+  Object.entries(record).map(([key, value]) => {
+    const text = Array.isArray(value)
+      ? value.map(repairText).filter(Boolean).join(', ')
+      : repairText(value);
+    return [key, text];
+  }),
+);
+
 const pick = (record: LegacyRecord, aliases: string[]) => {
   for (const alias of aliases) {
     const value = record[alias];
@@ -118,6 +127,7 @@ export const normalizeLegacyApplication = (sourceRecord: LegacyRecord): IsoAppli
     consultingOrg: pick(record, ['컨설팅기관', 'consultingOrg']),
     businessRegistrationNumber: pick(record, ['사업자등록번호', 'businessRegNumber']),
     dataConsent: toBoolean(pick(record, ['데이터처리동의', 'dataConsent'])),
+    sourceFields: toSourceFields(record),
     missingFields,
     quoteReady,
   };
