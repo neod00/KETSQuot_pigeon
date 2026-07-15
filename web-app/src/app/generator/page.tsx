@@ -13,6 +13,7 @@ export default function GeneratorPage() {
     const [contactPerson, setContactPerson] = useState('');
     const [docId, setDocId] = useState('');
     const [issueDate, setIssueDate] = useState('');
+    const [verificationTarget, setVerificationTarget] = useState('');
 
     // Inventory data
     const [invYear, setInvYear] = useState('2025년');
@@ -110,7 +111,7 @@ export default function GeneratorPage() {
         saveHistoryRecord(
             'generator', 'K-ETS 견적서',
             companyName, totalFinal, vatType,
-            { quotType, companyName, contactPerson, docId, issueDate, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType },
+            { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType },
             { s1Days: parseFloat(invS1Days) || 0, s2Days: parseFloat(invS2Days) || 0, s3Days: parseFloat(invS3Days) || 0, expenses: invExpenses, auditRate: STANDARD_RATE }
         );
     };
@@ -122,6 +123,7 @@ export default function GeneratorPage() {
         setContactPerson(savedData.contactPerson || '');
         setDocId(savedData.docId || '');
         setIssueDate(savedData.issueDate || '');
+        setVerificationTarget(savedData.verificationTarget || '');
         setInvYear(savedData.invYear || '2025년');
         setInvS1Days(savedData.invS1Days || '1.0');
         setInvS2Days(savedData.invS2Days || '5.0');
@@ -180,7 +182,7 @@ export default function GeneratorPage() {
                         </Link>
                         <h1 className="text-2xl font-bold text-blue-600">LRQA 견적서 생성기</h1>
                     </div>
-                    <span className="text-sm text-gray-400">v1.7 (Table Break Fix)</span>
+                    <span className="text-sm text-gray-400">v1.8 (Verification Target)</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -252,6 +254,20 @@ export default function GeneratorPage() {
                             </div>
                         </div>
                     </section>
+                </div>
+
+                <div className="mt-6 pt-6 border-t">
+                    <label htmlFor="verification-target" className="block text-sm font-semibold text-gray-700">
+                        검증 대상
+                    </label>
+                    <textarea
+                        id="verification-target"
+                        rows={2}
+                        className="mt-1 block w-full resize-y rounded-md border p-3 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        value={verificationTarget}
+                        onChange={e => setVerificationTarget(e.target.value)}
+                        placeholder="예: 인천공장(본점)/서울본사/판교연구소/발안공장"
+                    />
                 </div>
 
                 {showInv && (
@@ -439,7 +455,8 @@ export default function GeneratorPage() {
                                         <div style={{ paddingLeft: '20px', fontSize: '11pt', lineHeight: '1.5' }}>
                                             <p>(1) 검증 범위: <strong><u>{scopeText}</u></strong></p>
                                             <p>(2) 심사 기준: 온실가스 배출권거래제의 배출량 보고 및 인증에 관한 지침</p>
-                                            <p>(3) 검증 비용</p>
+                                            <p>(3) 검증 대상: {verificationTarget.trim() || '-'}</p>
+                                            <p>(4) 검증 비용</p>
                                         </div>
 
                                         {showInv && (
@@ -589,7 +606,7 @@ export default function GeneratorPage() {
                                         )}
 
                                         <div style={{ marginTop: '20px', paddingLeft: '20px', fontSize: '9pt', lineHeight: '1.4' }}>
-                                            <p style={{ fontWeight: 'bold' }}>(4) 기타</p>
+                                            <p style={{ fontWeight: 'bold' }}>(5) 기타</p>
                                             <p style={{ marginLeft: '10px' }}>1) 심사 요율은 {vatType === '포함' ? '1,155,000' : '1,050,000'}원/ Manday 이며 상기 금액은 부가가치세(VAT)가 {vatType === '포함' ? '포함된' : '제외된'} 금액입니다.</p>
                                             <p style={{ marginLeft: '10px' }}>2) 교통비, 숙박비, 심사원 일비 등의 제경비는 상기 제안금액에 포함되어 있습니다.</p>
                                             <p style={{ marginLeft: '10px' }}>3) 상기 검증비용은 업체의 상황에 따라 상호 협의 하에 조정될 수 있습니다.</p>
