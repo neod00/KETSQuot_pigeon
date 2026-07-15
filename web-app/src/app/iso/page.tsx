@@ -589,8 +589,8 @@ export default function ISOQuotePage() {
             <p className="mt-1 text-sm text-slate-500">문서 종류를 선택한 뒤 ISO 심사 비용 정보를 입력하고 Word 또는 PDF로 출력합니다.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link href="/iso/applications" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">신청서 접수함</Link>
-            <Link href="/iso/documents" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">문서함</Link>
+            <Link href="/iso/applications" target="_blank" rel="noopener noreferrer" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">신청서 접수함</Link>
+            <Link href="/iso/documents" target="_blank" rel="noopener noreferrer" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">문서함</Link>
             <button type="button" onClick={handleOpenAdj} className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
               ADJ 작성
             </button>
