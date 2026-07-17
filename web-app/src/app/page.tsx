@@ -7,8 +7,24 @@ import FeedbackSidebar from '../components/FeedbackSidebar';
 import type { HistoryRecord } from '../components/GenerationHistory';
 
 export default function LandingPage() {
+    const [isAdminAccount, setIsAdminAccount] = useState(false);
+
+    useEffect(() => {
+        fetch('/api/iso/auth/session', { cache: 'no-store' })
+            .then(response => response.ok ? response.json() : null)
+            .then(session => setIsAdminAccount(session?.role === 'admin'))
+            .catch(() => setIsAdminAccount(false));
+    }, []);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 p-4 sm:p-6 lg:p-8 font-sans selection:bg-blue-100">
+            {isAdminAccount && (
+                <div className="mx-auto mb-3 flex max-w-7xl justify-end">
+                    <Link href="/iso/users" className="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:border-teal-500 hover:text-teal-700">
+                        팀원 계정 관리
+                    </Link>
+                </div>
+            )}
             {/* Header */}
             <div className="mb-8 sm:mb-12 text-center space-y-2 sm:space-y-3">
                 <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
