@@ -16,11 +16,12 @@ export default async function IsoInternalLayout({ children }: { children: React.
             <Link href="/iso/applications" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">신청서 접수함</Link>
             <Link href="/iso/documents" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">생성 문서</Link>
             <Link href="/iso" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">빈 견적 작성</Link>
+            {session.role === 'admin' && <Link href="/iso/users" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">팀원 관리</Link>}
             <form action="/api/iso/auth/logout" method="post">
               <button type="submit" className="rounded-md border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50">로그아웃</button>
             </form>
           </nav>
-          <p className="w-full text-right text-xs text-slate-500">{session.username} 계정</p>
+          <p className="w-full text-right text-xs text-slate-500">{session.username} · {session.role === 'admin' ? '관리자' : '팀원'}</p>
         </div>
       </header>
       {children}

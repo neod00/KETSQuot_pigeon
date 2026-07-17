@@ -5,6 +5,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export const ISO_ADMIN_COOKIE = 'lrqa_iso_admin';
+export type IsoSessionRole = 'admin' | 'member';
+export interface IsoSession { username: string; role: IsoSessionRole; expiresAt: number }
 const SESSION_SECONDS = 8 * 60 * 60;
 
 const base64Url = (value: string) => Buffer.from(value, 'utf8').toString('base64url');
@@ -29,8 +31,8 @@ export const verifyIsoAdminCredentials = (username: string, password: string) =>
     safeEqual(passwordHash, process.env.ISO_ADMIN_PASSWORD_SHA256 || '');
 };
 
-export const createIsoSession = (username: string) => {
-  const payload = base64Url(JSON.stringify({ username, expiresAt: Date.now() + SESSION_SECONDS * 1000 }));
+export const createIsoSession = (username: string, role: IsoSessionRole = 'admin') => {
+  const payload = base64Url(JSON.stringify({ username, role, expiresAt: Date.now() + SESSION_SECONDS * 1000 }));
   const signature = createHmac('sha256', sessionSecret()).update(payload).digest('base64url');
   return `${payload}.${signature}`;
 };
@@ -43,9 +45,9 @@ export const readIsoSession = (token?: string | null) => {
   if (!safeEqual(signature, expected)) return null;
 
   try {
-    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { username?: string; expiresAt?: number };
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { username?: string; role?: IsoSessionRole; expiresAt?: number };
     if (!parsed.username || !parsed.expiresAt || parsed.expiresAt < Date.now()) return null;
-    return { username: parsed.username, expiresAt: parsed.expiresAt };
+    return { username: parsed.username, role: parsed.role === 'member' ? 'member' : 'admin', expiresAt: parsed.expiresAt } satisfies IsoSession;
   } catch {
     return null;
   }
