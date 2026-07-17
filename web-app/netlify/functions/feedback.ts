@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import type { Context } from "@netlify/functions";
+import { hasValidInternalSession, privateJsonHeaders, unauthorizedResponse } from './_auth';
 
 interface Reply {
     id: string;
@@ -23,18 +24,14 @@ interface Feedback {
 export default async (request: Request, context: Context) => {
     const store = getStore("team-feedback");
 
-    // CORS headers
-    const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Content-Type": "application/json",
-    };
+    const headers = privateJsonHeaders;
 
     // Handle preflight
     if (request.method === "OPTIONS") {
         return new Response(null, { status: 204, headers });
     }
+
+    if (!hasValidInternalSession(request)) return unauthorizedResponse();
 
     const url = new URL(request.url);
     const action = url.searchParams.get("action");

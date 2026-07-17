@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { generateIsoQuoteDocx } from '../../utils/isoQuoteDocxGenerator';
 import { generateIsoContractDocx } from '../../utils/isoContractDocxGenerator';
+import ResponsiveDocumentPreview from '../../components/ResponsiveDocumentPreview';
 import type { IsoQuoteDraft, IsoQuoteDraftStatus, IsoQuoteInput } from '../../lib/isoTypes';
 import {
   calculateIsoQuoteCost,
@@ -99,12 +100,11 @@ const toInputNumber = (value: unknown, fallback: string) => {
 
 
 export default function ISOQuotePage() {
-  const today = new Date().toISOString().slice(0, 10);
   const [documentType, setDocumentType] = useState<DocumentType>('quote');
   const [companyName, setCompanyName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
-  const [docId, setDocId] = useState(() => `OPP-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}`);
-  const [issueDate, setIssueDate] = useState(today);
+  const [docId, setDocId] = useState('');
+  const [issueDate, setIssueDate] = useState('');
   const [auditType, setAuditType] = useState('신규 인증');
   const [standards, setStandards] = useState<StandardKey[]>(['ISO 9001']);
   const [standardInputs, setStandardInputs] = useState<Record<StandardKey, StandardCostInput>>(createDefaultStandardInputs);
@@ -135,6 +135,12 @@ export default function ISOQuotePage() {
   const [draftStatus, setDraftStatus] = useState<IsoQuoteDraftStatus>('draft');
   const [draftMessage, setDraftMessage] = useState('');
   const [draftLoading, setDraftLoading] = useState(false);
+
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    setIssueDate(current => current || today);
+    setDocId(current => current || 'OPP-' + today.slice(2).replace(/-/g, ''));
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -581,7 +587,7 @@ export default function ISOQuotePage() {
   const totalNote = hasExpenses ? `VAT ${vatType}` : `제경비/VAT ${vatType}`;
   const futureAuditColumn = futureAuditHeader(auditType);
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center">
+    <div className="min-h-screen overflow-x-hidden bg-slate-50 pb-24 text-slate-900 flex flex-col items-center md:pb-0">
       <div className="no-print w-full max-w-6xl p-6 sm:p-8 bg-white shadow-lg my-8 rounded-xl border border-slate-100">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
           <div>
@@ -764,7 +770,7 @@ export default function ISOQuotePage() {
           </section>
         )}
 
-        <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="mt-8 hidden grid-cols-1 gap-3 md:grid md:grid-cols-2">
           <button onClick={handleDownloadWord} disabled={Boolean(activeDraftId) && draftStatus !== 'approved'} className="rounded-lg bg-blue-700 px-4 py-3 font-bold text-white shadow-md hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
             {documentType === 'quote' ? 'Word 견적서 다운로드' : 'Word 계약서 다운로드'}
           </button>
@@ -774,8 +780,24 @@ export default function ISOQuotePage() {
         </div>
       </div>
 
-      <div className="preview-stage mb-20 w-full overflow-x-auto px-4 pb-6">
-        {documentType === 'contract' ? (
+      <div className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-md items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium text-slate-500">최종 금액</p>
+            <p className="truncate text-base font-extrabold text-slate-900">{formatCurrency(quote.discounted)}</p>
+          </div>
+          <button type="button" onClick={handleDownloadWord} disabled={Boolean(activeDraftId) && draftStatus !== 'approved'} className="min-h-11 rounded-md bg-blue-700 px-4 text-sm font-bold text-white disabled:bg-slate-300">
+            Word
+          </button>
+          <button type="button" onClick={handlePrint} className="min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800">
+            PDF
+          </button>
+        </div>
+      </div>
+
+      <div className="preview-stage mb-20 w-full overflow-hidden px-4 pb-6">
+        <ResponsiveDocumentPreview label={documentType === 'contract' ? 'ISO 계약서 미리보기' : 'ISO 견적서 미리보기'}>
+          {documentType === 'contract' ? (
           <div className="invoice-container contract-preview mx-auto flex-none bg-white shadow-2xl" style={{ width: '210mm', minHeight: '297mm' }}>
             <div style={{ position: 'relative', minHeight: '297mm', padding: '22mm 20mm', boxSizing: 'border-box', overflow: 'hidden' }}>
               <div style={{ width: '72px', height: '7px', background: '#00a499', marginBottom: '16mm' }} />
@@ -874,6 +896,7 @@ export default function ISOQuotePage() {
             <Footer />
           </div>
         )}
+        </ResponsiveDocumentPreview>
       </div>
       <style jsx>{`
         .invoice-container { position: relative; }
@@ -881,6 +904,7 @@ export default function ISOQuotePage() {
           @page { size: A4; margin: 0; }
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
           .no-print { display: none !important; }
+          .preview-stage { overflow: visible !important; padding: 0 !important; }
           .invoice-container { margin: 0 !important; box-shadow: none !important; width: 210mm !important; }
         }
       `}</style>

@@ -73,7 +73,7 @@ export default function GenerationHistory({ pageType, pageLabel, onRestore, onRe
     // 관리자 모드 체크
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('admin') === 'lrqa2026') {
+        if (urlParams.get('admin') === '1') {
             setIsAdmin(true);
         }
     }, []);
@@ -159,7 +159,7 @@ export default function GenerationHistory({ pageType, pageLabel, onRestore, onRe
             await fetch('/.netlify/functions/history?action=delete', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, adminKey: 'lrqa2026' }),
+                body: JSON.stringify({ id }),
             });
             setAllHistory(prev => prev.filter(h => h.id !== id));
             setDeletingId(null);
@@ -174,7 +174,7 @@ export default function GenerationHistory({ pageType, pageLabel, onRestore, onRe
             await fetch('/.netlify/functions/history?action=deleteAll', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminKey: 'lrqa2026' }),
+                body: JSON.stringify({}),
             });
             setAllHistory([]);
             setConfirmDeleteAll(false);

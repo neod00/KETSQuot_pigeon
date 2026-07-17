@@ -117,7 +117,7 @@ export default function FeedbackSidebar() {
 
         // URL 파라미터로 관리자 모드 체크
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('admin') === 'lrqa2026') {
+        if (urlParams.get('admin') === '1') {
             setIsAdmin(true);
         }
     }, []);

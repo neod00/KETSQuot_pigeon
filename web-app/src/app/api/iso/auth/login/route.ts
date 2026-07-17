@@ -21,7 +21,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '사용자명 또는 비밀번호를 확인해주세요.' }, { status: 401 });
   }
 
-  const returnTo = body.returnTo?.startsWith('/iso') && !body.returnTo.startsWith('//') ? body.returnTo : '/iso/applications';
+  const requestedReturnTo = String(body.returnTo || '');
+  const returnTo = requestedReturnTo.startsWith('/') &&
+    !requestedReturnTo.startsWith('//') &&
+    !requestedReturnTo.startsWith('/iso/login') &&
+    !requestedReturnTo.startsWith('/api/')
+    ? requestedReturnTo
+    : '/';
   const response = NextResponse.json({ success: true, returnTo });
   response.cookies.set(ISO_ADMIN_COOKIE, createIsoSession(username), {
     httpOnly: true,

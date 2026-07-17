@@ -194,7 +194,7 @@ function RecentHistorySection() {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('admin') === 'lrqa2026') setIsAdmin(true);
+        if (urlParams.get('admin') === '1') setIsAdmin(true);
 
         fetch('/.netlify/functions/history?action=list')
             .then(r => r.ok ? r.json() : [])
@@ -254,7 +254,7 @@ function RecentHistorySection() {
         await fetch('/.netlify/functions/history?action=delete', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, adminKey: 'lrqa2026' }),
+            body: JSON.stringify({ id }),
         });
         setHistory(prev => prev.filter(h => h.id !== id));
     };
@@ -264,7 +264,7 @@ function RecentHistorySection() {
         await fetch('/.netlify/functions/history?action=deleteAll', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminKey: 'lrqa2026' }),
+            body: JSON.stringify({}),
         });
         setHistory([]);
     };
@@ -544,7 +544,7 @@ function ChangelogSection() {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('admin') === 'lrqa2026') {
+        if (urlParams.get('admin') === '1') {
             setIsAdmin(true);
         }
     }, []);

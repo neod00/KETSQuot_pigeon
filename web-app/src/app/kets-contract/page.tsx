@@ -273,7 +273,7 @@ export default function KetsContractPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f1f5f9] text-slate-900 font-sans selection:bg-emerald-100">
+        <div className="min-h-screen overflow-x-hidden bg-[#f1f5f9] pb-28 text-slate-900 font-sans selection:bg-emerald-100 lg:pb-0">
             <div className="h-1.5 bg-emerald-600 w-full fixed top-0 z-50"></div>
 
             <main className="max-w-6xl mx-auto px-4 py-8">
@@ -509,6 +509,16 @@ export default function KetsContractPage() {
                     </div>
                 </div>
             </main>
+            <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
+                <div className="mx-auto flex max-w-md items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-medium text-slate-500">최종 제안 금액</p>
+                        <p className="truncate text-base font-extrabold text-slate-900">₩{formatNum(formData.manualFinalCost)}</p>
+                    </div>
+                    <button type="button" onClick={() => handlePrintPdf()} className="min-h-11 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white">PDF</button>
+                    <button type="button" onClick={() => handleDownloadDocx()} className="min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800">Word</button>
+                </div>
+            </div>
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import type { Context } from "@netlify/functions";
+import { hasValidInternalSession, privateJsonHeaders, unauthorizedResponse } from './_auth';
 
 interface HistoryRecord {
     id: string;
@@ -19,22 +20,18 @@ interface HistoryRecord {
     };
 }
 
-const ADMIN_KEY = 'lrqa2026';
 const MAX_RECORDS = 100;
 
 export default async (request: Request, context: Context) => {
     const store = getStore("generation-history");
 
-    const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-        "Content-Type": "application/json",
-    };
+    const headers = privateJsonHeaders;
 
     if (request.method === "OPTIONS") {
         return new Response(null, { status: 204, headers });
     }
+
+    if (!hasValidInternalSession(request)) return unauthorizedResponse();
 
     const url = new URL(request.url);
     const action = url.searchParams.get("action");
@@ -87,17 +84,10 @@ export default async (request: Request, context: Context) => {
             return new Response(JSON.stringify(newRecord), { status: 201, headers });
         }
 
-        // 개별 삭제 (관리자만)
+        // 개별 삭제
         if (action === "delete" && request.method === "DELETE") {
             const body = await request.json();
-            const { id, adminKey } = body;
-
-            if (adminKey !== ADMIN_KEY) {
-                return new Response(
-                    JSON.stringify({ error: "관리자 권한이 필요합니다." }),
-                    { status: 403, headers }
-                );
-            }
+            const { id } = body;
 
             if (!id) {
                 return new Response(
@@ -115,18 +105,8 @@ export default async (request: Request, context: Context) => {
             return new Response(JSON.stringify({ success: true, remaining: filtered.length }), { status: 200, headers });
         }
 
-        // 전체 삭제 (관리자만)
+        // 전체 삭제
         if (action === "deleteAll" && request.method === "DELETE") {
-            const body = await request.json();
-            const { adminKey } = body;
-
-            if (adminKey !== ADMIN_KEY) {
-                return new Response(
-                    JSON.stringify({ error: "관리자 권한이 필요합니다." }),
-                    { status: 403, headers }
-                );
-            }
-
             await store.setJSON("history-list", []);
 
             return new Response(JSON.stringify({ success: true }), { status: 200, headers });

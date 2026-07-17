@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
+import ResponsiveDocumentPreview from '../../components/ResponsiveDocumentPreview';
 
 const STANDARD_RATE = 1050000;
 const EXPENSES_DEFAULT = 600000;
@@ -155,6 +156,7 @@ export default function GeneratorPage() {
 
     const mpTotalDays = (parseFloat(mpS1Days) || 0) + (parseFloat(mpS2Days) || 0) + (parseFloat(mpS3Days) || 0);
     const mpCalculatedTotal = calculateAuto(mpS1Days, mpS2Days, mpS3Days, mpExpenses);
+    const totalFinalCost = (showInv ? invFinalCost : 0) + (showMp ? mpFinalCost : 0);
 
     let scopeText = "";
     if (showInv && showMp) {
@@ -172,17 +174,17 @@ export default function GeneratorPage() {
     title += "검증비용 제안서";
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center">
+        <div className="min-h-screen overflow-x-hidden bg-gray-50 pb-24 flex flex-col items-center md:pb-0">
             {/* Input Section */}
-            <div className="no-print w-full max-w-4xl p-8 bg-white shadow-lg my-8 rounded-xl border border-gray-100">
-                <div className="flex justify-between items-center mb-6 border-b pb-2">
-                    <div className="flex items-center gap-4">
-                        <Link href="/" className="text-gray-500 hover:text-blue-600 transition-colors">
+            <div className="no-print my-4 w-full max-w-4xl rounded-xl border border-gray-100 bg-white p-4 shadow-lg sm:my-8 sm:p-8">
+                <div className="mb-6 flex flex-col gap-3 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                        <Link href="/" className="whitespace-nowrap text-gray-500 transition-colors hover:text-blue-600">
                             ← Home
                         </Link>
-                        <h1 className="text-2xl font-bold text-blue-600">LRQA 견적서 생성기</h1>
+                        <h1 className="text-xl font-bold leading-tight text-blue-600 sm:text-2xl">LRQA 견적서 생성기</h1>
                     </div>
-                    <span className="text-sm text-gray-400">v1.8 (Verification Target)</span>
+                    <span className="self-end text-xs text-gray-400 sm:self-auto sm:text-sm">v1.8 (Verification Target)</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -376,7 +378,7 @@ export default function GeneratorPage() {
 
                 <button
                     onClick={handlePrint}
-                    className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2"
+                    className="mt-8 hidden w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-md transition-colors hover:bg-blue-700 md:flex"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                     견적서 인쇄 / PDF 저장
@@ -391,8 +393,22 @@ export default function GeneratorPage() {
                 />
             </div>
 
+            <div className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden">
+                <div className="mx-auto flex max-w-md items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-medium text-slate-500">최종 제안 금액</p>
+                        <p className="truncate text-base font-extrabold text-slate-900">{formatCurrency(totalFinalCost)}원</p>
+                    </div>
+                    <button type="button" onClick={handlePrint} className="min-h-11 rounded-md bg-blue-700 px-5 text-sm font-bold text-white shadow-sm">
+                        PDF 저장
+                    </button>
+                </div>
+            </div>
+
             {/* Preview Section - The actual Invoice */}
-            <div className="bg-white invoice-container shadow-2xl mb-20" style={{ width: '210mm', minHeight: '297mm' }}>
+            <div className="preview-stage mb-20 w-full overflow-hidden px-4 pb-6">
+                <ResponsiveDocumentPreview label="K-ETS 견적서 미리보기">
+                    <div className="bg-white invoice-container shadow-2xl" style={{ width: '210mm', minHeight: '297mm' }}>
                 <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr>
@@ -658,6 +674,9 @@ export default function GeneratorPage() {
                 </div>
             </div>
 
+                </ResponsiveDocumentPreview>
+            </div>
+
             <style jsx>{`
         .invoice-container {
           background: white;
@@ -686,6 +705,10 @@ export default function GeneratorPage() {
           }
           .no-print {
             display: none !important;
+          }
+          .preview-stage {
+            overflow: visible !important;
+            padding: 0 !important;
           }
           .invoice-container {
             margin: 0 !important;
