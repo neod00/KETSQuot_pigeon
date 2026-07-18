@@ -15,6 +15,7 @@ export default async function IsoInternalLayout({ children }: { children: React.
           <nav className="flex flex-wrap items-center gap-1 text-sm font-semibold">
             <Link href="/iso/applications" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">신청서 접수함</Link>
             <Link href="/iso/documents" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">생성 문서</Link>
+            <Link href="/iso/sales" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">세일즈 현황</Link>
             <Link href="/iso" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">빈 견적 작성</Link>
             {session.role === 'admin' && <Link href="/iso/users" className="rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100">팀원 관리</Link>}
             <form action="/api/iso/auth/logout" method="post">
