@@ -13,7 +13,7 @@ const excelDate = (serial: number) => {
   return date.toISOString().slice(0, 10);
 };
 
-const valueText = (value: CellValue) => value === null ? '' : String(value).trim();
+const valueText = (value: CellValue | undefined) => value == null ? '' : String(value).trim();
 const valueNumber = (value: CellValue) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const moneyWon = (value: CellValue) => {
   const parsed = valueNumber(value);
@@ -60,7 +60,11 @@ const readCell = (cell: Element, strings: string[]): CellValue => {
 };
 
 const recordFromRow = (headers: string[], row: CellValue[]): Partial<SalesRecordInput> => {
-  const byHeader = new Map(headers.map((header, index) => [header, row[index] ?? null]));
+  const entries: Array<[string, CellValue]> = [];
+  headers.forEach((header, index) => {
+    if (header) entries.push([header, row[index] ?? null]);
+  });
+  const byHeader = new Map(entries);
   const get = (header: string) => byHeader.get(header) ?? null;
   const rawDate = get('DATE');
   const quotedAt = typeof rawDate === 'number' ? excelDate(rawDate) : valueText(rawDate);
@@ -117,9 +121,17 @@ export async function parseSalesWorkbook(file: File) {
     });
     return cells;
   });
-  if (rows.length < 2) return [];
-  const headers = rows[0].map(valueText);
-  return rows.slice(1)
+  const headerIndex = rows.findIndex((row) =>
+    row.some((cell) => valueText(cell) === 'Q.No.')
+    && row.some((cell) => valueText(cell) === '업체명'));
+  if (headerIndex < 0) throw new Error('Quot_2026 시트에서 Q.No.와 업체명 헤더를 찾지 못했습니다.');
+
+  const headerRow = rows[headerIndex];
+  const headers = Array.from(
+    { length: headerRow.length },
+    (_, index) => valueText(headerRow[index]),
+  );
+  return rows.slice(headerIndex + 1)
     .map((row) => recordFromRow(headers, row))
     .filter((record) => record.companyName || record.quoteNumber);
 }
