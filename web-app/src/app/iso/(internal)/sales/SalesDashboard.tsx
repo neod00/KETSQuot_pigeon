@@ -6,6 +6,8 @@ import type { D365AutomationResult, D365Fields, D365Status, SalesRecord, SalesRe
 
 type Mode = 'sales' | 'd365';
 type BridgeState = 'checking' | 'online' | 'offline';
+type TableView = 'summary' | 'excel';
+type SortDirection = 'asc' | 'desc';
 
 const BRIDGE_URL = 'http://127.0.0.1:3000';
 
@@ -46,6 +48,38 @@ const D365_CLASSES: Record<D365Status, string> = {
   warning: 'bg-amber-50 text-amber-800 border-amber-200',
   failed: 'bg-rose-50 text-rose-800 border-rose-200',
 };
+
+const EXCEL_COLUMNS = [
+  { letter: 'A', key: 'innovation', label: '이노베이션', minWidth: 120 },
+  { letter: 'B', key: 'product', label: 'Product', minWidth: 140 },
+  { letter: 'C', key: 'category', label: '구분', minWidth: 90 },
+  { letter: 'D', key: 'sf', label: 'SF', minWidth: 90 },
+  { letter: 'E', key: 'quotedAt', label: 'DATE', minWidth: 110 },
+  { letter: 'F', key: 'quoteNumber', label: 'Q.No.', minWidth: 180 },
+  { letter: 'G', key: 'deadline', label: '기한', minWidth: 100 },
+  { letter: 'H', key: 'companyName', label: '업체명', minWidth: 220 },
+  { letter: 'I', key: 'accountName', label: 'Account', minWidth: 180 },
+  { letter: 'J', key: 'opportunityName', label: 'Opportunity', minWidth: 200 },
+  { letter: 'K', key: 'contactName', label: '담당자', minWidth: 130 },
+  { letter: 'L', key: 'telephone', label: 'tel', minWidth: 130 },
+  { letter: 'M', key: 'mobile', label: 'HP', minWidth: 140 },
+  { letter: 'N', key: 'email', label: 'e-mail', minWidth: 220 },
+  { letter: 'O', key: 'contactHistory', label: '통화내역', minWidth: 320 },
+  { letter: 'P', key: 'nextAction', label: '이후 진행', minWidth: 240 },
+  { letter: 'Q', key: 'consultingFollowUp', label: '컨설팅FU', minWidth: 160 },
+  { letter: 'R', key: 'leadSource', label: 'Lead source', minWidth: 150 },
+  { letter: 'S', key: 'contract', label: 'Contract', minWidth: 130 },
+  { letter: 'T', key: 'mpApproval', label: 'MP승인', minWidth: 110 },
+  { letter: 'U', key: 'quoteMandays', label: '견적MD', minWidth: 100 },
+  { letter: 'V', key: 'application6sv', label: '신청/6SV', minWidth: 130 },
+  { letter: 'W', key: 'amountExcludingExpenses', label: '금액(출장비제외)', minWidth: 160 },
+  { letter: 'X', key: 'amountIncludingExpenses', label: '금액(출장비포함)', minWidth: 160 },
+  { letter: 'Y', key: 'quoteReviewResult', label: 'Q검토결과', minWidth: 220 },
+] as const;
+
+type ExcelColumnKey = typeof EXCEL_COLUMNS[number]['key'];
+type SortKey = ExcelColumnKey | 'originalOwner' | 'stage' | 'd365Status';
+type SortState = { key: SortKey; direction: SortDirection };
 
 const emptyD365: D365Fields = {
   status: 'not-ready',
@@ -97,6 +131,28 @@ const won = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`
 const compactWon = (value: number) => value >= 100_000_000
   ? `${(value / 100_000_000).toFixed(1)}억원`
   : `${(value / 1_000_000).toFixed(1)}백만원`;
+
+const excelCellValue = (record: SalesRecord, key: ExcelColumnKey) => {
+  const value = record[key];
+  if (key === 'amountExcludingExpenses' || key === 'amountIncludingExpenses') return won(Number(value) || 0);
+  if (key === 'quoteMandays') return `${Number(value || 0).toFixed(1)} MD`;
+  return String(value ?? '').trim() || '-';
+};
+const sortRecordValue = (record: SalesRecord, key: SortKey): string | number => {
+  if (key === 'd365Status') return record.d365?.status || 'not-ready';
+  if (key === 'originalOwner') return record.originalOwner || '';
+  if (key === 'stage') return record.stage;
+  return record[key] ?? '';
+};
+
+const compareSalesRecords = (a: SalesRecord, b: SalesRecord, sort: SortState) => {
+  const aValue = sortRecordValue(a, sort.key);
+  const bValue = sortRecordValue(b, sort.key);
+  const comparison = typeof aValue === 'number' && typeof bValue === 'number'
+    ? aValue - bValue
+    : String(aValue).localeCompare(String(bValue), 'ko', { numeric: true, sensitivity: 'base' });
+  return sort.direction === 'asc' ? comparison : -comparison;
+};
 
 const splitContactName = (name: string) => {
   const cleaned = name.replace(/(대표|실장|부장|차장|과장|대리|책임|팀장|주무관|교수|프로|사원|님)/g, '').trim();
@@ -178,6 +234,31 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
   return <span className={`inline-flex whitespace-nowrap rounded border px-2 py-1 text-xs font-bold ${className}`}>{children}</span>;
 }
 
+function SortLabel({ label, sortKey, sort, onSort, align = 'left', ariaLabel }: {
+  label: React.ReactNode;
+  sortKey: SortKey;
+  sort: SortState;
+  onSort: (key: SortKey) => void;
+  align?: 'left' | 'right';
+  ariaLabel?: string;
+}) {
+  const active = sort.key === sortKey;
+  const indicator = active ? (sort.direction === 'asc' ? '↑' : '↓') : '↕';
+  const alignment = align === 'right' ? 'justify-end text-right' : 'justify-start text-left';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(sortKey)}
+      className={'inline-flex w-full items-center gap-1.5 whitespace-nowrap font-bold hover:text-blue-700 ' + alignment}
+      aria-label={(ariaLabel || (typeof label === 'string' ? label : '열')) + ' 정렬'}
+    >
+      <span>{label}</span>
+      <span aria-hidden="true" className={active ? 'text-blue-700' : 'text-slate-400'}>{indicator}</span>
+    </button>
+  );
+}
+
 export default function SalesDashboard() {
   const [mode, setMode] = useState<Mode>('sales');
   const [records, setRecords] = useState<SalesRecord[]>([]);
@@ -185,6 +266,10 @@ export default function SalesDashboard() {
   const [query, setQuery] = useState('');
   const [stage, setStage] = useState<'all' | SalesStage>('all');
   const [owner, setOwner] = useState('all');
+  const [tableView, setTableView] = useState<TableView>('summary');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [sort, setSort] = useState<SortState>({ key: 'quotedAt', direction: 'desc' });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [editor, setEditor] = useState<Partial<SalesRecordInput> | null>(null);
@@ -230,6 +315,13 @@ export default function SalesDashboard() {
     const haystack = [record.companyName, record.quoteNumber, record.contactName, record.email, record.product].join(' ').toLowerCase();
     return (!query || haystack.includes(query.toLowerCase())) && (stage === 'all' || record.stage === stage) && (owner === 'all' || record.originalOwner === owner);
   }), [records, query, stage, owner]);
+  const sortedRecords = useMemo(() => [...filtered].sort((a, b) => compareSalesRecords(a, b, sort)), [filtered, sort]);
+  const pageCount = Math.max(1, Math.ceil(sortedRecords.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRecords = useMemo(
+    () => sortedRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [currentPage, pageSize, sortedRecords],
+  );
   const selectedRecords = useMemo(() => records.filter((record) => selected.has(record.id)), [records, selected]);
   const readyRecords = useMemo(() => selectedRecords.filter((record) => d365Issues(record).length === 0), [selectedRecords]);
 
@@ -245,9 +337,17 @@ export default function SalesDashboard() {
     return next;
   });
 
-  const toggleAll = () => setSelected((current) => filtered.every((record) => current.has(record.id))
-    ? new Set([...current].filter((id) => !filtered.some((record) => record.id === id)))
-    : new Set([...current, ...filtered.map((record) => record.id)]));
+  const toggleAll = () => setSelected((current) => pageRecords.every((record) => current.has(record.id))
+    ? new Set([...current].filter((id) => !pageRecords.some((record) => record.id === id)))
+    : new Set([...current, ...pageRecords.map((record) => record.id)]));
+
+  const changeSort = (key: SortKey) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+    setPage(1);
+  };
 
   const openEditor = (record?: SalesRecord) => {
     setEditingId(record?.id || null);
@@ -378,11 +478,15 @@ export default function SalesDashboard() {
 
           <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-1 flex-col gap-2 sm:flex-row">
-              <label className="relative min-w-0 flex-1 lg:max-w-md"><span className="pointer-events-none absolute left-3 top-2.5 text-slate-400"><Icon name="search"/></span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="업체명, 담당자, 견적번호 검색" className="h-10 w-full border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-600"/></label>
-              <select value={stage} onChange={(event) => setStage(event.target.value as 'all' | SalesStage)} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="all">전체 상태</option>{Object.entries(STAGE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-              <select value={owner} onChange={(event) => setOwner(event.target.value)} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="all">전체 담당자</option>{owners.map((item) => <option key={item}>{item}</option>)}</select>
+              <label className="relative min-w-0 flex-1 lg:max-w-md"><span className="pointer-events-none absolute left-3 top-2.5 text-slate-400"><Icon name="search"/></span><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="업체명, 담당자, 견적번호 검색" className="h-10 w-full border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-600"/></label>
+              <select value={stage} onChange={(event) => { setStage(event.target.value as 'all' | SalesStage); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="all">전체 상태</option>{Object.entries(STAGE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select value={owner} onChange={(event) => { setOwner(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="all">전체 담당자</option>{owners.map((item) => <option key={item}>{item}</option>)}</select>
             </div>
             <div className="flex flex-wrap gap-2">
+              <div className="inline-flex h-10 border border-slate-300 bg-slate-100 p-1" role="group" aria-label="세일즈 표시 방식">
+                <button type="button" onClick={() => { setTableView('summary'); setPage(1); }} className={`px-3 text-xs font-bold ${tableView === 'summary' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-600'}`}>요약</button>
+                <button type="button" onClick={() => { setTableView('excel'); setPage(1); }} className={`px-3 text-xs font-bold ${tableView === 'excel' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-600'}`}>Excel A-Y</button>
+              </div>
               <input ref={fileInput} type="file" accept=".xlsx" className="hidden" onChange={(event) => void importWorkbook(event.target.files?.[0])}/>
               <button type="button" onClick={() => fileInput.current?.click()} className="inline-flex h-10 items-center gap-2 border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Icon name="upload"/>Excel 가져오기</button>
               <button type="button" onClick={() => openEditor()} className="inline-flex h-10 items-center gap-2 bg-blue-700 px-4 text-sm font-bold text-white hover:bg-blue-800"><Icon name="plus"/>신규 세일즈</button>
@@ -392,17 +496,50 @@ export default function SalesDashboard() {
           {selected.size > 0 && <section className="flex flex-col gap-3 border border-blue-300 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm font-bold text-blue-950">{selected.size}건 선택 <span className="ml-2 font-normal text-blue-700">D365 필수값을 검증한 뒤 실행할 수 있습니다.</span></p><button type="button" onClick={() => setMode('d365')} className="inline-flex h-9 items-center justify-center gap-2 bg-blue-700 px-4 text-sm font-bold text-white"><Icon name="arrow"/>D365 생성 준비</button></section>}
 
           <section className="overflow-hidden border border-slate-300 bg-white">
-            <div className="overflow-x-auto">
-              <table className="min-w-[1040px] w-full border-collapse text-left text-sm">
-                <thead className="bg-slate-100 text-xs font-bold text-slate-600"><tr><th className="w-11 px-3 py-3"><input type="checkbox" aria-label="현재 목록 전체 선택" checked={filtered.length > 0 && filtered.every((record) => selected.has(record.id))} onChange={toggleAll}/></th><th className="px-3 py-3">업체 / 견적</th><th className="px-3 py-3">Product / 구분</th><th className="px-3 py-3">담당</th><th className="px-3 py-3">진행 상태</th><th className="px-3 py-3 text-right">견적 금액</th><th className="px-3 py-3">D365</th><th className="w-24 px-3 py-3 text-center">작업</th></tr></thead>
-                <tbody className="divide-y divide-slate-200">
-                  {filtered.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.originalOwner || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td><td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={D365_CLASSES[record.d365?.status || 'not-ready']}>{D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
-                  {!loading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">표시할 세일즈 데이터가 없습니다. Excel을 가져오거나 신규 세일즈를 등록해 주세요.</td></tr>}
-                  {loading && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">세일즈 데이터를 불러오는 중입니다.</td></tr>}
-                </tbody>
-              </table>
+            {tableView === 'summary' ? (
+              <div className="max-h-[58vh] overflow-auto">
+                <table className="min-w-[1040px] w-full border-collapse text-left text-sm">
+                  <thead className="sticky top-0 z-20 bg-slate-100 text-xs font-bold text-slate-600">
+                    <tr>
+                      <th className="w-11 bg-slate-100 px-3 py-3"><input type="checkbox" aria-label="현재 페이지 전체 선택" checked={pageRecords.length > 0 && pageRecords.every((record) => selected.has(record.id))} onChange={toggleAll}/></th>
+                      <th className="bg-slate-100 px-3 py-3"><SortLabel label="업체 / 견적" sortKey="companyName" sort={sort} onSort={changeSort}/></th>
+                      <th className="bg-slate-100 px-3 py-3"><SortLabel label="Product / 구분" sortKey="product" sort={sort} onSort={changeSort}/></th>
+                      <th className="bg-slate-100 px-3 py-3"><SortLabel label="담당" sortKey="originalOwner" sort={sort} onSort={changeSort}/></th>
+                      <th className="bg-slate-100 px-3 py-3"><SortLabel label="진행 상태" sortKey="stage" sort={sort} onSort={changeSort}/></th>
+                      <th className="bg-slate-100 px-3 py-3"><SortLabel label="견적 금액" sortKey="amountIncludingExpenses" sort={sort} onSort={changeSort} align="right"/></th>
+                      <th className="bg-slate-100 px-3 py-3"><SortLabel label="D365" sortKey="d365Status" sort={sort} onSort={changeSort}/></th>
+                      <th className="w-24 bg-slate-100 px-3 py-3 text-center">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {pageRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.originalOwner || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td><td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={D365_CLASSES[record.d365?.status || 'not-ready']}>{D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
+                    {!loading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">표시할 세일즈 데이터가 없습니다. Excel을 가져오거나 신규 세일즈를 등록해 주세요.</td></tr>}
+                    {loading && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">세일즈 데이터를 불러오는 중입니다.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <ExcelDataTable records={pageRecords} selected={selected} loading={loading} sort={sort} onSort={changeSort} onToggle={toggle} onToggleAll={toggleAll} onEdit={openEditor} onDelete={(record) => void deleteRecord(record)}/>
+            )}
+            <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-xs text-slate-500 xl:flex-row xl:items-center xl:justify-between">
+              <span>전체 {records.length}건 · 필터 {filtered.length}건 · 페이지 {currentPage}/{pageCount}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2 font-semibold text-slate-600">
+                  페이지당
+                  <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="h-8 border border-slate-300 bg-white px-2 text-xs text-slate-700" aria-label="페이지당 표시 건수">
+                    <option value={25}>25건</option>
+                    <option value={50}>50건</option>
+                    <option value={100}>100건</option>
+                  </select>
+                </label>
+                <button type="button" aria-label="첫 페이지" disabled={currentPage <= 1} onClick={() => setPage(1)} className="h-8 border border-slate-300 bg-white px-2 font-bold text-slate-700 disabled:text-slate-300">처음</button>
+                <button type="button" aria-label="이전 페이지" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="h-8 border border-slate-300 bg-white px-3 font-bold text-slate-700 disabled:text-slate-300">이전</button>
+                <span className="min-w-24 text-center font-semibold text-slate-700">{(currentPage - 1) * pageSize + (pageRecords.length ? 1 : 0)}-{Math.min(currentPage * pageSize, filtered.length)}</span>
+                <button type="button" aria-label="다음 페이지" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="h-8 border border-slate-300 bg-white px-3 font-bold text-slate-700 disabled:text-slate-300">다음</button>
+                <button type="button" aria-label="마지막 페이지" disabled={currentPage >= pageCount} onClick={() => setPage(pageCount)} className="h-8 border border-slate-300 bg-white px-2 font-bold text-slate-700 disabled:text-slate-300">마지막</button>
+              </div>
+              <span>필터 합계 {won(filtered.reduce((sum, record) => sum + record.amountIncludingExpenses, 0))} · {filtered.reduce((sum, record) => sum + record.quoteMandays, 0).toFixed(1)} MD</span>
             </div>
-            <div className="flex flex-col gap-1 border-t border-slate-200 px-4 py-3 text-xs text-slate-500 sm:flex-row sm:justify-between"><span>전체 {records.length}건 · 현재 {filtered.length}건</span><span>현재 목록 합계 {won(filtered.reduce((sum, record) => sum + record.amountIncludingExpenses, 0))} · {filtered.reduce((sum, record) => sum + record.quoteMandays, 0).toFixed(1)} MD</span></div>
           </section>
         </div>
       ) : (
@@ -440,11 +577,135 @@ export default function SalesDashboard() {
   );
 }
 
+function ExcelDataTable({ records, selected, loading, sort, onSort, onToggle, onToggleAll, onEdit, onDelete }: {
+  records: SalesRecord[];
+  selected: Set<string>;
+  loading: boolean;
+  sort: SortState;
+  onSort: (key: SortKey) => void;
+  onToggle: (id: string) => void;
+  onToggleAll: () => void;
+  onEdit: (record: SalesRecord) => void;
+  onDelete: (record: SalesRecord) => void;
+}) {
+  const totalWidth = EXCEL_COLUMNS.reduce((sum, column) => sum + column.minWidth, 0) + 128;
+
+  return (
+    <div>
+      <div className="flex flex-col gap-1 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h3 className="text-sm font-bold text-slate-900">Excel 원본 열 A-Y</h3><p className="mt-0.5 text-xs text-slate-500">가로로 이동하여 가져온 25개 항목을 모두 확인할 수 있습니다.</p></div>
+        <p className="text-xs font-semibold text-slate-500">현재 페이지 {records.length}건</p>
+      </div>
+      <div className="max-h-[58vh] overflow-auto">
+        <table className="border-collapse text-left text-xs" style={{ minWidth: totalWidth }}>
+          <thead className="sticky top-0 z-20 bg-slate-100 text-slate-700">
+            <tr>
+              <th className="sticky left-0 top-0 z-30 w-12 border-r border-slate-300 bg-slate-100 px-3 py-3"><input type="checkbox" aria-label="현재 페이지 전체 선택" checked={records.length > 0 && records.every((record) => selected.has(record.id))} onChange={onToggleAll}/></th>
+              {EXCEL_COLUMNS.map((column) => <th key={column.letter} className="bg-slate-100 px-3 py-2.5" style={{ minWidth: column.minWidth, width: column.minWidth }}><SortLabel label={<><span className="inline-grid h-5 min-w-5 place-items-center bg-slate-200 px-1 text-[10px] text-slate-600">{column.letter}</span><span>{column.label}</span></>} sortKey={column.key} sort={sort} onSort={onSort} ariaLabel={column.letter + ' ' + column.label}/></th>)}
+              <th className="sticky right-0 top-0 z-30 w-20 border-l border-slate-300 bg-slate-100 px-3 py-3 text-center">작업</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {records.map((record) => <tr key={record.id} className="group hover:bg-blue-50/40">
+              <td className="sticky left-0 z-10 border-r border-slate-300 bg-white px-3 py-3 group-hover:bg-blue-50"><input type="checkbox" checked={selected.has(record.id)} onChange={() => onToggle(record.id)} aria-label={`${record.companyName} 선택`}/></td>
+              {EXCEL_COLUMNS.map((column) => {
+                const value = excelCellValue(record, column.key);
+                const longText = column.key === 'contactHistory' || column.key === 'nextAction' || column.key === 'quoteReviewResult';
+                return <td key={column.letter} className={`border-r border-slate-100 px-3 py-3 align-top text-slate-700 ${longText ? 'whitespace-normal leading-5' : 'whitespace-nowrap'}`} title={value}><span className={longText ? 'block max-h-16 overflow-hidden' : ''}>{value}</span></td>;
+              })}
+              <td className="sticky right-0 z-10 border-l border-slate-300 bg-white px-2 py-3 group-hover:bg-blue-50"><div className="flex justify-center gap-1"><button type="button" onClick={() => onEdit(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => onDelete(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td>
+            </tr>)}
+            {!loading && records.length === 0 && <tr><td colSpan={EXCEL_COLUMNS.length + 2} className="px-4 py-16 text-center text-slate-500">표시할 세일즈 데이터가 없습니다.</td></tr>}
+            {loading && <tr><td colSpan={EXCEL_COLUMNS.length + 2} className="px-4 py-16 text-center text-slate-500">세일즈 데이터를 불러오는 중입니다.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function EditorModal({ value, onChange, onClose, onSave, saving }: { value: Partial<SalesRecordInput>; onChange: (value: Partial<SalesRecordInput>) => void; onClose: () => void; onSave: () => void; saving: boolean }) {
   const d365 = { ...emptyD365, ...(value.d365 || {}) };
   const field = (key: keyof SalesRecordInput, next: string | number | boolean) => onChange({ ...value, [key]: next });
   const d365Field = (key: keyof D365Fields, next: string) => onChange({ ...value, d365: { ...d365, [key]: next, status: 'not-ready' } });
   const inputClass = 'h-10 w-full border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-600';
+  const textareaClass = 'min-h-20 w-full border border-slate-300 bg-white p-3 text-sm leading-5 outline-none focus:border-blue-600';
   const labelClass = 'space-y-1 text-xs font-bold text-slate-600';
-  return <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/55 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="w-full max-w-5xl bg-white shadow-2xl"><header className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h3 className="text-lg font-bold text-slate-950">세일즈 데이터 편집</h3><p className="mt-0.5 text-xs text-slate-500">견적 기록과 D365 매핑 정보를 함께 관리합니다.</p></div><button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center border border-slate-300 text-xl text-slate-600" aria-label="닫기">×</button></header><div className="grid gap-6 p-5 lg:grid-cols-2"><section><h4 className="mb-3 border-b border-slate-200 pb-2 text-sm font-bold text-slate-900">세일즈 기본 정보</h4><div className="grid gap-3 sm:grid-cols-2"><label className={labelClass}>업체명 *<input className={inputClass} value={value.companyName || ''} onChange={(e) => field('companyName', e.target.value)}/></label><label className={labelClass}>견적번호<input className={inputClass} value={value.quoteNumber || ''} onChange={(e) => field('quoteNumber', e.target.value)}/></label><label className={labelClass}>Product<input className={inputClass} value={value.product || ''} onChange={(e) => field('product', e.target.value)}/></label><label className={labelClass}>구분<select className={inputClass} value={value.category || ''} onChange={(e) => field('category', e.target.value)}><option value="">선택</option><option>신규</option><option>기존</option><option>전환</option></select></label><label className={labelClass}>견적일<input type="date" className={inputClass} value={value.quotedAt || ''} onChange={(e) => field('quotedAt', e.target.value)}/></label><label className={labelClass}>진행 상태<select className={inputClass} value={value.stage || 'new'} onChange={(e) => field('stage', e.target.value as SalesStage)}>{Object.entries(STAGE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className={labelClass}>고객 담당자<input className={inputClass} value={value.contactName || ''} onChange={(e) => field('contactName', e.target.value)}/></label><label className={labelClass}>LRQA 담당자<input className={inputClass} value={value.originalOwner || ''} onChange={(e) => field('originalOwner', e.target.value)}/></label><label className={labelClass}>이메일<input type="email" className={inputClass} value={value.email || ''} onChange={(e) => field('email', e.target.value)}/></label><label className={labelClass}>휴대전화<input className={inputClass} value={value.mobile || ''} onChange={(e) => field('mobile', e.target.value)}/></label><label className={labelClass}>견적 MD<input type="number" step="0.1" className={inputClass} value={value.quoteMandays || 0} onChange={(e) => field('quoteMandays', Number(e.target.value))}/></label><label className={labelClass}>출장비 포함 금액<input type="number" className={inputClass} value={value.amountIncludingExpenses || 0} onChange={(e) => field('amountIncludingExpenses', Number(e.target.value))}/></label><label className={`${labelClass} sm:col-span-2`}>통화내역<textarea className="min-h-24 w-full border border-slate-300 p-3 text-sm outline-none focus:border-blue-600" value={value.contactHistory || ''} onChange={(e) => field('contactHistory', e.target.value)}/></label><label className={`${labelClass} sm:col-span-2`}>이후 진행<textarea className="min-h-20 w-full border border-slate-300 p-3 text-sm outline-none focus:border-blue-600" value={value.nextAction || ''} onChange={(e) => field('nextAction', e.target.value)}/></label></div></section><section><h4 className="mb-3 border-b border-slate-200 pb-2 text-sm font-bold text-slate-900">D365 매핑</h4><div className="grid gap-3 sm:grid-cols-2"><label className={`${labelClass} sm:col-span-2`}>Account 처리 방식<div className="grid grid-cols-2 border border-slate-300 bg-slate-100 p-1"><button type="button" onClick={() => d365Field('accountMode', 'existing')} className={`h-9 text-sm font-bold ${d365.accountMode === 'existing' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>기존 Account</button><button type="button" onClick={() => d365Field('accountMode', 'new')} className={`h-9 text-sm font-bold ${d365.accountMode === 'new' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>신규 Account</button></div></label>{d365.accountMode === 'existing' ? <label className={`${labelClass} sm:col-span-2`}>Account URL *<input className={inputClass} value={d365.accountUrl} onChange={(e) => d365Field('accountUrl', e.target.value)} placeholder="https://lrqa.crm4.dynamics.com/..."/></label> : <><label className={`${labelClass} sm:col-span-2`}>Street 1<input className={inputClass} value={d365.street1} onChange={(e) => d365Field('street1', e.target.value)}/></label><label className={labelClass}>City<input className={inputClass} value={d365.city} onChange={(e) => d365Field('city', e.target.value)}/></label><label className={labelClass}>ZIP/Postal Code<input className={inputClass} value={d365.postalCode} onChange={(e) => d365Field('postalCode', e.target.value)}/></label></>}<label className={labelClass}>First Name<input className={inputClass} value={d365.firstName} onChange={(e) => d365Field('firstName', e.target.value)}/></label><label className={labelClass}>Last Name<input className={inputClass} value={d365.lastName} onChange={(e) => d365Field('lastName', e.target.value)}/></label><label className={labelClass}>Close Date *<input type="date" className={inputClass} value={d365.closeDate} onChange={(e) => d365Field('closeDate', e.target.value)}/></label><label className={labelClass}>Assign To<input className={inputClass} value={d365.assignTo} onChange={(e) => d365Field('assignTo', e.target.value)}/></label><label className={labelClass}>Lead Source<input className={inputClass} value={d365.leadSource} onChange={(e) => d365Field('leadSource', e.target.value)}/></label><label className={labelClass}>Primary Service<input className={inputClass} value={d365.primaryService} onChange={(e) => d365Field('primaryService', e.target.value)}/></label><label className={labelClass}>Opportunity Type<input className={inputClass} value={d365.opportunityType} onChange={(e) => d365Field('opportunityType', e.target.value)}/></label><label className={labelClass}>Forecast Category<input className={inputClass} value={d365.forecastCategory} onChange={(e) => d365Field('forecastCategory', e.target.value)}/></label><label className={labelClass}>Client Facing Office<input className={inputClass} value={d365.clientFacingOffice} onChange={(e) => d365Field('clientFacingOffice', e.target.value)}/></label><label className={labelClass}>Country<input className={inputClass} value={d365.country} onChange={(e) => d365Field('country', e.target.value)}/></label></div></section></div><footer className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4"><button type="button" onClick={onClose} className="h-10 border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700">취소</button><button type="button" disabled={saving} onClick={onSave} className="h-10 bg-blue-700 px-5 text-sm font-bold text-white disabled:bg-slate-300">{saving ? '저장 중' : '저장'}</button></footer></div></div>;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/55 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="w-full max-w-7xl bg-white shadow-2xl">
+        <header className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div><h3 className="text-lg font-bold text-slate-950">세일즈 데이터 편집</h3><p className="mt-0.5 text-xs text-slate-500">Excel A-Y 원본 항목과 D365 매핑 정보를 함께 관리합니다.</p></div>
+          <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center border border-slate-300 text-xl text-slate-600" aria-label="닫기">×</button>
+        </header>
+        <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.45fr)]">
+          <section>
+            <div className="mb-3 flex items-end justify-between border-b border-slate-200 pb-2"><div><h4 className="text-sm font-bold text-slate-900">Excel A-Y 세일즈 정보</h4><p className="mt-0.5 text-xs text-slate-500">열 문자는 업로드한 Quot_2026 시트와 동일합니다.</p></div><span className="text-xs font-bold text-blue-700">25개 필드</span></div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <label className={labelClass}>A · 이노베이션<input className={inputClass} value={value.innovation || ''} onChange={(e) => field('innovation', e.target.value)}/></label>
+              <label className={labelClass}>B · Product<input className={inputClass} value={value.product || ''} onChange={(e) => field('product', e.target.value)}/></label>
+              <label className={labelClass}>C · 구분<input className={inputClass} value={value.category || ''} onChange={(e) => field('category', e.target.value)}/></label>
+              <label className={labelClass}>D · SF<input className={inputClass} value={value.sf || ''} onChange={(e) => field('sf', e.target.value)}/></label>
+              <label className={labelClass}>E · DATE<input type="date" className={inputClass} value={value.quotedAt || ''} onChange={(e) => field('quotedAt', e.target.value)}/></label>
+              <label className={labelClass}>F · Q.No.<input className={inputClass} value={value.quoteNumber || ''} onChange={(e) => field('quoteNumber', e.target.value)}/></label>
+              <label className={labelClass}>G · 기한<input className={inputClass} value={value.deadline || ''} onChange={(e) => field('deadline', e.target.value)}/></label>
+              <label className={labelClass}>H · 업체명 *<input className={inputClass} value={value.companyName || ''} onChange={(e) => field('companyName', e.target.value)}/></label>
+              <label className={labelClass}>I · Account<input className={inputClass} value={value.accountName || ''} onChange={(e) => field('accountName', e.target.value)}/></label>
+              <label className={labelClass}>J · Opportunity<input className={inputClass} value={value.opportunityName || ''} onChange={(e) => field('opportunityName', e.target.value)}/></label>
+              <label className={labelClass}>K · 담당자<input className={inputClass} value={value.contactName || ''} onChange={(e) => field('contactName', e.target.value)}/></label>
+              <label className={labelClass}>L · tel<input className={inputClass} value={value.telephone || ''} onChange={(e) => field('telephone', e.target.value)}/></label>
+              <label className={labelClass}>M · HP<input className={inputClass} value={value.mobile || ''} onChange={(e) => field('mobile', e.target.value)}/></label>
+              <label className={labelClass}>N · e-mail<input type="email" className={inputClass} value={value.email || ''} onChange={(e) => field('email', e.target.value)}/></label>
+              <label className={`${labelClass} sm:col-span-2 xl:col-span-3`}>O · 통화내역<textarea className={textareaClass} value={value.contactHistory || ''} onChange={(e) => field('contactHistory', e.target.value)}/></label>
+              <label className={`${labelClass} sm:col-span-2 xl:col-span-3`}>P · 이후 진행<textarea className={textareaClass} value={value.nextAction || ''} onChange={(e) => field('nextAction', e.target.value)}/></label>
+              <label className={labelClass}>Q · 컨설팅FU<input className={inputClass} value={value.consultingFollowUp || ''} onChange={(e) => field('consultingFollowUp', e.target.value)}/></label>
+              <label className={labelClass}>R · Lead source<input className={inputClass} value={value.leadSource || ''} onChange={(e) => field('leadSource', e.target.value)}/></label>
+              <label className={labelClass}>S · Contract<input className={inputClass} value={value.contract || ''} onChange={(e) => field('contract', e.target.value)}/></label>
+              <label className={labelClass}>T · MP승인<input className={inputClass} value={value.mpApproval || ''} onChange={(e) => field('mpApproval', e.target.value)}/></label>
+              <label className={labelClass}>U · 견적MD<input type="number" step="0.1" className={inputClass} value={value.quoteMandays || 0} onChange={(e) => field('quoteMandays', Number(e.target.value))}/></label>
+              <label className={labelClass}>V · 신청/6SV<input className={inputClass} value={value.application6sv || ''} onChange={(e) => field('application6sv', e.target.value)}/></label>
+              <label className={labelClass}>W · 금액(출장비제외)<input type="number" className={inputClass} value={value.amountExcludingExpenses || 0} onChange={(e) => field('amountExcludingExpenses', Number(e.target.value))}/></label>
+              <label className={labelClass}>X · 금액(출장비포함)<input type="number" className={inputClass} value={value.amountIncludingExpenses || 0} onChange={(e) => field('amountIncludingExpenses', Number(e.target.value))}/></label>
+              <label className={`${labelClass} sm:col-span-2 xl:col-span-3`}>Y · Q검토결과<textarea className={textareaClass} value={value.quoteReviewResult || ''} onChange={(e) => field('quoteReviewResult', e.target.value)}/></label>
+            </div>
+          </section>
+
+          <div className="space-y-6">
+            <section>
+              <h4 className="mb-3 border-b border-slate-200 pb-2 text-sm font-bold text-slate-900">내부 관리</h4>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <label className={labelClass}>진행 상태<select className={inputClass} value={value.stage || 'new'} onChange={(e) => field('stage', e.target.value as SalesStage)}>{Object.entries(STAGE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+                <label className={labelClass}>LRQA 담당자 (Z)<input className={inputClass} value={value.originalOwner || ''} onChange={(e) => field('originalOwner', e.target.value)}/></label>
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" checked={Boolean(value.won)} onChange={(e) => field('won', e.target.checked)}/>Won 처리</label>
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" checked={Boolean(value.d365Matched)} onChange={(e) => field('d365Matched', e.target.checked)}/>D365 매칭 확인</label>
+              </div>
+            </section>
+
+            <section>
+              <h4 className="mb-3 border-b border-slate-200 pb-2 text-sm font-bold text-slate-900">D365 매핑</h4>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <label className={labelClass}>Account 처리 방식<div className="grid grid-cols-2 border border-slate-300 bg-slate-100 p-1"><button type="button" onClick={() => d365Field('accountMode', 'existing')} className={`h-9 text-sm font-bold ${d365.accountMode === 'existing' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>기존 Account</button><button type="button" onClick={() => d365Field('accountMode', 'new')} className={`h-9 text-sm font-bold ${d365.accountMode === 'new' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>신규 Account</button></div></label>
+                {d365.accountMode === 'existing' ? <label className={labelClass}>Account URL *<input className={inputClass} value={d365.accountUrl} onChange={(e) => d365Field('accountUrl', e.target.value)} placeholder="https://lrqa.crm4.dynamics.com/..."/></label> : <><label className={labelClass}>Street 1<input className={inputClass} value={d365.street1} onChange={(e) => d365Field('street1', e.target.value)}/></label><label className={labelClass}>City<input className={inputClass} value={d365.city} onChange={(e) => d365Field('city', e.target.value)}/></label><label className={labelClass}>ZIP/Postal Code<input className={inputClass} value={d365.postalCode} onChange={(e) => d365Field('postalCode', e.target.value)}/></label></>}
+                <label className={labelClass}>First Name<input className={inputClass} value={d365.firstName} onChange={(e) => d365Field('firstName', e.target.value)}/></label>
+                <label className={labelClass}>Last Name<input className={inputClass} value={d365.lastName} onChange={(e) => d365Field('lastName', e.target.value)}/></label>
+                <label className={labelClass}>Close Date *<input type="date" className={inputClass} value={d365.closeDate} onChange={(e) => d365Field('closeDate', e.target.value)}/></label>
+                <label className={labelClass}>Assign To<input className={inputClass} value={d365.assignTo} onChange={(e) => d365Field('assignTo', e.target.value)}/></label>
+                <label className={labelClass}>D365 Lead Source<input className={inputClass} value={d365.leadSource} onChange={(e) => d365Field('leadSource', e.target.value)}/></label>
+                <label className={labelClass}>Area of Interest<input className={inputClass} value={d365.areaOfInterest} onChange={(e) => d365Field('areaOfInterest', e.target.value)}/></label>
+                <label className={labelClass}>Primary Business Stream<input className={inputClass} value={d365.primaryBusinessStream} onChange={(e) => d365Field('primaryBusinessStream', e.target.value)}/></label>
+                <label className={labelClass}>Primary Service<input className={inputClass} value={d365.primaryService} onChange={(e) => d365Field('primaryService', e.target.value)}/></label>
+                <label className={labelClass}>Opportunity Record Type<input className={inputClass} value={d365.opportunityRecordType} onChange={(e) => d365Field('opportunityRecordType', e.target.value)}/></label>
+                <label className={labelClass}>Opportunity Type<input className={inputClass} value={d365.opportunityType} onChange={(e) => d365Field('opportunityType', e.target.value)}/></label>
+                <label className={labelClass}>Forecast Category<input className={inputClass} value={d365.forecastCategory} onChange={(e) => d365Field('forecastCategory', e.target.value)}/></label>
+                <label className={labelClass}>Client Facing Office<input className={inputClass} value={d365.clientFacingOffice} onChange={(e) => d365Field('clientFacingOffice', e.target.value)}/></label>
+                <label className={labelClass}>Country<input className={inputClass} value={d365.country} onChange={(e) => d365Field('country', e.target.value)}/></label>
+              </div>
+            </section>
+          </div>
+        </div>
+        <footer className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4"><button type="button" onClick={onClose} className="h-10 border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700">취소</button><button type="button" disabled={saving} onClick={onSave} className="h-10 bg-blue-700 px-5 text-sm font-bold text-white disabled:bg-slate-300">{saving ? '저장 중' : '저장'}</button></footer>
+      </div>
+    </div>
+  );
 }
