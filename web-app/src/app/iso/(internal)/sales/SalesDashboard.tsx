@@ -10,6 +10,13 @@ type TableView = 'summary' | 'excel';
 type SortDirection = 'asc' | 'desc';
 
 const BRIDGE_URL = 'http://127.0.0.1:3000';
+type LocalRequestInit = RequestInit & { targetAddressSpace?: 'local' };
+const bridgeFetch = (path: string, init: RequestInit = {}) => fetch(
+  BRIDGE_URL + path,
+  { targetAddressSpace: 'local', ...init } as LocalRequestInit,
+);
+const isHttpUrl = (value: string) => /^https?:\/\//i.test(value.trim());
+const isDynamicsUrl = (value: string) => /^https:\/\/[^/]+\.dynamics\.com(?:\/|$)/i.test(value.trim());
 
 const STAGE_LABELS: Record<SalesStage, string> = {
   new: '신규',
@@ -162,9 +169,16 @@ const splitContactName = (name: string) => {
   return { firstName: parts.slice(0, -1).join(' '), lastName: parts.at(-1) || cleaned };
 };
 
+const isD365Processed = (record: SalesRecord) => Boolean(
+  record.d365Matched || record.d365?.status === 'success' || isDynamicsUrl(record.opportunityName),
+);
+
 const d365Issues = (record: SalesRecord) => {
   const issues: string[] = [];
   const d365 = record.d365 || emptyD365;
+  if (isD365Processed(record)) issues.push('D365 생성/매칭 완료');
+  else if (d365.status === 'warning') issues.push('기존 Lead 확인 필요');
+  else if (d365.status === 'running') issues.push('이미 실행 중');
   if (!record.companyName) issues.push('업체명');
   if (!record.contactName && !d365.lastName) issues.push('담당자명');
   if (!record.email) issues.push('이메일');
@@ -180,10 +194,15 @@ const d365Issues = (record: SalesRecord) => {
 const d365Payload = (record: SalesRecord) => {
   const d365 = { ...emptyD365, ...record.d365 };
   const names = splitContactName(record.contactName);
+  const storedNameIsDefault = !d365.firstName && d365.lastName === record.contactName;
+  const opportunityTopic = record.opportunityName && !isHttpUrl(record.opportunityName)
+    ? record.opportunityName
+    : [record.companyName, record.product, record.category || '인증'].filter(Boolean).join(' - ');
+  const existingAccountUrl = d365.accountUrl || (isDynamicsUrl(record.accountName) ? record.accountName : '');
   const common = {
-    Topic: record.opportunityName || `${record.product} ${record.category || '인증'}`.trim(),
-    'First Name': d365.firstName || names.firstName,
-    'Last Name': d365.lastName || names.lastName,
+    Topic: opportunityTopic,
+    'First Name': storedNameIsDefault ? names.firstName : d365.firstName || names.firstName,
+    'Last Name': storedNameIsDefault ? names.lastName : d365.lastName || names.lastName,
     Email: record.email,
     'Mobile Phone': record.mobile,
     'Lead Source': d365.leadSource,
@@ -208,8 +227,8 @@ const d365Payload = (record: SalesRecord) => {
     'ZIP/Postal Code': d365.postalCode,
   } : {
     ...common,
-    'Account Name': record.accountName || record.companyName,
-    'Account URL': d365.accountUrl,
+    'Account Name': isDynamicsUrl(record.accountName) ? record.companyName : record.accountName || record.companyName,
+    'Account URL': existingAccountUrl,
   };
 };
 
@@ -276,6 +295,7 @@ export default function SalesDashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [bridge, setBridge] = useState<BridgeState>('checking');
+  const [bridgeError, setBridgeError] = useState('');
   const [running, setRunning] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -296,14 +316,18 @@ export default function SalesDashboard() {
 
   const checkBridge = async () => {
     setBridge('checking');
+    setBridgeError('');
     try {
       const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 2500);
-      const response = await fetch(`${BRIDGE_URL}/api/health`, { signal: controller.signal });
+      const timeout = window.setTimeout(() => controller.abort(), 8000);
+      const response = await bridgeFetch('/api/health', { signal: controller.signal });
       window.clearTimeout(timeout);
       setBridge(response.ok ? 'online' : 'offline');
-    } catch {
+    } catch (error) {
       setBridge('offline');
+      setBridgeError(error instanceof DOMException && error.name === 'AbortError'
+        ? '브리지 응답 시간이 초과되었습니다. 잠시 후 다시 확인해 주세요.'
+        : '브라우저의 로컬 네트워크 접근 권한을 허용한 뒤 다시 확인해 주세요.');
     }
   };
 
@@ -328,7 +352,7 @@ export default function SalesDashboard() {
   const pipeline = useMemo(() => records.filter((record) => !['won', 'lost'].includes(record.stage)).reduce((sum, record) => sum + record.amountIncludingExpenses, 0), [records]);
   const monthPrefix = new Date().toISOString().slice(0, 7);
   const monthRecords = useMemo(() => records.filter((record) => record.quotedAt.startsWith(monthPrefix)), [records, monthPrefix]);
-  const d365Pending = useMemo(() => records.filter((record) => !record.d365Matched && record.d365?.status !== 'success').length, [records]);
+  const d365Pending = useMemo(() => records.filter((record) => !isD365Processed(record)).length, [records]);
 
   const toggle = (id: string) => setSelected((current) => {
     const next = new Set(current);
@@ -420,6 +444,7 @@ export default function SalesDashboard() {
 
   const runD365 = async () => {
     if (bridge !== 'online' || !readyRecords.length) return;
+    if (!window.confirm(String(readyRecords.length) + '건의 Lead와 Opportunity를 실제 D365에 생성할까요?')) return;
     setRunning(true);
     setLogs([]);
     for (const original of readyRecords) {
@@ -427,7 +452,7 @@ export default function SalesDashboard() {
       try {
         setLogs((items) => [...items, `${record.companyName}: 자동화를 시작합니다.`]);
         record = await patchD365(record, { status: 'running', error: '' });
-        const response = await fetch(`${BRIDGE_URL}/api/start-automation`, {
+        const response = await bridgeFetch('/api/start-automation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(d365Payload(record)),
@@ -512,7 +537,7 @@ export default function SalesDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {pageRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.originalOwner || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td><td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={D365_CLASSES[record.d365?.status || 'not-ready']}>{D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
+                    {pageRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.originalOwner || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td><td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={isD365Processed(record) ? D365_CLASSES.success : D365_CLASSES[record.d365?.status || 'not-ready']}>{isD365Processed(record) ? '매칭 완료' : D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
                     {!loading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">표시할 세일즈 데이터가 없습니다. Excel을 가져오거나 신규 세일즈를 등록해 주세요.</td></tr>}
                     {loading && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">세일즈 데이터를 불러오는 중입니다.</td></tr>}
                   </tbody>
@@ -556,7 +581,7 @@ export default function SalesDashboard() {
               <div className="divide-y divide-slate-200">
                 {selectedRecords.map((record, index) => {
                   const issues = d365Issues(record);
-                  return <div key={record.id} className="grid gap-3 px-4 py-4 md:grid-cols-[32px_minmax(0,1fr)_auto_auto] md:items-center"><span className="grid h-7 w-7 place-items-center bg-slate-100 text-xs font-bold text-slate-600">{index + 1}</span><div className="min-w-0"><p className="truncate font-bold text-slate-900">{record.companyName}</p><p className="mt-0.5 truncate text-xs text-slate-500">{record.product} · {won(record.amountIncludingExpenses)} · {record.d365.accountMode === 'new' ? '신규 Account' : '기존 Account'}</p>{issues.length > 0 && <p className="mt-1 text-xs font-semibold text-rose-700">필요: {issues.join(', ')}</p>}</div><Badge className={issues.length ? D365_CLASSES.failed : D365_CLASSES.ready}>{issues.length ? '정보 부족' : '준비 완료'}</Badge><button type="button" onClick={() => openEditor(record)} className="inline-flex h-8 items-center justify-center gap-1 border border-slate-300 px-2 text-xs font-bold text-slate-700"><Icon name="edit"/>수정</button></div>;
+                  return <div key={record.id} className="grid gap-3 px-4 py-4 md:grid-cols-[32px_minmax(0,1fr)_auto_auto] md:items-center"><span className="grid h-7 w-7 place-items-center bg-slate-100 text-xs font-bold text-slate-600">{index + 1}</span><div className="min-w-0"><p className="truncate font-bold text-slate-900">{record.companyName}</p><p className="mt-0.5 truncate text-xs text-slate-500">{record.product} · {won(record.amountIncludingExpenses)} · {record.d365.accountMode === 'new' ? '신규 Account' : '기존 Account'}</p>{isD365Processed(record) ? <p className="mt-1 text-xs font-semibold text-teal-700">이미 D365에 매칭되거나 생성된 건입니다.</p> : issues.length > 0 && <p className="mt-1 text-xs font-semibold text-rose-700">필요: {issues.join(', ')}</p>}</div><Badge className={isD365Processed(record) ? D365_CLASSES.success : issues.length ? D365_CLASSES.failed : D365_CLASSES.ready}>{isD365Processed(record) ? '처리 완료' : issues.length ? '정보 부족' : '준비 완료'}</Badge><button type="button" onClick={() => openEditor(record)} className="inline-flex h-8 items-center justify-center gap-1 border border-slate-300 px-2 text-xs font-bold text-slate-700"><Icon name="edit"/>수정</button></div>;
                 })}
                 {selectedRecords.length === 0 && <div className="px-4 py-16 text-center text-sm text-slate-500">세일즈 현황에서 D365 생성 대상을 선택해 주세요.</div>}
               </div>
@@ -564,7 +589,7 @@ export default function SalesDashboard() {
 
             <aside className="border border-slate-300 bg-white">
               <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3"><div><h3 className="font-bold text-slate-900">D365 Local Bridge</h3><p className="mt-0.5 text-xs text-slate-500">이 PC의 Edge 로그인 세션 사용</p></div><Badge className={bridge === 'online' ? D365_CLASSES.success : bridge === 'checking' ? D365_CLASSES.running : D365_CLASSES.failed}>{bridge === 'online' ? '연결됨' : bridge === 'checking' ? '확인 중' : '연결 안 됨'}</Badge></div>
-              <div className="border-b border-slate-200 p-4"><button type="button" onClick={() => void checkBridge()} className="inline-flex h-9 w-full items-center justify-center gap-2 border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50"><Icon name="refresh"/>브리지 다시 확인</button>{bridge === 'offline' && <p className="mt-3 bg-amber-50 p-3 text-xs leading-5 text-amber-900">`D365_auto/start_dashboard.bat`을 실행하고 원격 디버깅 Edge에서 D365 로그인을 확인해 주세요.</p>}</div>
+              <div className="border-b border-slate-200 p-4"><button type="button" onClick={() => void checkBridge()} className="inline-flex h-9 w-full items-center justify-center gap-2 border border-slate-300 text-sm font-bold text-slate-700 hover:bg-slate-50"><Icon name="refresh"/>브리지 다시 확인</button>{bridge === 'offline' && <p className="mt-3 bg-amber-50 p-3 text-xs leading-5 text-amber-900">{bridgeError || 'D365_auto/start_dashboard.bat을 실행하고 D365 전용 Edge 로그인을 확인해 주세요.'}</p>}</div>
               <div className="border-b border-slate-200 p-4"><div className="flex justify-between text-sm"><span className="text-slate-600">실행 가능</span><strong>{readyRecords.length}건</strong></div><div className="mt-2 flex justify-between text-sm"><span className="text-slate-600">예상 시간</span><strong>약 {Math.max(1, readyRecords.length)}~{Math.max(2, readyRecords.length * 2)}분</strong></div><button type="button" disabled={bridge !== 'online' || running || readyRecords.length === 0} onClick={() => void runD365()} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 bg-teal-700 px-4 text-sm font-bold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"><Icon name="play"/>{running ? 'D365 생성 중' : 'D365 자동 생성 실행'}</button></div>
               <div className="p-4"><h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">실행 로그</h4><div className="mt-3 max-h-64 space-y-2 overflow-y-auto text-xs leading-5 text-slate-700">{logs.map((log, index) => <p key={`${log}-${index}`} className="border-l-2 border-teal-500 pl-2">{log}</p>)}{logs.length === 0 && <p className="text-slate-400">실행을 시작하면 회사별 진행 결과가 표시됩니다.</p>}</div></div>
             </aside>

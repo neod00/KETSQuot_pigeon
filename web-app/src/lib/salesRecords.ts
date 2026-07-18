@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { randomUUID } from 'node:crypto';
-import { getIsoJson, setIsoJson } from '@/lib/isoStorage';
+import { getIsoJson, updateIsoJson } from '@/lib/isoStorage';
 import type { D365Fields, SalesRecord, SalesRecordInput, SalesStage } from '@/lib/salesTypes';
 
 const STORE = 'sales-records';
@@ -84,7 +84,6 @@ const normalizeInput = (input: Partial<SalesRecordInput>): SalesRecordInput => {
 };
 
 const readCollection = async () => await getIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY) || [];
-const writeCollection = async (records: SalesRecord[]) => setIsoJson(STORE, COLLECTION_KEY, records);
 
 export async function listSalesRecords() {
   const records = await readCollection();
@@ -102,64 +101,72 @@ export async function createSalesRecord(input: Partial<SalesRecordInput>, userna
     createdBy: username,
     updatedBy: username,
   };
-  const records = await readCollection();
-  await writeCollection([record, ...records]);
+  await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) => [record, ...(records || [])]);
   return record;
 }
 
 export async function importSalesRecords(inputs: Partial<SalesRecordInput>[], username: string) {
-  const existing = await readCollection();
-  const bySignature = new Map(existing.map((record) => [salesSignature(record), record]));
-  const saved: SalesRecord[] = [];
+  let saved: SalesRecord[] = [];
   const now = new Date().toISOString();
 
-  for (const input of inputs.slice(0, 1500)) {
-    const normalized = normalizeInput(input);
-    if (!normalized.companyName && !normalized.quoteNumber) continue;
-    const matched = bySignature.get(salesSignature(normalized));
-    const record: SalesRecord = matched ? {
-      ...matched,
-      ...normalized,
-      id: matched.id,
-      d365: { ...matched.d365, ...(normalized.d365 || {}) },
-      updatedAt: now,
-      updatedBy: username,
-    } : {
-      ...normalized,
-      id: randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-      createdBy: username,
-      updatedBy: username,
-    };
-    bySignature.set(salesSignature(record), record);
-    saved.push(record);
-  }
+  await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (existing) => {
+    const bySignature = new Map((existing || []).map((record) => [salesSignature(record), record]));
+    saved = [];
 
-  await writeCollection(Array.from(bySignature.values()));
+    for (const input of inputs.slice(0, 1500)) {
+      const normalized = normalizeInput(input);
+      if (!normalized.companyName && !normalized.quoteNumber) continue;
+      const matched = bySignature.get(salesSignature(normalized));
+      const record: SalesRecord = matched ? {
+        ...matched,
+        ...normalized,
+        id: matched.id,
+        d365: input.d365 ? { ...matched.d365, ...normalized.d365 } : matched.d365,
+        d365Matched: matched.d365Matched || normalized.d365Matched,
+        won: matched.won || normalized.won,
+        stage: input.stage ? normalized.stage : matched.stage,
+        updatedAt: now,
+        updatedBy: username,
+      } : {
+        ...normalized,
+        id: randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+        createdBy: username,
+        updatedBy: username,
+      };
+      bySignature.set(salesSignature(record), record);
+      saved.push(record);
+    }
+
+    return Array.from(bySignature.values());
+  });
   return saved;
 }
 
 export async function updateSalesRecord(id: string, input: Partial<SalesRecordInput>, username: string) {
-  const records = await readCollection();
-  const current = records.find((record) => record.id === id);
-  if (!current) return null;
-  const normalized = normalizeInput({ ...current, ...input, id });
-  const record: SalesRecord = {
-    ...current,
-    ...normalized,
-    id,
-    d365: { ...current.d365, ...(input.d365 || {}) },
-    updatedAt: new Date().toISOString(),
-    updatedBy: username,
-  };
-  await writeCollection([record, ...records.filter((item) => item.id !== id)]);
-  return record;
+  let updated: SalesRecord | null = null;
+  await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) => {
+    const collection = records || [];
+    const current = collection.find((record) => record.id === id);
+    if (!current) return collection;
+    const normalized = normalizeInput({ ...current, ...input, id });
+    updated = {
+      ...current,
+      ...normalized,
+      id,
+      d365: { ...current.d365, ...(input.d365 || {}) },
+      updatedAt: new Date().toISOString(),
+      updatedBy: username,
+    };
+    return [updated, ...collection.filter((item) => item.id !== id)];
+  });
+  return updated;
 }
 
 export async function deleteSalesRecord(id: string) {
-  const records = await readCollection();
-  await writeCollection(records.filter((record) => record.id !== id));
+  await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) =>
+    (records || []).filter((record) => record.id !== id));
 }
 
 export const salesSignature = (record: Pick<SalesRecordInput, 'quoteNumber' | 'companyName' | 'product' | 'quotedAt'>) =>

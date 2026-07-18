@@ -5,6 +5,7 @@ import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const LOCAL_ROOT = path.join(process.cwd(), '.local-data', 'iso');
+const localJsonUpdateQueues = new Map<string, Promise<void>>();
 
 const shouldUseNetlifyBlobs = () => process.env.NETLIFY === 'true' || Boolean(process.env.SITE_ID);
 
@@ -24,6 +25,36 @@ export async function getIsoJson<T>(storeName: string, key: string): Promise<T |
   } catch {
     return null;
   }
+}
+
+export async function updateIsoJson<T>(
+  storeName: string,
+  key: string,
+  updater: (current: T | null) => T | Promise<T>,
+) {
+  if (shouldUseNetlifyBlobs()) {
+    const store = getStore(storeName);
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const current = await store.getWithMetadata(key, { type: 'json', consistency: 'strong' });
+      const next = await updater((current?.data as T | undefined) ?? null);
+      const result = current?.etag
+        ? await store.setJSON(key, next, { onlyIfMatch: current.etag })
+        : await store.setJSON(key, next, { onlyIfNew: true });
+      if (result.modified) return next;
+    }
+    throw new Error('동시 수정이 많아 데이터를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+  }
+
+  const queueKey = storeName + '/' + key;
+  const previous = localJsonUpdateQueues.get(queueKey) || Promise.resolve();
+  let nextValue: T | undefined;
+  const operation = previous.catch(() => undefined).then(async () => {
+    nextValue = await updater(await getIsoJson<T>(storeName, key));
+    await setIsoJson(storeName, key, nextValue);
+  });
+  localJsonUpdateQueues.set(queueKey, operation.then(() => undefined, () => undefined));
+  await operation;
+  return nextValue as T;
 }
 
 export async function setIsoJson(storeName: string, key: string, value: unknown) {
