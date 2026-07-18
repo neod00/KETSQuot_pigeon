@@ -14,6 +14,12 @@ const excelDate = (serial: number) => {
 };
 
 const valueText = (value: CellValue | undefined) => value == null ? '' : String(value).trim();
+const ownerText = (value: CellValue | undefined) => {
+  const owner = valueText(value);
+  if (!owner || owner.length > 40 || /[@#\d]/.test(owner)) return '';
+  if (/^(pipeline|renewal|won|lost|new)$/i.test(owner)) return '';
+  return owner;
+};
 const valueNumber = (value: CellValue) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const moneyWon = (value: CellValue) => {
   const parsed = valueNumber(value);
@@ -99,7 +105,7 @@ const recordFromRow = (headers: string[], row: CellValue[]): Partial<SalesRecord
     amountExcludingExpenses: moneyWon(get('금액(출장비제외)')),
     amountIncludingExpenses: moneyWon(get('금액(출장비포함)')),
     quoteReviewResult: valueText(get('Q검토결과')),
-    originalOwner: valueText(get('Orig owner')),
+    originalOwner: ownerText(get('Orig owner')),
     won: ['1', 'y', 'yes', 'true'].includes(valueText(get('won(y:1)')).toLowerCase()),
     d365Matched: ['1', 'y', 'yes', 'true'].includes(valueText(get('D365매칭(1:확인)')).toLowerCase()),
     retentionExpansion: valueText(get('Retention & Expansion')),

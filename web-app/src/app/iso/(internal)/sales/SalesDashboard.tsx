@@ -139,6 +139,13 @@ const compactWon = (value: number) => value >= 100_000_000
   ? `${(value / 100_000_000).toFixed(1)}억원`
   : `${(value / 1_000_000).toFixed(1)}백만원`;
 
+const displayOwner = (value: string) => {
+  const owner = value.trim();
+  if (!owner || owner.length > 40 || /[@#\d]/.test(owner)) return '';
+  if (/^(pipeline|renewal|won|lost|new)$/i.test(owner)) return '';
+  return owner;
+};
+
 const excelCellValue = (record: SalesRecord, key: ExcelColumnKey) => {
   const value = record[key];
   if (key === 'amountExcludingExpenses' || key === 'amountIncludingExpenses') return won(Number(value) || 0);
@@ -147,7 +154,7 @@ const excelCellValue = (record: SalesRecord, key: ExcelColumnKey) => {
 };
 const sortRecordValue = (record: SalesRecord, key: SortKey): string | number => {
   if (key === 'd365Status') return record.d365?.status || 'not-ready';
-  if (key === 'originalOwner') return record.originalOwner || '';
+  if (key === 'originalOwner') return displayOwner(record.originalOwner);
   if (key === 'stage') return record.stage;
   return record[key] ?? '';
 };
@@ -334,10 +341,10 @@ export default function SalesDashboard() {
   useEffect(() => { void loadRecords(); }, []);
   useEffect(() => { if (mode === 'd365') void checkBridge(); }, [mode]);
 
-  const owners = useMemo(() => Array.from(new Set(records.map((record) => record.originalOwner).filter(Boolean))).sort(), [records]);
+  const owners = useMemo(() => Array.from(new Set(records.map((record) => displayOwner(record.originalOwner)).filter(Boolean))).sort(), [records]);
   const filtered = useMemo(() => records.filter((record) => {
     const haystack = [record.companyName, record.quoteNumber, record.contactName, record.email, record.product].join(' ').toLowerCase();
-    return (!query || haystack.includes(query.toLowerCase())) && (stage === 'all' || record.stage === stage) && (owner === 'all' || record.originalOwner === owner);
+    return (!query || haystack.includes(query.toLowerCase())) && (stage === 'all' || record.stage === stage) && (owner === 'all' || displayOwner(record.originalOwner) === owner);
   }), [records, query, stage, owner]);
   const sortedRecords = useMemo(() => [...filtered].sort((a, b) => compareSalesRecords(a, b, sort)), [filtered, sort]);
   const pageCount = Math.max(1, Math.ceil(sortedRecords.length / pageSize));
@@ -537,7 +544,7 @@ export default function SalesDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {pageRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.originalOwner || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td><td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={isD365Processed(record) ? D365_CLASSES.success : D365_CLASSES[record.d365?.status || 'not-ready']}>{isD365Processed(record) ? '매칭 완료' : D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
+                    {pageRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{displayOwner(record.originalOwner) || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td><td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={isD365Processed(record) ? D365_CLASSES.success : D365_CLASSES[record.d365?.status || 'not-ready']}>{isD365Processed(record) ? '매칭 완료' : D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
                     {!loading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">표시할 세일즈 데이터가 없습니다. Excel을 가져오거나 신규 세일즈를 등록해 주세요.</td></tr>}
                     {loading && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">세일즈 데이터를 불러오는 중입니다.</td></tr>}
                   </tbody>
