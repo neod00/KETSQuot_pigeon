@@ -16,7 +16,7 @@ const excelDate = (serial: number) => {
 const valueText = (value: CellValue | undefined) => value == null ? '' : String(value).trim();
 const ownerText = (value: CellValue | undefined) => {
   const owner = valueText(value);
-  if (!owner || owner.length > 40 || /[@#\d]/.test(owner)) return '';
+  if (!owner || owner.length > 40 || /[@#\d,]/.test(owner)) return '';
   if (/^(pipeline|renewal|won|lost|new)$/i.test(owner)) return '';
   return owner;
 };

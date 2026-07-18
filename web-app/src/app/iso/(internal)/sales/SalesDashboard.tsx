@@ -10,10 +10,10 @@ type TableView = 'summary' | 'excel';
 type SortDirection = 'asc' | 'desc';
 
 const BRIDGE_URL = 'http://127.0.0.1:3000';
-type LocalRequestInit = RequestInit & { targetAddressSpace?: 'local' };
+type LocalRequestInit = RequestInit & { targetAddressSpace?: 'loopback' };
 const bridgeFetch = (path: string, init: RequestInit = {}) => fetch(
   BRIDGE_URL + path,
-  { targetAddressSpace: 'local', ...init } as LocalRequestInit,
+  { targetAddressSpace: 'loopback', ...init } as LocalRequestInit,
 );
 const isHttpUrl = (value: string) => /^https?:\/\//i.test(value.trim());
 const isDynamicsUrl = (value: string) => /^https:\/\/[^/]+\.dynamics\.com(?:\/|$)/i.test(value.trim());
@@ -141,7 +141,7 @@ const compactWon = (value: number) => value >= 100_000_000
 
 const displayOwner = (value: string) => {
   const owner = value.trim();
-  if (!owner || owner.length > 40 || /[@#\d]/.test(owner)) return '';
+  if (!owner || owner.length > 40 || /[@#\d,]/.test(owner)) return '';
   if (/^(pipeline|renewal|won|lost|new)$/i.test(owner)) return '';
   return owner;
 };
