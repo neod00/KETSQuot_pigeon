@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { generateKetsDocx } from '../../utils/docxGenerator';
+import { generateKetsDocx, type KetsContractType } from '../../utils/docxGenerator';
 import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
 
 // --- Types ---
@@ -28,6 +28,28 @@ interface KetsContractData {
     total_cost: string;
     final_cost: string;
     vat_type: string;
+    target_year: string;
+    audit_rate: string;
+    statement_stage1_days: string;
+    statement_stage1_cost: string;
+    statement_stage2_days: string;
+    statement_stage2_cost: string;
+    statement_stage3_days: string;
+    statement_stage3_cost: string;
+    statement_expenses: string;
+    statement_total_days: string;
+    statement_total_cost: string;
+    statement_final_cost: string;
+    plan_stage1_days: string;
+    plan_stage1_cost: string;
+    plan_stage2_days: string;
+    plan_stage2_cost: string;
+    plan_stage3_days: string;
+    plan_stage3_cost: string;
+    plan_expenses: string;
+    plan_total_days: string;
+    plan_total_cost: string;
+    plan_final_cost: string;
     // 공평성 자가진단표 관련 필드
     business_registration: string;
     client_contact: string;
@@ -41,8 +63,34 @@ const ADM_DATA: Record<string, { email: string, phone: string }> = {
     '김달': { email: 'dal.kim@lrqa.com', phone: '02-3703-7527' },
 };
 
+const CONTRACT_TYPE_LABELS: Record<KetsContractType, string> = {
+    statement: '명세서 검증',
+    plan: '배출량산정계획서 검증',
+    combined: '명세서 + 배출량산정계획서 검증',
+};
+
+const calculateFee = (
+    s1Days: number,
+    s2Days: number,
+    s3Days: number,
+    expenses: number,
+    auditRate: number,
+    vatType: string,
+) => {
+    const rate = vatType === '포함' ? auditRate * 1.1 : auditRate;
+    const s1Cost = s1Days * rate;
+    const s2Cost = s2Days * rate;
+    const s3Cost = s3Days * rate;
+    const expCost = vatType === '포함' ? expenses * 1.1 : expenses;
+    const totalDays = s1Days + s2Days + s3Days;
+    const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+
+    return { s1Cost, s2Cost, s3Cost, expCost, totalDays, calculatedTotal };
+};
+
 export default function KetsContractPage() {
     const [formData, setFormData] = useState({
+        contractType: 'statement' as KetsContractType,
         companyName: '',
         proposalNo: '',
         proposalDate: '',
@@ -59,6 +107,12 @@ export default function KetsContractPage() {
         vatType: '별도',
         manualFinalCost: 0,
         isManualCost: false,
+        planS1Days: 1.0,
+        planS2Days: 2.5,
+        planS3Days: 1.0,
+        planExpenses: 600000,
+        planManualFinalCost: 0,
+        planIsManualCost: false,
         // 공평성 자가진단표 관련 필드
         businessRegistration: '',
         clientContact: '',
@@ -79,23 +133,41 @@ export default function KetsContractPage() {
         return `${d.getFullYear()}년 ${String(d.getMonth() + 1).padStart(2, '0')}월 ${String(d.getDate()).padStart(2, '0')}일`;
     };
 
-    const calculations = useMemo(() => {
-        const rate = formData.vatType === '포함' ? formData.auditRate * 1.1 : formData.auditRate;
-        const s1Cost = formData.s1Days * rate;
-        const s2Cost = formData.s2Days * rate;
-        const s3Cost = formData.s3Days * rate;
-        const expCost = formData.vatType === '포함' ? formData.expenses * 1.1 : formData.expenses;
-        const totalDays = formData.s1Days + formData.s2Days + formData.s3Days;
-        const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+    const calculations = useMemo(
+        () => calculateFee(
+            formData.s1Days,
+            formData.s2Days,
+            formData.s3Days,
+            formData.expenses,
+            formData.auditRate,
+            formData.vatType,
+        ),
+        [formData.s1Days, formData.s2Days, formData.s3Days, formData.expenses, formData.auditRate, formData.vatType],
+    );
 
-        return { s1Cost, s2Cost, s3Cost, expCost, totalDays, calculatedTotal };
-    }, [formData]);
+    const planCalculations = useMemo(
+        () => calculateFee(
+            formData.planS1Days,
+            formData.planS2Days,
+            formData.planS3Days,
+            formData.planExpenses,
+            formData.auditRate,
+            formData.vatType,
+        ),
+        [formData.planS1Days, formData.planS2Days, formData.planS3Days, formData.planExpenses, formData.auditRate, formData.vatType],
+    );
 
     useEffect(() => {
         if (!formData.isManualCost) {
             setFormData(prev => ({ ...prev, manualFinalCost: calculations.calculatedTotal }));
         }
     }, [calculations.calculatedTotal, formData.isManualCost]);
+
+    useEffect(() => {
+        if (formData.contractType === 'combined' && !formData.planIsManualCost) {
+            setFormData(prev => ({ ...prev, planManualFinalCost: planCalculations.calculatedTotal }));
+        }
+    }, [formData.contractType, formData.planIsManualCost, planCalculations.calculatedTotal]);
 
     useEffect(() => {
         const now = new Date();
@@ -115,10 +187,31 @@ export default function KetsContractPage() {
             const { action, formData: savedData, pageType } = JSON.parse(raw);
             if (pageType !== 'kets-contract') return;
             if (action === 'restore') {
-                setFormData(savedData);
+                setFormData(prev => ({
+                    ...prev,
+                    ...savedData,
+                    contractType: savedData.contractType || 'statement',
+                    planS1Days: savedData.planS1Days ?? 1.0,
+                    planS2Days: savedData.planS2Days ?? 2.5,
+                    planS3Days: savedData.planS3Days ?? 1.0,
+                    planExpenses: savedData.planExpenses ?? 600000,
+                    planManualFinalCost: savedData.planManualFinalCost ?? 0,
+                    planIsManualCost: savedData.planIsManualCost ?? false,
+                }));
             } else if (action === 'regenerate') {
-                setFormData(savedData);
-                setTimeout(() => handleDownloadDocx(savedData), 300);
+                const normalized = {
+                    ...formData,
+                    ...savedData,
+                    contractType: savedData.contractType || 'statement',
+                    planS1Days: savedData.planS1Days ?? 1.0,
+                    planS2Days: savedData.planS2Days ?? 2.5,
+                    planS3Days: savedData.planS3Days ?? 1.0,
+                    planExpenses: savedData.planExpenses ?? 600000,
+                    planManualFinalCost: savedData.planManualFinalCost ?? 0,
+                    planIsManualCost: savedData.planIsManualCost ?? false,
+                };
+                setFormData(normalized);
+                setTimeout(() => handleDownloadDocx(normalized), 300);
             }
         } catch { /* ignore */ }
     }, []);
@@ -127,29 +220,75 @@ export default function KetsContractPage() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleContractTypeChange = (contractType: KetsContractType) => {
+        const primaryDefaults = contractType === 'plan'
+            ? { s1Days: 1.0, s2Days: 2.5, s3Days: 1.0 }
+            : contractType === 'combined'
+                ? { s1Days: 1.0, s2Days: 3.0, s3Days: 1.0 }
+                : { s1Days: 1.0, s2Days: 5.0, s3Days: 3.0 };
+
+        setFormData(prev => ({
+            ...prev,
+            contractType,
+            ...primaryDefaults,
+            manualFinalCost: 0,
+            isManualCost: false,
+            planS1Days: 1.0,
+            planS2Days: 2.5,
+            planS3Days: 1.0,
+            planManualFinalCost: 0,
+            planIsManualCost: false,
+        }));
+    };
+
     // 이력 저장 헬퍼
     const saveToHistory = () => {
+        const isCombined = formData.contractType === 'combined';
+        const finalCost = formData.manualFinalCost + (isCombined ? formData.planManualFinalCost : 0);
         saveHistoryRecord(
-            'kets-contract', 'K-ETS 계약서',
-            formData.companyName, formData.manualFinalCost, formData.vatType,
+            'kets-contract', `K-ETS ${CONTRACT_TYPE_LABELS[formData.contractType]} 계약서`,
+            formData.companyName, finalCost, formData.vatType,
             formData,
-            { s1Days: formData.s1Days, s2Days: formData.s2Days, s3Days: formData.s3Days, expenses: formData.expenses, auditRate: formData.auditRate }
+            {
+                contractType: formData.contractType,
+                s1Days: formData.s1Days,
+                s2Days: formData.s2Days,
+                s3Days: formData.s3Days,
+                expenses: formData.expenses,
+                auditRate: formData.auditRate,
+                ...(isCombined ? {
+                    planS1Days: formData.planS1Days,
+                    planS2Days: formData.planS2Days,
+                    planS3Days: formData.planS3Days,
+                    planExpenses: formData.planExpenses,
+                } : {}),
+            }
         );
     };
 
     const handleDownloadDocx = (sourceData?: any) => {
         const fd = sourceData || formData;
+        const contractType: KetsContractType = fd.contractType || 'statement';
         const adm = ADM_DATA[fd.adminName] || ADM_DATA['권대근'];
         const rawText = (val: string) => (val || '').trim();
-
-        // 재계산 (sourceData에서 불러온 경우)
-        const rate = fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate;
-        const s1Cost = fd.s1Days * rate;
-        const s2Cost = fd.s2Days * rate;
-        const s3Cost = fd.s3Days * rate;
-        const expCost = fd.vatType === '포함' ? fd.expenses * 1.1 : fd.expenses;
-        const totalDays = fd.s1Days + fd.s2Days + fd.s3Days;
-        const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+        const primary = calculateFee(
+            Number(fd.s1Days) || 0,
+            Number(fd.s2Days) || 0,
+            Number(fd.s3Days) || 0,
+            Number(fd.expenses) || 0,
+            Number(fd.auditRate) || 0,
+            fd.vatType,
+        );
+        const plan = calculateFee(
+            Number(fd.planS1Days) || 0,
+            Number(fd.planS2Days) || 0,
+            Number(fd.planS3Days) || 0,
+            Number(fd.planExpenses) || 0,
+            Number(fd.auditRate) || 0,
+            fd.vatType,
+        );
+        const yearMatch = rawText(fd.ghgDeclarationPeriod).match(/(\d{4})/);
+        const targetYear = yearMatch ? `${yearMatch[1]}년` : rawText(fd.ghgDeclarationPeriod);
 
         const data: KetsContractData = {
             company_name: rawText(fd.companyName),
@@ -162,39 +301,65 @@ export default function KetsContractPage() {
             target_sites: rawText(fd.targetSites),
             ghg_declaration_period: rawText(fd.ghgDeclarationPeriod),
             materiality: fd.materiality,
-            stage1_days: fd.s1Days.toFixed(1),
-            stage1_cost: formatNum(Math.floor(s1Cost)),
-            stage2_days: fd.s2Days.toFixed(1),
-            stage2_cost: formatNum(Math.floor(s2Cost)),
-            stage3_days: fd.s3Days.toFixed(1),
-            stage3_cost: formatNum(Math.floor(s3Cost)),
-            expenses: formatNum(Math.floor(expCost)),
-            total_days: formatTotalDays(totalDays),
-            total_cost: formatNum(Math.floor(calculatedTotal)),
-            final_cost: formatNum(fd.manualFinalCost),
+            stage1_days: Number(fd.s1Days).toFixed(1),
+            stage1_cost: formatNum(Math.floor(primary.s1Cost)),
+            stage2_days: Number(fd.s2Days).toFixed(1),
+            stage2_cost: formatNum(Math.floor(primary.s2Cost)),
+            stage3_days: Number(fd.s3Days).toFixed(1),
+            stage3_cost: formatNum(Math.floor(primary.s3Cost)),
+            expenses: formatNum(Math.floor(primary.expCost)),
+            total_days: formatTotalDays(primary.totalDays),
+            total_cost: formatNum(primary.calculatedTotal),
+            final_cost: formatNum(Number(fd.manualFinalCost) || 0),
             vat_type: fd.vatType,
+            target_year: targetYear,
+            audit_rate: formatNum(Number(fd.auditRate) || 0),
+            statement_stage1_days: Number(fd.s1Days).toFixed(1),
+            statement_stage1_cost: formatNum(Math.floor(primary.s1Cost)),
+            statement_stage2_days: Number(fd.s2Days).toFixed(1),
+            statement_stage2_cost: formatNum(Math.floor(primary.s2Cost)),
+            statement_stage3_days: Number(fd.s3Days).toFixed(1),
+            statement_stage3_cost: formatNum(Math.floor(primary.s3Cost)),
+            statement_expenses: formatNum(Math.floor(primary.expCost)),
+            statement_total_days: formatTotalDays(primary.totalDays),
+            statement_total_cost: formatNum(primary.calculatedTotal),
+            statement_final_cost: formatNum(Number(fd.manualFinalCost) || 0),
+            plan_stage1_days: Number(fd.planS1Days).toFixed(1),
+            plan_stage1_cost: formatNum(Math.floor(plan.s1Cost)),
+            plan_stage2_days: Number(fd.planS2Days).toFixed(1),
+            plan_stage2_cost: formatNum(Math.floor(plan.s2Cost)),
+            plan_stage3_days: Number(fd.planS3Days).toFixed(1),
+            plan_stage3_cost: formatNum(Math.floor(plan.s3Cost)),
+            plan_expenses: formatNum(Math.floor(plan.expCost)),
+            plan_total_days: formatTotalDays(plan.totalDays),
+            plan_total_cost: formatNum(plan.calculatedTotal),
+            plan_final_cost: formatNum(Number(fd.planManualFinalCost) || 0),
             business_registration: rawText(fd.businessRegistration),
             client_contact: rawText(fd.clientContact),
             industry_type: rawText(fd.industryType),
         };
 
-        generateKetsDocx(data, fd.companyName);
+        generateKetsDocx(data, fd.companyName, contractType);
         if (!sourceData) saveToHistory();
     };
 
     const handlePrintPdf = async (sourceData?: any) => {
         const fd = sourceData || formData;
+        if ((fd.contractType || 'statement') !== 'statement') {
+            handleDownloadDocx(sourceData);
+            return;
+        }
         const adm = ADM_DATA[fd.adminName] || ADM_DATA['권대근'];
         const formatText = (val: string) => (val || '').replace(/ /g, '\u00a0').replace(/\n/g, '<br/>');
 
-        // 재계산
-        const rate = fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate;
-        const s1Cost = fd.s1Days * rate;
-        const s2Cost = fd.s2Days * rate;
-        const s3Cost = fd.s3Days * rate;
-        const expCost = fd.vatType === '포함' ? fd.expenses * 1.1 : fd.expenses;
-        const totalDays = fd.s1Days + fd.s2Days + fd.s3Days;
-        const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+        const primary = calculateFee(
+            Number(fd.s1Days) || 0,
+            Number(fd.s2Days) || 0,
+            Number(fd.s3Days) || 0,
+            Number(fd.expenses) || 0,
+            Number(fd.auditRate) || 0,
+            fd.vatType,
+        );
 
         const data: Record<string, string> = {
             company_name: formatText(fd.companyName),
@@ -208,14 +373,14 @@ export default function KetsContractPage() {
             ghg_declaration_period: formatText(fd.ghgDeclarationPeriod),
             materiality: fd.materiality,
             stage1_days: fd.s1Days.toFixed(1) + ' days',
-            stage1_cost: formatNum(Math.floor(s1Cost)),
+            stage1_cost: formatNum(Math.floor(primary.s1Cost)),
             stage2_days: fd.s2Days.toFixed(1) + ' days',
-            stage2_cost: formatNum(Math.floor(s2Cost)),
+            stage2_cost: formatNum(Math.floor(primary.s2Cost)),
             stage3_days: fd.s3Days.toFixed(1) + ' days',
-            stage3_cost: formatNum(Math.floor(s3Cost)),
-            expenses: formatNum(Math.floor(expCost)),
-            total_days: formatTotalDays(totalDays) + ' days',
-            total_cost: formatNum(Math.floor(calculatedTotal)),
+            stage3_cost: formatNum(Math.floor(primary.s3Cost)),
+            expenses: formatNum(Math.floor(primary.expCost)),
+            total_days: formatTotalDays(primary.totalDays) + ' days',
+            total_cost: formatNum(primary.calculatedTotal),
             final_cost: formatNum(fd.manualFinalCost),
             vat_type: `VAT ${fd.vatType}`,
             business_registration: formatText(fd.businessRegistration),
@@ -264,13 +429,61 @@ export default function KetsContractPage() {
 
     // 이력에서 불러오기 (폼 채움)
     const handleHistoryRestore = (savedFormData: any) => {
-        setFormData(savedFormData);
+        setFormData(prev => ({
+            ...prev,
+            ...savedFormData,
+            contractType: savedFormData.contractType || 'statement',
+            planS1Days: savedFormData.planS1Days ?? 1.0,
+            planS2Days: savedFormData.planS2Days ?? 2.5,
+            planS3Days: savedFormData.planS3Days ?? 1.0,
+            planExpenses: savedFormData.planExpenses ?? 600000,
+            planManualFinalCost: savedFormData.planManualFinalCost ?? 0,
+            planIsManualCost: savedFormData.planIsManualCost ?? false,
+        }));
     };
 
     // 이력에서 다시 생성 (바로 Word)
     const handleHistoryRegenerate = (savedFormData: any) => {
         handleDownloadDocx(savedFormData);
     };
+
+    const isCombined = formData.contractType === 'combined';
+    const calculatedDisplayTotal = calculations.calculatedTotal + (isCombined ? planCalculations.calculatedTotal : 0);
+    const finalDisplayTotal = formData.manualFinalCost + (isCombined ? formData.planManualFinalCost : 0);
+    const feeGroups = isCombined
+        ? [
+            {
+                key: 'statement',
+                title: '명세서 검증 비용',
+                dayFields: ['s1Days', 's2Days', 's3Days'],
+                expenseField: 'expenses',
+                calculatedTotal: calculations.calculatedTotal,
+            },
+            {
+                key: 'plan',
+                title: '배출량산정계획서 검증 비용',
+                dayFields: ['planS1Days', 'planS2Days', 'planS3Days'],
+                expenseField: 'planExpenses',
+                calculatedTotal: planCalculations.calculatedTotal,
+            },
+        ]
+        : [
+            {
+                key: 'primary',
+                title: CONTRACT_TYPE_LABELS[formData.contractType],
+                dayFields: ['s1Days', 's2Days', 's3Days'],
+                expenseField: 'expenses',
+                calculatedTotal: calculations.calculatedTotal,
+            },
+        ];
+    const finalAmountInputs = isCombined
+        ? [
+            { label: '명세서 최종 제안 금액', valueField: 'manualFinalCost', manualField: 'isManualCost' },
+            { label: '배출량산정계획서 최종 제안 금액', valueField: 'planManualFinalCost', manualField: 'planIsManualCost' },
+        ]
+        : [
+            { label: '최종 제안 금액 (수정 가능)', valueField: 'manualFinalCost', manualField: 'isManualCost' },
+        ];
 
     return (
         <div className="min-h-screen overflow-x-hidden bg-[#f1f5f9] pb-28 text-slate-900 font-sans selection:bg-emerald-100 lg:pb-0">
@@ -285,7 +498,7 @@ export default function KetsContractPage() {
                     </div>
                     <div className="text-center">
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                            K-ETS 명세서 검증 <span className="text-emerald-600">계약서 생성기</span>
+                            K-ETS 검증 <span className="text-emerald-600">계약서 생성기</span>
                         </h1>
                     </div>
                 </div>
@@ -296,6 +509,18 @@ export default function KetsContractPage() {
                         {/* 1. Service Overview */}
                         <section className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
                             <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Service Overview</h2>
+                            <div className="mb-4 space-y-1">
+                                <label className="text-xs font-bold text-slate-600">계약서 서식</label>
+                                <select
+                                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                                    value={formData.contractType}
+                                    onChange={(e) => handleContractTypeChange(e.target.value as KetsContractType)}
+                                >
+                                    <option value="statement">온실가스 명세서 검증</option>
+                                    <option value="plan">온실가스 배출량산정계획서 검증</option>
+                                    <option value="combined">온실가스 명세서 + 배출량산정계획서 검증</option>
+                                </select>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">담당 심사원</label>
@@ -383,48 +608,74 @@ export default function KetsContractPage() {
                         {/* 3. Man-days & Costs */}
                         <section className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
                             <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Man-days & Costs</h2>
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-3 gap-3">
-                                    {['s1Days', 's2Days', 's3Days'].map((field, i) => (
-                                        <div key={field} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Stage {i + 1} MD</label>
-                                            <input type="number" step="0.1" className="bg-transparent text-lg font-bold w-full outline-none" value={(formData as any)[field]} onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)} />
+                            <div className="space-y-5">
+                                {feeGroups.map((group, groupIndex) => (
+                                    <div key={group.key} className={groupIndex > 0 ? 'border-t border-slate-200 pt-5' : ''}>
+                                        <div className="mb-3 flex items-center justify-between gap-3">
+                                            <h3 className="text-sm font-extrabold text-slate-800">{group.title}</h3>
+                                            <span className="text-xs font-bold text-emerald-700">자동 합계 ₩{formatNum(group.calculatedTotal)}</span>
                                         </div>
-                                    ))}
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-600">심사 요율 (₩)</label>
-                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" value={formData.auditRate.toLocaleString()} onChange={(e) => handleChange('auditRate', parseInt(e.target.value.replace(/,/g, '')) || 0)} />
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {group.dayFields.map((field, i) => (
+                                                <div key={field} className="min-w-0 border-l-2 border-emerald-500 bg-slate-50 px-3 py-3">
+                                                    <label className="block text-[10px] font-black uppercase text-slate-500">Stage {i + 1} MD</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.1"
+                                                        min="0"
+                                                        className="mt-1 w-full min-w-0 bg-transparent text-lg font-bold outline-none"
+                                                        value={(formData as any)[field]}
+                                                        onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="mt-3 space-y-1">
+                                            <label className="text-xs font-bold text-slate-600">제경비 (₩)</label>
+                                            <input
+                                                type="text"
+                                                className="w-full rounded-md border border-slate-300 px-3 py-2 font-bold outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                                                value={Number((formData as any)[group.expenseField]).toLocaleString()}
+                                                onChange={(e) => handleChange(group.expenseField, parseInt(e.target.value.replace(/,/g, '')) || 0)}
+                                            />
+                                        </div>
                                     </div>
+                                ))}
+
+                                <div className="border-t border-slate-200 pt-5">
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-600">제경비 (₩)</label>
-                                        <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" value={formData.expenses.toLocaleString()} onChange={(e) => handleChange('expenses', parseInt(e.target.value.replace(/,/g, '')) || 0)} />
+                                        <label className="text-xs font-bold text-slate-600">공통 심사 요율 (₩ / MD)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full rounded-md border border-slate-300 px-3 py-2 font-bold outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                                            value={formData.auditRate.toLocaleString()}
+                                            onChange={(e) => handleChange('auditRate', parseInt(e.target.value.replace(/,/g, '')) || 0)}
+                                        />
                                     </div>
                                 </div>
-                                {/* VAT 선택 */}
-                                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                                    <label className="text-xs font-bold text-emerald-700 mb-2 block">부가가치세 (VAT) 구분</label>
-                                    <div className="flex gap-6">
-                                        <label className="flex items-center gap-2 cursor-pointer">
+
+                                <div className="border-l-4 border-emerald-500 bg-emerald-50 p-4">
+                                    <label className="mb-2 block text-xs font-bold text-emerald-800">부가가치세 (VAT) 구분</label>
+                                    <div className="flex flex-wrap gap-6">
+                                        <label className="flex cursor-pointer items-center gap-2">
                                             <input
                                                 type="radio"
                                                 name="vatType"
                                                 value="별도"
                                                 checked={formData.vatType === '별도'}
                                                 onChange={(e) => handleChange('vatType', e.target.value)}
-                                                className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
                                             />
                                             <span className="text-sm font-medium text-slate-700">VAT 별도 (기본)</span>
                                         </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
+                                        <label className="flex cursor-pointer items-center gap-2">
                                             <input
                                                 type="radio"
                                                 name="vatType"
                                                 value="포함"
                                                 checked={formData.vatType === '포함'}
                                                 onChange={(e) => handleChange('vatType', e.target.value)}
-                                                className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
                                             />
                                             <span className="text-sm font-medium text-slate-700">VAT 포함</span>
                                         </label>
@@ -441,52 +692,77 @@ export default function KetsContractPage() {
                                 <h3 className="text-emerald-300 text-[10px] font-black uppercase tracking-[0.2em] mb-8">Quote Summary</h3>
 
                                 <div className="space-y-6">
-                                    <div className="flex justify-between items-center bg-emerald-900/50 p-4 rounded-xl">
-                                        <span className="text-xs font-bold text-emerald-300 uppercase">합계 (Sum)</span>
-                                        <span className="text-lg font-bold text-white">₩{formatNum(calculations.calculatedTotal)}</span>
+                                    <div className="bg-emerald-900/50 p-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold uppercase text-emerald-300">자동 계산 합계</span>
+                                            <span className="text-lg font-bold text-white">₩{formatNum(calculatedDisplayTotal)}</span>
+                                        </div>
+                                        {isCombined && (
+                                            <div className="mt-3 space-y-1 border-t border-emerald-700/60 pt-3 text-xs text-emerald-100">
+                                                <div className="flex justify-between"><span>명세서</span><span>₩{formatNum(calculations.calculatedTotal)}</span></div>
+                                                <div className="flex justify-between"><span>배출량산정계획서</span><span>₩{formatNum(planCalculations.calculatedTotal)}</span></div>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    <div className="flex flex-col gap-2">
-                                        <span className="text-[10px] font-black text-emerald-400 uppercase">최종 제안 금액 (수정 가능)</span>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                className="w-full bg-emerald-900 border-2 border-emerald-500/30 rounded-xl px-4 py-3 text-2xl font-black text-emerald-300 outline-none focus:border-emerald-400 transition-all"
-                                                value={formData.manualFinalCost.toLocaleString()}
-                                                onChange={(e) => {
-                                                    const val = parseInt(e.target.value.replace(/,/g, '')) || 0;
-                                                    setFormData(prev => ({ ...prev, manualFinalCost: val, isManualCost: true }));
-                                                }}
-                                            />
-                                            <button
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-400 hover:text-white"
-                                                onClick={() => setFormData(prev => ({ ...prev, isManualCost: false }))}
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleChange('vatType', formData.vatType === '별도' ? '포함' : '별도')} className="text-[10px] font-bold text-emerald-300 hover:text-white bg-emerald-900 px-3 py-1 rounded-md">
-                                                VAT {formData.vatType} 선택됨
-                                            </button>
-                                        </div>
+                                    <div className="space-y-4">
+                                        {finalAmountInputs.map((item) => (
+                                            <div key={item.valueField} className="space-y-2">
+                                                <span className="text-[10px] font-black uppercase text-emerald-300">{item.label}</span>
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full rounded-md border-2 border-emerald-500/30 bg-emerald-900 px-4 py-3 pr-16 text-xl font-black text-emerald-300 outline-none transition-all focus:border-emerald-400"
+                                                        value={Number((formData as any)[item.valueField]).toLocaleString()}
+                                                        onChange={(e) => {
+                                                            const val = parseInt(e.target.value.replace(/,/g, '')) || 0;
+                                                            setFormData(prev => ({ ...prev, [item.valueField]: val, [item.manualField]: true }));
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-400 hover:text-white"
+                                                        onClick={() => setFormData(prev => ({ ...prev, [item.manualField]: false }))}
+                                                    >
+                                                        Reset
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {isCombined && (
+                                            <div className="flex items-center justify-between border-t border-emerald-700 pt-4">
+                                                <span className="text-xs font-bold text-emerald-200">최종 금액 합계</span>
+                                                <span className="text-xl font-black text-white">₩{formatNum(finalDisplayTotal)}</span>
+                                            </div>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleChange('vatType', formData.vatType === '별도' ? '포함' : '별도')}
+                                            className="rounded-md bg-emerald-900 px-3 py-1 text-[10px] font-bold text-emerald-300 hover:text-white"
+                                        >
+                                            VAT {formData.vatType} 선택됨
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-4 mt-8">
+                                <div className="mt-8 flex flex-col gap-3">
                                     <button
-                                        onClick={() => handlePrintPdf()}
-                                        className="w-full bg-emerald-500 hover:bg-emerald-400 py-4 rounded-xl font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
-                                    >
-                                        제안서 PDF 인쇄
-                                    </button>
-                                    <button
+                                        type="button"
                                         onClick={() => handleDownloadDocx()}
-                                        className="w-full border-2 border-emerald-500/50 hover:bg-emerald-500/10 py-4 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
+                                        className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-500 py-4 font-bold text-white shadow-lg shadow-emerald-900/20 transition-colors hover:bg-emerald-400 active:scale-[0.99]"
                                     >
                                         <span>Word 계약서 다운로드</span>
-                                        <span className="text-xs opacity-60">(.docx)</span>
+                                        <span className="text-xs opacity-70">(.docx)</span>
                                     </button>
+                                    {formData.contractType === 'statement' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handlePrintPdf()}
+                                            className="w-full rounded-md border border-emerald-400/60 py-3 font-bold text-emerald-100 transition-colors hover:bg-emerald-500/10"
+                                        >
+                                            PDF 인쇄
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -501,8 +777,8 @@ export default function KetsContractPage() {
                             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex gap-3 text-emerald-900 text-[11px] leading-relaxed font-medium">
                                 <span>ℹ️</span>
                                 <p>
-                                    K-ETS 명세서 검증 계약서를 생성합니다.<br />
-                                    템플릿 기반으로 Word 파일이 자동 생성됩니다.
+                                    K-ETS {CONTRACT_TYPE_LABELS[formData.contractType]} 계약서를 생성합니다.<br />
+                                    선택한 공식 Word 서식이 적용됩니다.
                                 </p>
                             </div>
                         </div>
@@ -513,10 +789,12 @@ export default function KetsContractPage() {
                 <div className="mx-auto flex max-w-md items-center gap-2">
                     <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-medium text-slate-500">최종 제안 금액</p>
-                        <p className="truncate text-base font-extrabold text-slate-900">₩{formatNum(formData.manualFinalCost)}</p>
+                        <p className="truncate text-base font-extrabold text-slate-900">₩{formatNum(finalDisplayTotal)}</p>
                     </div>
-                    <button type="button" onClick={() => handlePrintPdf()} className="min-h-11 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white">PDF</button>
-                    <button type="button" onClick={() => handleDownloadDocx()} className="min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800">Word</button>
+                    {formData.contractType === 'statement' && (
+                        <button type="button" onClick={() => handlePrintPdf()} className="min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800">PDF</button>
+                    )}
+                    <button type="button" onClick={() => handleDownloadDocx()} className="min-h-11 rounded-md bg-emerald-700 px-4 text-sm font-bold text-white">Word</button>
                 </div>
             </div>
         </div>

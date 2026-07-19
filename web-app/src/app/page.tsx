@@ -101,7 +101,7 @@ export default function LandingPage() {
                             </div>
                         </Link>
 
-                        {/* K-ETS 명세서 검증 계약서 생성기 Card */}
+                        {/* K-ETS 검증 계약서 생성기 Card */}
                         <Link href="/kets-contract" className="group md:col-span-2">
                             <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-emerald-900/10 hover:-translate-y-1 transition-all duration-300 border border-emerald-50 h-full flex flex-col relative overflow-hidden group-hover:border-emerald-200">
                                 {/* Gradient background decoration */}
@@ -117,15 +117,15 @@ export default function LandingPage() {
                                     <div className="flex-grow">
                                         <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
                                             <h2 className="text-xl font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
-                                                K-ETS 명세서 검증 계약서 생성기
+                                                K-ETS 검증 계약서 생성기
                                             </h2>
                                             <span className="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-600/20 w-fit">
-                                                New (v1.0)
+                                                New (v1.1)
                                             </span>
                                         </div>
 
                                         <p className="text-slate-500 leading-relaxed text-sm">
-                                            K-ETS 온실가스 명세서 검증을 위한 계약서를 생성합니다. 템플릿 기반 Word 문서(.docx)를 자동 생성하여 다운로드할 수 있습니다.
+                                            온실가스 명세서, 배출량산정계획서 또는 통합 검증 계약서를 공식 Word 서식으로 생성합니다.
                                         </p>
                                     </div>
                                 </div>
