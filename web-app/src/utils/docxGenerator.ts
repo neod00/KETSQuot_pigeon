@@ -120,6 +120,7 @@ export const generateKetsDocx = async (
 
             const out = doc.getZip().generate({
                 type: "blob",
+                compression: "DEFLATE",
                 mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             });
 
