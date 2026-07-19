@@ -77,6 +77,8 @@ export interface D365AutomationResult {
   success: boolean;
   error?: string;
   sanctionWarning?: boolean;
+  warningType?: 'sanction' | 'duplicate' | 'qualify-incomplete';
+  warningMessage?: string;
   leadUrl?: string;
   leadName?: string;
   opportunityUrl?: string;

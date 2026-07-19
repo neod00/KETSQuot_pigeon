@@ -184,7 +184,7 @@ const d365Issues = (record: SalesRecord) => {
   const issues: string[] = [];
   const d365 = record.d365 || emptyD365;
   if (isD365Processed(record)) issues.push('D365 생성/매칭 완료');
-  else if (d365.status === 'warning') issues.push('기존 Lead 확인 필요');
+  else if (d365.status === 'warning') issues.push('D365 검토 필요');
   else if (d365.status === 'running') issues.push('이미 실행 중');
   if (!record.companyName) issues.push('업체명');
   if (!record.contactName && !d365.lastName) issues.push('담당자명');
@@ -466,15 +466,26 @@ export default function SalesDashboard() {
         });
         const result = await response.json() as D365AutomationResult;
         if (!response.ok || !result.success) throw new Error(result.error || 'D365 자동화가 실패했습니다.');
-        const status: D365Status = result.sanctionWarning ? 'warning' : 'success';
+        const warningType = result.warningType || (result.sanctionWarning ? 'sanction' : undefined);
+        const status: D365Status = warningType ? 'warning' : 'success';
+        const warningMessage = result.warningMessage || (
+          warningType === 'duplicate'
+            ? 'D365 중복 규칙으로 Qualify가 중단됐습니다. 기존 Contact 또는 Opportunity를 확인해 주세요.'
+            : warningType === 'sanction'
+              ? 'Sanction Warning으로 Qualify가 중단됐습니다. D365에서 Lead를 확인해 주세요.'
+              : warningType
+                ? 'Lead는 저장됐지만 Opportunity 생성 여부를 확인해야 합니다.'
+                : ''
+        );
         await patchD365(record, {
           status,
           leadUrl: result.leadUrl,
           opportunityUrl: result.opportunityUrl,
-          error: result.sanctionWarning ? 'Lead는 저장됐지만 Opportunity 생성 여부를 확인해야 합니다.' : '',
+          error: warningMessage,
           lastRunAt: new Date().toISOString(),
         });
-        setLogs((items) => [...items, `${record.companyName}: ${status === 'success' ? 'Lead와 Opportunity 생성 완료' : 'Lead 생성 후 확인 필요'}`]);
+        const resultLabel = status === 'success' ? 'Lead와 Opportunity 생성 완료' : warningMessage;
+        setLogs((items) => [...items, `${record.companyName}: ${resultLabel}`]);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : '자동화 실패';
         await patchD365(record, { status: 'failed', error: errorMessage, lastRunAt: new Date().toISOString() }).catch(() => undefined);
