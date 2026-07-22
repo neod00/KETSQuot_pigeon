@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import FeedbackSidebar from '../components/FeedbackSidebar';
 import type { HistoryRecord } from '../components/GenerationHistory';
+import ModernPortal from '../components/ModernPortal';
 
 export default function LandingPage() {
     const [isAdminAccount, setIsAdminAccount] = useState(false);
+    const [portalView, setPortalView] = useState<'modern' | 'legacy'>('modern');
 
     useEffect(() => {
         fetch('/api/iso/auth/session', { cache: 'no-store' })
@@ -16,8 +18,37 @@ export default function LandingPage() {
             .catch(() => setIsAdminAccount(false));
     }, []);
 
+    useEffect(() => {
+        const savedView = window.localStorage.getItem('lrqa_portal_design');
+        if (savedView === 'legacy' || savedView === 'modern') {
+            setPortalView(savedView);
+        }
+    }, []);
+
+    const changePortalView = (view: 'modern' | 'legacy') => {
+        window.localStorage.setItem('lrqa_portal_design', view);
+        setPortalView(view);
+    };
+
+    if (portalView === 'modern') {
+        return <ModernPortal isAdminAccount={isAdminAccount} onUseLegacy={() => changePortalView('legacy')} />;
+    }
+
+    return <LegacyLandingPage isAdminAccount={isAdminAccount} onUseModern={() => changePortalView('modern')} />;
+}
+
+function LegacyLandingPage({ isAdminAccount, onUseModern }: { isAdminAccount: boolean; onUseModern: () => void }) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 p-4 sm:p-6 lg:p-8 font-sans selection:bg-blue-100">
+            <div className="mx-auto mb-3 flex max-w-7xl justify-end">
+                <button
+                    type="button"
+                    onClick={onUseModern}
+                    className="min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:border-teal-500 hover:text-teal-700"
+                >
+                    새 디자인
+                </button>
+            </div>
             {isAdminAccount && (
                 <div className="mx-auto mb-3 flex max-w-7xl justify-end">
                     <Link href="/iso/users" className="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:border-teal-500 hover:text-teal-700">
