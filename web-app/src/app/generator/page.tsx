@@ -179,7 +179,7 @@ export default function GeneratorPage() {
             <div className="no-print my-4 w-full max-w-4xl rounded-xl border border-gray-100 bg-white p-4 shadow-lg sm:my-8 sm:p-8">
                 <div className="mb-6 flex flex-col gap-3 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3 sm:items-center sm:gap-4">
-                        <Link href="/" className="whitespace-nowrap text-gray-500 transition-colors hover:text-blue-600">
+                        <Link href="/" className="portal-legacy-only whitespace-nowrap text-gray-500 transition-colors hover:text-blue-600">
                             ← Home
                         </Link>
                         <h1 className="text-xl font-bold leading-tight text-blue-600 sm:text-2xl">LRQA 견적서 생성기</h1>

@@ -30,3 +30,88 @@ body {
     background: white;
   }
 }
+
+/* Shared LRQA workspace treatment. The legacy view keeps the original page CSS untouched. */
+html[data-portal-design='modern'] body {
+  background: #eef2f5;
+}
+
+html[data-portal-design='modern'] .portal-legacy-internal-header,
+html[data-portal-design='modern'] .portal-modern-content .portal-legacy-only {
+  display: none !important;
+}
+
+html[data-portal-design='modern'] .portal-internal-legacy,
+html[data-portal-design='modern'] .portal-modern-content > .min-h-screen {
+  min-height: auto !important;
+  background: transparent !important;
+}
+
+html[data-portal-design='modern'] .portal-modern-content > main[style*='100dvh'] {
+  height: calc(100dvh - 72px) !important;
+  min-height: 560px !important;
+}
+
+html[data-portal-design='modern'] .portal-modern-content .rounded-xl,
+html[data-portal-design='modern'] .portal-modern-content .rounded-2xl {
+  border-radius: 6px !important;
+}
+
+html[data-portal-design='modern'] .portal-modern-content .shadow-lg,
+html[data-portal-design='modern'] .portal-modern-content .shadow-xl,
+html[data-portal-design='modern'] .portal-modern-content .shadow-2xl,
+html[data-portal-design='modern'] .portal-modern-content .shadow-sm {
+  box-shadow: 0 12px 30px rgba(16, 19, 47, 0.08) !important;
+}
+
+html[data-portal-design='modern'] .portal-modern-content input:not([type='checkbox']):not([type='radio']),
+html[data-portal-design='modern'] .portal-modern-content select,
+html[data-portal-design='modern'] .portal-modern-content textarea {
+  border-color: #c6d1db !important;
+  border-radius: 4px !important;
+  background-color: #fff;
+}
+
+html[data-portal-design='modern'] .portal-modern-content input:focus,
+html[data-portal-design='modern'] .portal-modern-content select:focus,
+html[data-portal-design='modern'] .portal-modern-content textarea:focus {
+  border-color: #008d87 !important;
+  box-shadow: 0 0 0 3px rgba(19, 229, 176, 0.14) !important;
+  outline: 0;
+}
+
+html[data-portal-design='modern'] .portal-modern-content .text-blue-600,
+html[data-portal-design='modern'] .portal-modern-content .text-blue-700 {
+  color: #007d77 !important;
+}
+
+html[data-portal-design='modern'] .portal-modern-content .bg-blue-600,
+html[data-portal-design='modern'] .portal-modern-content .bg-blue-700 {
+  background-color: #075e75 !important;
+}
+
+html[data-portal-design='modern'] .portal-modern-content .bg-teal-700,
+html[data-portal-design='modern'] .portal-modern-content .bg-emerald-700 {
+  background-color: #007d77 !important;
+}
+
+html[data-portal-design='modern'] .portal-modern-content table thead {
+  color: #10132f;
+}
+
+html[data-portal-design='modern'] .portal-modern-content table tbody tr:hover {
+  background-color: rgba(19, 229, 176, 0.055);
+}
+
+@media (max-width: 820px) {
+  html[data-portal-design='modern'] .portal-modern-content > main[style*='100dvh'] {
+    height: calc(100dvh - 164px) !important;
+  }
+}
+
+@media print {
+  html[data-portal-design='modern'] .portal-modern-content > .min-h-screen {
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+}

@@ -1,0 +1,359 @@
+.shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 244px minmax(0, 1fr);
+  background: #eef2f5;
+  color: #10132f;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  height: 100dvh;
+  min-height: 640px;
+  flex-direction: column;
+  overflow-y: auto;
+  background: #10132f;
+  color: #fff;
+}
+
+.brand {
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 16px 18px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.brand span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.brand strong,
+.railFooter strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.brand small,
+.railFooter span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #13e5b0;
+  object-fit: contain;
+}
+
+.nav {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+}
+
+.navLink {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  border-left: 2px solid transparent;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.navLink:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+.navLinkActive {
+  border-left-color: #13e5b0;
+  background: #173d52;
+  color: #13e5b0;
+}
+
+.railFooter {
+  display: grid;
+  gap: 3px;
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 18px;
+}
+
+.workspace {
+  min-width: 0;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #d7e0e7;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px 24px;
+  backdrop-filter: blur(12px);
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.titleBlock span {
+  color: #008d87;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.titleBlock h1 {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #10132f;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.account {
+  margin-right: 4px;
+  color: #647184;
+  font-size: 12px;
+}
+
+.secondaryButton,
+.logoutButton,
+.legacyToggle,
+.authDesignButton {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c6d1db;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0 13px;
+  color: #253147;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.secondaryButton:hover,
+.authDesignButton:hover {
+  border-color: #008d87;
+  background: #f1fffb;
+  color: #006f6a;
+}
+
+.logoutButton {
+  border-color: #10132f;
+  background: #10132f;
+  color: #fff;
+}
+
+.logoutButton:hover {
+  background: #242847;
+}
+
+.content {
+  min-width: 0;
+  min-height: calc(100vh - 72px);
+  overflow-x: clip;
+  background: #eef2f5;
+}
+
+.legacyToggle {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 100;
+  border-color: #10132f;
+  background: #10132f;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(16, 19, 47, 0.22);
+}
+
+.authModern,
+.authLegacy {
+  position: relative;
+  min-height: 100vh;
+}
+
+.authModern {
+  background: #eef2f5;
+}
+
+.authModern::before {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: 8px;
+  background: #13e5b0;
+  content: '';
+}
+
+.authDesignButton {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 100;
+}
+
+@media (max-width: 1080px) {
+  .shell {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .account {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .shell {
+    display: block;
+  }
+
+  .rail {
+    position: relative;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .brand {
+    min-height: 62px;
+    padding: 10px 14px;
+  }
+
+  .logo {
+    width: 38px;
+    height: 38px;
+  }
+
+  .nav {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    padding: 7px 10px 10px;
+    scrollbar-width: thin;
+  }
+
+  .navLink {
+    min-height: 38px;
+    flex: 0 0 auto;
+    border-bottom: 2px solid transparent;
+    border-left: 0;
+    padding: 7px 10px;
+    white-space: nowrap;
+  }
+
+  .navLinkActive {
+    border-bottom-color: #13e5b0;
+  }
+
+  .railFooter {
+    display: none;
+  }
+
+  .topbar {
+    position: relative;
+    min-height: 64px;
+    padding: 9px 14px;
+  }
+
+  .titleBlock span {
+    display: none;
+  }
+
+  .titleBlock h1 {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .topActions {
+    gap: 6px;
+  }
+
+  .secondaryButton,
+  .logoutButton {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .content {
+    min-height: calc(100vh - 164px);
+  }
+}
+
+@media (max-width: 460px) {
+  .brand small,
+  .logoutButton {
+    display: none;
+  }
+
+  .titleBlock h1 {
+    max-width: 180px;
+  }
+
+  .legacyToggle {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .authDesignButton {
+    top: 16px;
+    right: 16px;
+  }
+}
+
+@media print {
+  .shell {
+    display: block;
+    background: #fff;
+  }
+
+  .rail,
+  .topbar,
+  .legacyToggle,
+  .authDesignButton {
+    display: none !important;
+  }
+
+  .content {
+    min-height: 0;
+    overflow: visible;
+    background: #fff;
+  }
+}

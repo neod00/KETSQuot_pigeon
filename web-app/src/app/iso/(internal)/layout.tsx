@@ -5,8 +5,8 @@ export default async function IsoInternalLayout({ children }: { children: React.
   const session = await requireIsoAdmin('/iso/applications');
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="portal-internal-legacy min-h-screen bg-slate-100">
+      <header className="portal-legacy-internal-header border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div>
             <p className="text-xs font-bold text-teal-700">LRQA INTERNAL</p>

@@ -607,7 +607,7 @@ export default function ISOQuotePage() {
             <button type="button" onClick={handleOpenAdj} className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
               ADJ 작성
             </button>
-            <Link href="/" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            <Link href="/" className="portal-legacy-only rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               포털로 돌아가기
             </Link>
           </div>

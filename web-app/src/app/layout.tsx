@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import PortalShell from "@/components/PortalShell";
 
 export const metadata: Metadata = {
   title: "LRQA ISO 신청·견적 관리",
@@ -13,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body><PortalShell>{children}</PortalShell></body>
     </html>
   );
 }

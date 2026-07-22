@@ -358,7 +358,7 @@ export default function GeneratorPage() {
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="mb-6">
                     <div className="flex items-center gap-2 mb-4">
-                        <Link href="/" className="text-slate-500 hover:text-blue-600 transition-colors font-medium flex items-center gap-1 group">
+                        <Link href="/" className="portal-legacy-only text-slate-500 hover:text-blue-600 transition-colors font-medium flex items-center gap-1 group">
                             <span className="group-hover:-translate-x-1 transition-transform">←</span> Home
                         </Link>
                     </div>
