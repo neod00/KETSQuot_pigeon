@@ -152,7 +152,6 @@ export default function ISOQuotePage() {
       const importedStandards = Array.isArray(imported.standards)
         ? imported.standards.filter((item: string) => ISO_STANDARDS.includes(item as StandardKey)) as StandardKey[]
         : [];
-      const nextStandards: StandardKey[] = importedStandards.length > 0 ? importedStandards : ['ISO 9001'];
       const importedCustomStandard = String(
         imported.customStandard ||
         (Array.isArray(imported.standards)
@@ -160,11 +159,16 @@ export default function ISOQuotePage() {
           : '') ||
         '',
       ).trim();
+      const nextStandards: StandardKey[] = importedStandards.length > 0
+        ? importedStandards
+        : importedCustomStandard
+          ? []
+          : ['ISO 9001'];
 
       setCompanyName(imported.companyName || '');
       setContactPerson(imported.contactPerson || '');
       setAuditType(auditTypeLabel(imported.auditType));
-      if (importedStandards.length > 0) setStandards(importedStandards);
+      setStandards(nextStandards);
       setCustomStandard(importedCustomStandard);
       setScope(imported.scope || '경영시스템 인증심사');
       setSiteName(imported.siteName || '본사');
@@ -329,8 +333,7 @@ export default function ISOQuotePage() {
   const toggleStandard = (standard: StandardKey) => {
     setStandards(current => {
       if (current.includes(standard)) {
-        const next = current.filter(item => item !== standard);
-        return next.length > 0 ? next : current;
+        return current.filter(item => item !== standard);
       }
       return [...current, standard];
     });
@@ -458,6 +461,10 @@ export default function ISOQuotePage() {
     if (!response.ok) throw new Error(payload.error || '생성 문서를 내부 문서함에 저장하지 못했습니다.');
   };
   const handleDownloadWord = async () => {
+    if (standardCostRows.length === 0) {
+      alert('ISO 표준을 선택하거나 기타 표준을 입력해주세요.');
+      return;
+    }
     if (documentType === 'contract' && !companyName.trim()) {
       alert('계약서 생성을 위해 고객사명을 입력해주세요.');
       return;
