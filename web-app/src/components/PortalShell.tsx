@@ -49,7 +49,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [design, setDesign] = useState<PortalDesign>('modern');
   const [session, setSession] = useState<SessionSummary | null>(null);
-  const isAuthPage = pathname === '/iso/login' || pathname === '/iso/setup';
+  const isAuthPage = pathname === '/iso/login' || pathname === '/iso/setup' || pathname === '/iso/request-access';
 
   useEffect(() => {
     const syncDesign = () => {

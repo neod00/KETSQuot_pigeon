@@ -43,7 +43,11 @@ async function hasValidSession(token?: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const publicPath = pathname === '/iso/login' || pathname === '/iso/setup' || pathname.startsWith('/api/iso/auth/');
+  const publicPath =
+    pathname === '/iso/login' ||
+    pathname === '/iso/setup' ||
+    pathname === '/iso/request-access' ||
+    pathname.startsWith('/api/iso/auth/');
   if (publicPath) return NextResponse.next();
 
   const validSession = await hasValidSession(request.cookies.get(SESSION_COOKIE)?.value);
