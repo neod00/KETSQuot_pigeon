@@ -63,13 +63,17 @@ export interface SalesRecord {
   retentionExpansion: string;
   stage: SalesStage;
   d365: D365Fields;
+  ownerId: string;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
   updatedBy: string;
 }
 
-export type SalesRecordInput = Omit<SalesRecord, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'> & {
+export type SalesRecordInput = Omit<
+  SalesRecord,
+  'id' | 'ownerId' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'
+> & {
   id?: string;
 };
 

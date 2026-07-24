@@ -8,6 +8,11 @@ const STORE = 'sales-records';
 const COLLECTION_KEY = 'records.json';
 const VALID_STAGES: SalesStage[] = ['new', 'quote-preparing', 'quote-sent', 'follow-up', 'won', 'lost', 'on-hold'];
 
+export interface SalesAccessIdentity {
+  username: string;
+  role: 'admin' | 'member';
+}
+
 const text = (value: unknown) => String(value ?? '').trim();
 const number = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 
@@ -84,33 +89,49 @@ const normalizeInput = (input: Partial<SalesRecordInput>): SalesRecordInput => {
 };
 
 const readCollection = async () => await getIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY) || [];
+export const salesRecordOwner = (record: Pick<SalesRecord, 'ownerId' | 'createdBy'>) =>
+  text(record.ownerId || record.createdBy);
+const canAccessRecord = (record: SalesRecord, identity: SalesAccessIdentity) =>
+  identity.role === 'admin' || salesRecordOwner(record) === identity.username;
 
-export async function listSalesRecords() {
+export async function listSalesRecords(identity: SalesAccessIdentity) {
   const records = await readCollection();
-  return records.sort((left, right) => (right.quotedAt || right.createdAt).localeCompare(left.quotedAt || left.createdAt));
+  return records
+    .filter((record) => canAccessRecord(record, identity))
+    .sort((left, right) => (right.quotedAt || right.createdAt).localeCompare(left.quotedAt || left.createdAt));
 }
 
-export async function createSalesRecord(input: Partial<SalesRecordInput>, username: string) {
+export async function createSalesRecord(input: Partial<SalesRecordInput>, identity: SalesAccessIdentity) {
   const now = new Date().toISOString();
   const normalized = normalizeInput(input);
   const record: SalesRecord = {
     ...normalized,
-    id: normalized.id || randomUUID(),
+    id: randomUUID(),
+    ownerId: identity.username,
     createdAt: now,
     updatedAt: now,
-    createdBy: username,
-    updatedBy: username,
+    createdBy: identity.username,
+    updatedBy: identity.username,
   };
   await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) => [record, ...(records || [])]);
   return record;
 }
 
-export async function importSalesRecords(inputs: Partial<SalesRecordInput>[], username: string) {
+export async function importSalesRecords(
+  inputs: Partial<SalesRecordInput>[],
+  identity: SalesAccessIdentity,
+) {
   let saved: SalesRecord[] = [];
   const now = new Date().toISOString();
 
   await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (existing) => {
-    const bySignature = new Map((existing || []).map((record) => [salesSignature(record), record]));
+    const collection = existing || [];
+    const bySignature = new Map(
+      collection
+        .filter((record) => salesRecordOwner(record) === identity.username)
+        .map((record) => [salesSignature(record), record]),
+    );
+    const byId = new Map(collection.map((record) => [record.id, record]));
     saved = [];
 
     for (const input of inputs.slice(0, 1500)) {
@@ -121,52 +142,67 @@ export async function importSalesRecords(inputs: Partial<SalesRecordInput>[], us
         ...matched,
         ...normalized,
         id: matched.id,
+        ownerId: salesRecordOwner(matched) || identity.username,
         d365: input.d365 ? { ...matched.d365, ...normalized.d365 } : matched.d365,
         d365Matched: matched.d365Matched || normalized.d365Matched,
         won: matched.won || normalized.won,
         stage: input.stage ? normalized.stage : matched.stage,
         updatedAt: now,
-        updatedBy: username,
+        updatedBy: identity.username,
       } : {
         ...normalized,
         id: randomUUID(),
+        ownerId: identity.username,
         createdAt: now,
         updatedAt: now,
-        createdBy: username,
-        updatedBy: username,
+        createdBy: identity.username,
+        updatedBy: identity.username,
       };
       bySignature.set(salesSignature(record), record);
+      byId.set(record.id, record);
       saved.push(record);
     }
 
-    return Array.from(bySignature.values());
+    return Array.from(byId.values());
   });
   return saved;
 }
 
-export async function updateSalesRecord(id: string, input: Partial<SalesRecordInput>, username: string) {
+export async function updateSalesRecord(
+  id: string,
+  input: Partial<SalesRecordInput>,
+  identity: SalesAccessIdentity,
+) {
   let updated: SalesRecord | null = null;
   await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) => {
     const collection = records || [];
     const current = collection.find((record) => record.id === id);
-    if (!current) return collection;
+    if (!current || !canAccessRecord(current, identity)) return collection;
     const normalized = normalizeInput({ ...current, ...input, id });
     updated = {
       ...current,
       ...normalized,
       id,
+      ownerId: salesRecordOwner(current),
       d365: { ...current.d365, ...(input.d365 || {}) },
       updatedAt: new Date().toISOString(),
-      updatedBy: username,
+      updatedBy: identity.username,
     };
     return [updated, ...collection.filter((item) => item.id !== id)];
   });
   return updated;
 }
 
-export async function deleteSalesRecord(id: string) {
-  await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) =>
-    (records || []).filter((record) => record.id !== id));
+export async function deleteSalesRecord(id: string, identity: SalesAccessIdentity) {
+  let deleted = false;
+  await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) => {
+    const collection = records || [];
+    const current = collection.find((record) => record.id === id);
+    if (!current || !canAccessRecord(current, identity)) return collection;
+    deleted = true;
+    return collection.filter((record) => record.id !== id);
+  });
+  return deleted;
 }
 
 export const salesSignature = (record: Pick<SalesRecordInput, 'quoteNumber' | 'companyName' | 'product' | 'quotedAt'>) =>

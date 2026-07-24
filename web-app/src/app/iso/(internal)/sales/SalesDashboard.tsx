@@ -5,6 +5,8 @@ import { parseSalesWorkbook } from '@/lib/salesWorkbook';
 import type { D365AutomationResult, D365Fields, D365Status, SalesRecord, SalesRecordInput, SalesStage } from '@/lib/salesTypes';
 
 type Mode = 'sales' | 'd365';
+type SalesViewer = { username: string; role: 'admin' | 'member' };
+const dataOwnerId = (record: SalesRecord) => record.ownerId || record.createdBy || '기존 데이터';
 type BridgeState = 'checking' | 'online' | 'offline';
 type TableView = 'summary' | 'excel';
 type SortDirection = 'asc' | 'desc';
@@ -288,10 +290,12 @@ function SortLabel({ label, sortKey, sort, onSort, align = 'left', ariaLabel }: 
 export default function SalesDashboard() {
   const [mode, setMode] = useState<Mode>('sales');
   const [records, setRecords] = useState<SalesRecord[]>([]);
+  const [viewer, setViewer] = useState<SalesViewer | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
   const [stage, setStage] = useState<'all' | SalesStage>('all');
   const [owner, setOwner] = useState('all');
+  const [accountOwner, setAccountOwner] = useState('all');
   const [tableView, setTableView] = useState<TableView>('summary');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -314,6 +318,7 @@ export default function SalesDashboard() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || '세일즈 목록을 불러오지 못했습니다.');
       setRecords(payload.records || []);
+      setViewer(payload.viewer || null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '세일즈 목록을 불러오지 못했습니다.');
     } finally {
@@ -342,10 +347,11 @@ export default function SalesDashboard() {
   useEffect(() => { if (mode === 'd365') void checkBridge(); }, [mode]);
 
   const owners = useMemo(() => Array.from(new Set(records.map((record) => displayOwner(record.originalOwner)).filter(Boolean))).sort(), [records]);
+  const accountOwners = useMemo(() => Array.from(new Set(records.map(dataOwnerId))).sort(), [records]);
   const filtered = useMemo(() => records.filter((record) => {
     const haystack = [record.companyName, record.quoteNumber, record.contactName, record.email, record.product].join(' ').toLowerCase();
-    return (!query || haystack.includes(query.toLowerCase())) && (stage === 'all' || record.stage === stage) && (owner === 'all' || displayOwner(record.originalOwner) === owner);
-  }), [records, query, stage, owner]);
+    return (!query || haystack.includes(query.toLowerCase())) && (stage === 'all' || record.stage === stage) && (owner === 'all' || displayOwner(record.originalOwner) === owner) && (accountOwner === 'all' || dataOwnerId(record) === accountOwner);
+  }), [records, query, stage, owner, accountOwner]);
   const sortedRecords = useMemo(() => [...filtered].sort((a, b) => compareSalesRecords(a, b, sort)), [filtered, sort]);
   const pageCount = Math.max(1, Math.ceil(sortedRecords.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -511,6 +517,8 @@ export default function SalesDashboard() {
 
       {message && <div className="mb-4 flex items-center justify-between border-l-4 border-teal-500 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900"><span>{message}</span><button type="button" onClick={() => setMessage('')} className="px-2 text-lg" aria-label="안내 닫기">×</button></div>}
 
+      {viewer && <div className="mb-4 border-l-4 border-blue-700 bg-blue-50 px-4 py-3 text-sm text-blue-950"><strong>{viewer.role === 'admin' ? '전체 팀 세일즈 데이터' : '내 세일즈 데이터'}</strong><span className="ml-2 text-blue-800">{viewer.role === 'admin' ? '모든 팀원의 데이터를 조회하고 계정별로 필터링할 수 있습니다.' : `${viewer.username} 계정으로 등록한 데이터만 표시됩니다.`}</span></div>}
+
       {mode === 'sales' ? (
         <div className="space-y-4">
           <section className="grid border border-slate-300 bg-white sm:grid-cols-3">
@@ -524,6 +532,7 @@ export default function SalesDashboard() {
               <label className="relative min-w-0 flex-1 lg:max-w-md"><span className="pointer-events-none absolute left-3 top-2.5 text-slate-400"><Icon name="search"/></span><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="업체명, 담당자, 견적번호 검색" className="h-10 w-full border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-600"/></label>
               <select value={stage} onChange={(event) => { setStage(event.target.value as 'all' | SalesStage); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="all">전체 상태</option>{Object.entries(STAGE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <select value={owner} onChange={(event) => { setOwner(event.target.value); setPage(1); }} className="h-10 border border-slate-300 bg-white px-3 text-sm"><option value="all">전체 담당자</option>{owners.map((item) => <option key={item}>{item}</option>)}</select>
+              {viewer?.role === 'admin' && <select value={accountOwner} onChange={(event) => { setAccountOwner(event.target.value); setPage(1); }} className="h-10 border border-blue-300 bg-blue-50 px-3 text-sm font-semibold text-blue-950" aria-label="데이터 소유 계정"><option value="all">전체 팀원 데이터</option>{accountOwners.map((item) => <option key={item} value={item}>{item}</option>)}</select>}
             </div>
             <div className="flex flex-wrap gap-2">
               <div className="inline-flex h-10 border border-slate-300 bg-slate-100 p-1" role="group" aria-label="세일즈 표시 방식">
@@ -541,13 +550,14 @@ export default function SalesDashboard() {
           <section className="overflow-hidden border border-slate-300 bg-white">
             {tableView === 'summary' ? (
               <div className="max-h-[58vh] overflow-auto">
-                <table className="min-w-[1040px] w-full border-collapse text-left text-sm">
+                <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
                   <thead className="sticky top-0 z-20 bg-slate-100 text-xs font-bold text-slate-600">
                     <tr>
                       <th className="w-11 bg-slate-100 px-3 py-3"><input type="checkbox" aria-label="현재 페이지 전체 선택" checked={pageRecords.length > 0 && pageRecords.every((record) => selected.has(record.id))} onChange={toggleAll}/></th>
                       <th className="bg-slate-100 px-3 py-3"><SortLabel label="업체 / 견적" sortKey="companyName" sort={sort} onSort={changeSort}/></th>
                       <th className="bg-slate-100 px-3 py-3"><SortLabel label="Product / 구분" sortKey="product" sort={sort} onSort={changeSort}/></th>
                       <th className="bg-slate-100 px-3 py-3"><SortLabel label="담당" sortKey="originalOwner" sort={sort} onSort={changeSort}/></th>
+                      {viewer?.role === 'admin' && <th className="bg-blue-50 px-3 py-3 text-blue-900">데이터 소유 계정</th>}
                       <th className="bg-slate-100 px-3 py-3"><SortLabel label="진행 상태" sortKey="stage" sort={sort} onSort={changeSort}/></th>
                       <th className="bg-slate-100 px-3 py-3"><SortLabel label="견적 금액" sortKey="amountIncludingExpenses" sort={sort} onSort={changeSort} align="right"/></th>
                       <th className="bg-slate-100 px-3 py-3"><SortLabel label="D365" sortKey="d365Status" sort={sort} onSort={changeSort}/></th>
@@ -555,9 +565,9 @@ export default function SalesDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {pageRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{displayOwner(record.originalOwner) || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td><td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={isD365Processed(record) ? D365_CLASSES.success : D365_CLASSES[record.d365?.status || 'not-ready']}>{isD365Processed(record) ? '매칭 완료' : D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
-                    {!loading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">표시할 세일즈 데이터가 없습니다. Excel을 가져오거나 신규 세일즈를 등록해 주세요.</td></tr>}
-                    {loading && <tr><td colSpan={8} className="px-4 py-16 text-center text-slate-500">세일즈 데이터를 불러오는 중입니다.</td></tr>}
+                    {pageRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50"><td className="px-3 py-3"><input type="checkbox" checked={selected.has(record.id)} onChange={() => toggle(record.id)} aria-label={`${record.companyName} 선택`}/></td><td className="px-3 py-3"><p className="font-bold text-slate-900">{record.companyName || '-'}</p><p className="mt-0.5 text-xs text-slate-500">{record.quoteNumber || '견적번호 없음'} · {record.quotedAt || '일자 없음'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{record.product || '-'}</p><p className="text-xs text-slate-500">{record.category || '-'}</p></td><td className="px-3 py-3"><p className="font-semibold text-slate-800">{displayOwner(record.originalOwner) || '-'}</p><p className="text-xs text-slate-500">{record.contactName || '-'}</p></td>{viewer?.role === 'admin' && <td className="px-3 py-3 text-xs font-semibold text-blue-900">{dataOwnerId(record)}</td>}<td className="px-3 py-3"><Badge className={STAGE_CLASSES[record.stage]}>{STAGE_LABELS[record.stage]}</Badge></td><td className="px-3 py-3 text-right"><p className="font-bold tabular-nums text-slate-900">{won(record.amountIncludingExpenses)}</p><p className="text-xs text-slate-500">{record.quoteMandays.toFixed(1)} MD</p></td><td className="px-3 py-3"><Badge className={isD365Processed(record) ? D365_CLASSES.success : D365_CLASSES[record.d365?.status || 'not-ready']}>{isD365Processed(record) ? '매칭 완료' : D365_LABELS[record.d365?.status || 'not-ready']}</Badge></td><td className="px-3 py-3"><div className="flex justify-center gap-1"><button type="button" onClick={() => openEditor(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-slate-600 hover:bg-slate-100" title="수정"><Icon name="edit"/></button><button type="button" onClick={() => void deleteRecord(record)} className="grid h-8 w-8 place-items-center border border-slate-300 text-rose-700 hover:bg-rose-50" title="삭제"><Icon name="trash"/></button></div></td></tr>)}
+                    {!loading && filtered.length === 0 && <tr><td colSpan={viewer?.role === 'admin' ? 9 : 8} className="px-4 py-16 text-center text-slate-500">표시할 세일즈 데이터가 없습니다. Excel을 가져오거나 신규 세일즈를 등록해 주세요.</td></tr>}
+                    {loading && <tr><td colSpan={viewer?.role === 'admin' ? 9 : 8} className="px-4 py-16 text-center text-slate-500">세일즈 데이터를 불러오는 중입니다.</td></tr>}
                   </tbody>
                 </table>
               </div>
