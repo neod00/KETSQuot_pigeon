@@ -1,3 +1,5 @@
+import type { AuditDurationInput, AuditDurationResult } from './auditDurationEngine';
+
 export type IsoApplicationStatus = 'new' | 'in_review' | 'needs_information' | 'quote_ready' | 'completed';
 
 export interface IsoApplication {
@@ -67,6 +69,11 @@ export interface IsoQuoteInput {
   paymentTerms?: string;
   validity?: string;
   signerTitle?: string;
+  auditCalculation?: {
+    input: AuditDurationInput;
+    result: AuditDurationResult;
+    appliedAt?: string;
+  };
 }
 
 export type IsoQuoteDraftStatus = 'draft' | 'review_requested' | 'approved';

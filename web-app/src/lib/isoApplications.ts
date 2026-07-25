@@ -2,6 +2,11 @@ import 'server-only';
 
 import { createHash } from 'node:crypto';
 import { listDeletedIsoApplicationIds } from './isoApplicationInbox';
+import {
+  calculateAuditDuration,
+  createDefaultAuditDurationInput,
+  type AuditDurationInput,
+} from './auditDurationEngine';
 import type { IsoApplication, IsoApplicationStatus, IsoQuoteInput } from './isoTypes';
 
 type LegacyRecord = Record<string, unknown>;
@@ -155,16 +160,46 @@ export async function findIsoApplication(applicationId: string) {
   return applications.find((application) => application.id === applicationId) || null;
 }
 
+const findSourceNumber = (application: IsoApplication, aliases: string[]) => {
+  const normalizedAliases = aliases.map((alias) => alias.replace(/\s/g, '').toLowerCase());
+  const match = Object.entries(application.sourceFields).find(([key]) =>
+    normalizedAliases.includes(key.replace(/\s/g, '').toLowerCase()),
+  );
+  return match ? toNumber(match[1], 0) : 0;
+};
+
+export const toAuditDurationInput = (application: IsoApplication): AuditDurationInput => {
+  const input = createDefaultAuditDurationInput(
+    application.standards,
+    application.employeeCount,
+    application.siteCount,
+  );
+  input.partTimeEmployees = findSourceNumber(application, [
+    '시간제직원수',
+    '시간제 직원 수',
+    'partTimeEmployees',
+  ]);
+  input.contractorEmployees = findSourceNumber(application, [
+    '계약직원수',
+    '상주협력업체인원',
+    '외주인원',
+    'contractorEmployees',
+  ]);
+  return input;
+};
+
 export const toIsoQuoteInput = (application: IsoApplication): IsoQuoteInput => {
   const supported = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 27001', 'ISO 50001'];
   const standards = application.standards.filter((standard) => supported.includes(standard));
   const distinctOtherStandard = application.otherStandards.trim() !== application.scope.trim() ? application.otherStandards : '';
   const customStandard = application.standards.find((standard) => !supported.includes(standard)) || distinctOtherStandard;
+  const auditInput = toAuditDurationInput(application);
+  const auditResult = calculateAuditDuration(auditInput);
   return {
     companyName: application.companyName,
     contactPerson: application.contactName,
     auditType: application.auditType,
-    standards: standards.length > 0 ? standards : ['ISO 9001'],
+    standards,
     customStandard: customStandard || undefined,
     scope: application.scope,
     siteName: '본사',
@@ -176,5 +211,18 @@ export const toIsoQuoteInput = (application: IsoApplication): IsoQuoteInput => {
     postalCode: application.postalCode,
     businessRegistrationNumber: application.businessRegistrationNumber,
     billingAddress: application.siteAddress,
+    standardCosts: auditResult.perStandard.map((result) => ({
+      standard: result.standard,
+      stage1Days: result.stage1Days,
+      stage2Days: result.stage2Days,
+      surveillanceDays: result.surveillanceDays,
+      recertDays: result.recertDays,
+      dayRate: 1_300_000,
+    })),
+    auditCalculation: {
+      input: auditInput,
+      result: auditResult,
+      appliedAt: new Date().toISOString(),
+    },
   };
 };

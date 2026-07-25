@@ -4,7 +4,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { generateIsoQuoteDocx } from '../../utils/isoQuoteDocxGenerator';
 import { generateIsoContractDocx } from '../../utils/isoContractDocxGenerator';
+import AuditDurationSummary from '../../components/AuditDurationSummary';
 import ResponsiveDocumentPreview from '../../components/ResponsiveDocumentPreview';
+import {
+  CORE_ISO_STANDARDS,
+  calculateAuditDuration,
+  type AuditComplexity,
+  type AuditDurationInput,
+  type CoreIsoStandard,
+} from '../../lib/auditDurationEngine';
 import type { IsoQuoteDraft, IsoQuoteDraftStatus, IsoQuoteInput } from '../../lib/isoTypes';
 import {
   calculateIsoQuoteCost,
@@ -115,6 +123,21 @@ export default function ISOQuotePage() {
   const [siteAddress, setSiteAddress] = useState('');
   const [siteCount, setSiteCount] = useState('1');
   const [employeeCount, setEmployeeCount] = useState('50');
+  const [partTimeEmployees, setPartTimeEmployees] = useState('0');
+  const [contractorEmployees, setContractorEmployees] = useState('0');
+  const [effectiveEmployeeOverride, setEffectiveEmployeeOverride] = useState('');
+  const [overrideJustification, setOverrideJustification] = useState('');
+  const [complexity, setComplexity] = useState<Record<CoreIsoStandard, AuditComplexity>>({
+    'ISO 9001': 'medium',
+    'ISO 14001': 'medium',
+    'ISO 45001': 'medium',
+  });
+  const [multiSiteEligible, setMultiSiteEligible] = useState(false);
+  const [samplingAllowed, setSamplingAllowed] = useState(false);
+  const [effectiveCycle, setEffectiveCycle] = useState(false);
+  const [integrationLevel, setIntegrationLevel] = useState('0');
+  const [teamAbility, setTeamAbility] = useState('0');
+  const [auditCalculationAppliedAt, setAuditCalculationAppliedAt] = useState('');
   const [expenses, setExpenses] = useState(DEFAULT_EXPENSES.toLocaleString());
   const [certFee, setCertFee] = useState(DEFAULT_CERT_FEE.toLocaleString());
   const [discount, setDiscount] = useState('0');
@@ -188,6 +211,21 @@ export default function ISOQuotePage() {
       setPostalCode(imported.postalCode || '');
       setBusinessRegistrationNumber(imported.businessRegistrationNumber || '');
       setBillingAddress(imported.billingAddress || '');
+
+      const importedAudit = imported.auditCalculation?.input;
+      if (importedAudit) {
+        setPartTimeEmployees(toInputNumber(importedAudit.partTimeEmployees, '0'));
+        setContractorEmployees(toInputNumber(importedAudit.contractorEmployees, '0'));
+        setEffectiveEmployeeOverride(toInputNumber(importedAudit.effectiveEmployeeOverride, ''));
+        setOverrideJustification(importedAudit.overrideJustification || '');
+        setComplexity(current => ({ ...current, ...importedAudit.complexity }));
+        setMultiSiteEligible(Boolean(importedAudit.multiSite?.eligible));
+        setSamplingAllowed(Boolean(importedAudit.multiSite?.samplingAllowed));
+        setEffectiveCycle(Boolean(importedAudit.multiSite?.effectiveCycle));
+        setIntegrationLevel(toInputNumber(importedAudit.integration?.level, '0'));
+        setTeamAbility(toInputNumber(importedAudit.integration?.teamAbility, '0'));
+        setAuditCalculationAppliedAt(imported.auditCalculation?.appliedAt || '');
+      }
 
       if (importedCustomStandard) {
         const importedCustomCost = Array.isArray(imported.standardCosts)
@@ -267,6 +305,49 @@ export default function ISOQuotePage() {
   const renewalQuote = isRenewalQuote(auditType);
 
   const customStandardName = customStandard.trim();
+  const coreStandards = useMemo(
+    () => standards.filter((standard): standard is CoreIsoStandard =>
+      CORE_ISO_STANDARDS.includes(standard as CoreIsoStandard),
+    ),
+    [standards],
+  );
+  const auditDurationInput = useMemo<AuditDurationInput>(() => ({
+    standards: [...standards, ...(customStandardName ? [customStandardName] : [])],
+    fullTimeEmployees: Math.max(0, Number.parseInt(employeeCount.replace(/[^0-9]/g, ''), 10) || 0),
+    partTimeEmployees: Math.max(0, Number.parseInt(partTimeEmployees.replace(/[^0-9]/g, ''), 10) || 0),
+    partTimeFte: 0.5,
+    contractorEmployees: Math.max(0, Number.parseInt(contractorEmployees.replace(/[^0-9]/g, ''), 10) || 0),
+    effectiveEmployeeOverride: Math.max(0, Number.parseInt(effectiveEmployeeOverride.replace(/[^0-9]/g, ''), 10) || 0) || undefined,
+    overrideJustification,
+    complexity,
+    siteCount: Math.max(1, Number.parseInt(siteCount.replace(/[^0-9]/g, ''), 10) || 1),
+    multiSite: {
+      eligible: multiSiteEligible,
+      samplingAllowed,
+      effectiveCycle,
+    },
+    integration: {
+      level: Number.parseInt(integrationLevel, 10) || 0,
+      teamAbility: Number.parseInt(teamAbility, 10) || 0,
+    },
+  }), [
+    complexity, contractorEmployees, customStandardName, effectiveCycle, effectiveEmployeeOverride,
+    employeeCount, integrationLevel, multiSiteEligible, overrideJustification, partTimeEmployees,
+    samplingAllowed, siteCount, standards, teamAbility,
+  ]);
+  const auditDurationResult = useMemo(
+    () => calculateAuditDuration(auditDurationInput),
+    [auditDurationInput],
+  );
+  const auditDurationValuesApplied = auditDurationResult.perStandard.length > 0
+    && auditDurationResult.perStandard.every((row) => {
+      const current = standardInputs[row.standard];
+      return Boolean(current)
+        && parseDays(current.stage1Days) === row.stage1Days
+        && parseDays(current.stage2Days) === row.stage2Days
+        && parseDays(current.surveillanceDays) === row.surveillanceDays
+        && parseDays(current.recertDays) === row.recertDays;
+    });
 
   const standardCostRows = useMemo(() => {
     const selectedInputs: Array<{ standard: string; input: StandardCostInput }> = standards.map((standard) => ({
@@ -330,6 +411,33 @@ export default function ISOQuotePage() {
     setCustomStandardInput(current => ({ ...current, [field]: value }));
   };
 
+  const applyAuditDuration = () => {
+    if (auditDurationResult.perStandard.length === 0) {
+      setDraftMessage('자동 산정 대상 규격과 유효 인원을 먼저 입력하세요.');
+      return;
+    }
+    setStandardInputs(current => {
+      const next = { ...current };
+      auditDurationResult.perStandard.forEach((row) => {
+        next[row.standard] = {
+          ...(current[row.standard] || defaultCostInput()),
+          stage1Days: row.stage1Days.toFixed(1),
+          stage2Days: row.stage2Days.toFixed(1),
+          surveillanceDays: row.surveillanceDays.toFixed(1),
+          recertDays: row.recertDays.toFixed(1),
+        };
+      });
+      return next;
+    });
+    const appliedAt = new Date().toISOString();
+    setAuditCalculationAppliedAt(appliedAt);
+    setDraftMessage(
+      auditDurationResult.status === 'calculated'
+        ? '자동 산정값을 규격별 심사일수에 적용했습니다.'
+        : '예비 산정값을 적용했습니다. 경고 사항을 확인한 뒤 담당자가 확정하세요.',
+    );
+  };
+
   const toggleStandard = (standard: StandardKey) => {
     setStandards(current => {
       if (current.includes(standard)) {
@@ -371,6 +479,11 @@ export default function ISOQuotePage() {
     paymentTerms,
     validity,
     signerTitle,
+    auditCalculation: {
+      input: auditDurationInput,
+      result: auditDurationResult,
+      appliedAt: auditDurationValuesApplied ? auditCalculationAppliedAt || undefined : undefined,
+    },
   });
 
   const saveDraft = async (status: IsoQuoteDraftStatus) => {
@@ -547,6 +660,9 @@ export default function ISOQuotePage() {
     ];
     const parsedSiteCount = Math.max(1, Math.min(100, Number.parseInt(siteCount, 10) || 1));
     const parsedEmployeeCount = Math.max(0, Number.parseInt(employeeCount.replace(/[^0-9]/g, ''), 10) || 0);
+    const parsedPartTimeEmployees = Math.max(0, Number.parseInt(partTimeEmployees.replace(/[^0-9]/g, ''), 10) || 0);
+    const parsedContractorEmployees = Math.max(0, Number.parseInt(contractorEmployees.replace(/[^0-9]/g, ''), 10) || 0);
+    const integrationAnswerCount = Math.max(0, Math.min(7, Math.round((Number.parseInt(integrationLevel, 10) || 0) * 7 / 100)));
     const sites = Array.from({ length: parsedSiteCount }, (_, index) => ({
       name: index === 0 ? (siteName || 'Main Site') : `Site ${index + 1}`,
       type: 'Permanent',
@@ -554,13 +670,17 @@ export default function ISOQuotePage() {
       scope,
       riskJustification: '',
       samplingNote: '',
-      headcount: { fullTime: index === 0 ? parsedEmployeeCount : 0, partTime: 0, contractors: 0 },
+      headcount: { fullTime: index === 0 ? parsedEmployeeCount : 0, partTime: index === 0 ? parsedPartTimeEmployees : 0, contractors: index === 0 ? parsedContractorEmployees : 0 },
       employeeReductionReason: '',
       furtherReductionJustification: '',
     }));
     const notes = [
       contactPerson ? `Customer contact: ${contactPerson}` : '',
       auditType ? `Audit type: ${auditType}` : '',
+      '',
+      '[자동 산정 근거]',
+      ...auditDurationResult.rationale,
+      ...auditDurationResult.warnings.map((warning) => `확인: ${warning}`),
     ].filter(Boolean).join('\n');
 
     localStorage.setItem('adj-builder-prefill', JSON.stringify({
@@ -583,6 +703,23 @@ export default function ISOQuotePage() {
         transfer: {
           isToa: auditType.includes('전환'),
           stage: auditType.includes('전환') ? auditType : '',
+        },
+        integratedReduction: {
+          answers: Array.from({ length: 7 }, (_, index) => index < integrationAnswerCount),
+          teamAbility: Number.parseInt(teamAbility, 10) || 0,
+        },
+        sampling: {
+          multiSite: parsedSiteCount > 1 && multiSiteEligible,
+          mainSiteExcluded: false,
+          grouping: samplingAllowed ? 'Normal Sampling' : 'No Sampling Applicable',
+          useNormalSampling: samplingAllowed,
+          stage1Sampling: samplingAllowed,
+          stage2Sampling: samplingAllowed,
+          surveillanceSampling: samplingAllowed,
+          recertSampling: samplingAllowed,
+          rationale: auditDurationResult.siteSampling
+            ? auditDurationResult.rationale.find((item) => item.startsWith('MD1 기준')) || ''
+            : '',
         },
         sites,
       },
@@ -702,12 +839,85 @@ export default function ISOQuotePage() {
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-6">
             <div className="md:col-span-2"><TextInput label="사업장명" value={siteName} onChange={setSiteName} /></div>
             <div><TextInput label="사업장 수" value={siteCount} onChange={setSiteCount} /></div>
-            <div><TextInput label="직원 수" value={employeeCount} onChange={setEmployeeCount} /></div>
+            <div><TextInput label="정규/기본 직원 수" value={employeeCount} onChange={setEmployeeCount} /></div>
             <div className="md:col-span-2"><TextInput label="사업장 주소" value={siteAddress} onChange={setSiteAddress} /></div>
           </div>
         </section>
         <section className="mt-8 border-t pt-6">
           <h2 className="text-lg font-semibold text-slate-800">3. 심사일수 및 비용</h2>
+          <div className="mt-4 border-y border-slate-200 bg-slate-50 px-4 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-slate-900">심사일수 자동 산정</h3>
+                <p className="mt-1 text-sm text-slate-600">MD1·MD5·MD11과 LRQA ADJ v3 기준의 예비 산정입니다. 산정값을 적용한 뒤 담당자가 최종 검토합니다.</p>
+              </div>
+              <button
+                type="button"
+                onClick={applyAuditDuration}
+                disabled={auditDurationResult.status === 'insufficient'}
+                className="min-h-10 bg-teal-700 px-4 text-sm font-bold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                산정값 적용
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <NumberInput label="시간제 직원 수" value={partTimeEmployees} onChange={setPartTimeEmployees} />
+              <NumberInput label="계약·상주 인력" value={contractorEmployees} onChange={setContractorEmployees} />
+              <NumberInput label="유효 인원 수동 조정" value={effectiveEmployeeOverride} onChange={setEffectiveEmployeeOverride} />
+              <TextInput label="수동 조정 근거" value={overrideJustification} onChange={setOverrideJustification} />
+            </div>
+
+            {coreStandards.length > 0 && (
+              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {coreStandards.map((standard) => (
+                  <label key={standard} className="block text-sm font-medium text-slate-600">
+                    {standard} 복잡도
+                    <select
+                      className="mt-1 w-full border border-slate-300 bg-white p-2 text-slate-900"
+                      value={complexity[standard]}
+                      onChange={(event) => setComplexity(current => ({
+                        ...current,
+                        [standard]: event.target.value as AuditComplexity,
+                      }))}
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                      {standard === 'ISO 14001' && <option value="limited">Limited</option>}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {Number.parseInt(siteCount, 10) > 1 && (
+              <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 border-t border-slate-200 pt-4 text-sm">
+                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={multiSiteEligible} onChange={(event) => setMultiSiteEligible(event.target.checked)} /> 다사업장 적격성 확인</label>
+                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={samplingAllowed} onChange={(event) => setSamplingAllowed(event.target.checked)} disabled={!multiSiteEligible} /> 표본심사 적용</label>
+                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={effectiveCycle} onChange={(event) => setEffectiveCycle(event.target.checked)} disabled={!samplingAllowed} /> 갱신주기 효과성 확인</label>
+              </div>
+            )}
+
+            {coreStandards.length > 1 && (
+              <div className="mt-5 grid grid-cols-1 gap-5 border-t border-slate-200 pt-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-600">
+                  시스템 통합 수준 <strong className="text-slate-900">{integrationLevel}%</strong>
+                  <input className="mt-2 w-full accent-teal-700" type="range" min="0" max="100" step="20" value={integrationLevel} onChange={(event) => setIntegrationLevel(event.target.value)} />
+                </label>
+                <label className="block text-sm font-medium text-slate-600">
+                  통합심사 수행능력 <strong className="text-slate-900">{teamAbility}%</strong>
+                  <input className="mt-2 w-full accent-teal-700" type="range" min="0" max="100" step="20" value={teamAbility} onChange={(event) => setTeamAbility(event.target.value)} />
+                </label>
+              </div>
+            )}
+
+            {auditDurationValuesApplied && <p className="mt-4 text-xs font-semibold text-teal-700">현재 산정값이 규격별 입력란에 적용되어 있습니다.</p>}
+          </div>
+          <div className="mt-4">
+            <AuditDurationSummary result={auditDurationResult} />
+          </div>
+          <h3 className="mt-6 text-sm font-bold text-slate-700">규격별 심사일수 및 단가</h3>
           <div className="mt-4 space-y-4">
             {standards.map(standard => {
               const input = standardInputs[standard] || defaultCostInput();

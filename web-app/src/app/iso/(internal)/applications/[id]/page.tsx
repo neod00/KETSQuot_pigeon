@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import AuditDurationSummary from '@/components/AuditDurationSummary';
 import IsoApplicationFormReplica from '@/components/IsoApplicationFormReplica';
-import { findIsoApplication } from '@/lib/isoApplications';
+import { calculateAuditDuration } from '@/lib/auditDurationEngine';
+import { findIsoApplication, toAuditDurationInput } from '@/lib/isoApplications';
 import { listIsoQuoteDrafts } from '@/lib/isoQuoteDrafts';
 import StartQuoteButton from './StartQuoteButton';
 
@@ -12,6 +14,7 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
   const application = await findIsoApplication(id);
   if (!application) notFound();
   const drafts = await listIsoQuoteDrafts(id);
+  const auditDuration = calculateAuditDuration(toAuditDurationInput(application));
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-5">
@@ -35,6 +38,16 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
           데이터 처리 동의가 확인되지 않았습니다. 고객 발송 전 원본 신청서를 확인해야 합니다.
         </section>
       )}
+
+      <section className="mb-6">
+        <div className="mb-3">
+          <h3 className="text-lg font-bold text-slate-900">견적 사전 산정</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            신청서의 규격, 직원 수와 사업장 수를 기준으로 계산했습니다. 견적 초안을 만들면 아래 값과 근거가 함께 전달됩니다.
+          </p>
+        </div>
+        <AuditDurationSummary result={auditDuration} />
+      </section>
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
