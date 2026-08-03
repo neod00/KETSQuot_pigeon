@@ -119,7 +119,10 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                         </div>
                         <div className={styles.topActions}>
                             {isAdminAccount && (
-                                <Link href="/iso/users" className={styles.button}>팀원 관리</Link>
+                                <>
+                                    <Link href="/iso/sam" className={styles.button}>SAM Business</Link>
+                                    <Link href="/iso/users" className={styles.button}>팀원 관리</Link>
+                                </>
                             )}
                             <button type="button" onClick={() => setFeedbackOpen(true)} className={styles.button}>
                                 팀원 피드백

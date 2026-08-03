@@ -31,6 +31,7 @@ const pageTitle = (pathname: string) => {
   if (pathname.startsWith('/iso/applications/')) return '신청서 검토';
   if (pathname === '/iso/documents') return '생성 문서';
   if (pathname === '/iso/sales') return '세일즈 현황 및 D365 생성';
+  if (pathname === '/iso/sam') return "SAM's Business";
   if (pathname === '/iso/users') return '팀원 계정 관리';
   if (pathname === '/iso/adj') return 'ADJ 작성';
   if (pathname === '/generator') return 'K-ETS 검증 견적서 생성기';
@@ -145,6 +146,9 @@ export default function PortalShell({ children }: { children: React.ReactNode })
               {item.label}
             </Link>
           ))}
+          {session?.role === 'admin' && (
+            <Link href="/iso/sam" aria-current={pathname === '/iso/sam' ? 'page' : undefined} className={`${styles.navLink} ${pathname === '/iso/sam' ? styles.navLinkActive : ''}`}>SAM&apos;s Business</Link>
+          )}
           {session?.role === 'admin' && (
             <Link
               href="/iso/users"
