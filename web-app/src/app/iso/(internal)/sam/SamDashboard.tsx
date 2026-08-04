@@ -508,14 +508,12 @@ function ProgressSection({
 
   const [integratedMemo, setIntegratedMemo] = useState('');
   const [organizeMode, setOrganizeMode] = useState<'append' | 'replace'>('append');
-  const [consent, setConsent] = useState(false);
   const [organizing, setOrganizing] = useState(false);
   const [organizeMessage, setOrganizeMessage] = useState('');
 
   useEffect(() => {
     if (!updateDraft.sourceMemo) {
       setIntegratedMemo('');
-      setConsent(false);
       setOrganizeMessage('');
     }
   }, [updateDraft.sourceMemo]);
@@ -534,7 +532,7 @@ function ProgressSection({
   });
 
   const organizeMemo = async () => {
-    if (!integratedMemo.trim() || !consent) return;
+    if (!integratedMemo.trim()) return;
     setOrganizing(true);
     setOrganizeMessage('');
     try {
@@ -597,13 +595,12 @@ function ProgressSection({
             <button type="button" onClick={() => setOrganizeMode('replace')} className={`min-h-9 px-3 text-sm font-bold ${organizeMode === 'replace' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>기존 내용 교체</button>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label className="flex items-start gap-2 text-xs leading-5 text-slate-600">
-              <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-blue-700" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-              <span>입력한 Account 활동 메모가 정리 목적으로 OpenAI API에 전송되는 것에 동의합니다.</span>
-            </label>
+            <p className="text-xs leading-5 text-slate-600">
+              버튼을 누르면 입력한 Account 활동 메모가 정리 목적으로 OpenAI API에 전송됩니다.
+            </p>
             <button
               type="button"
-              disabled={organizing || !integratedMemo.trim() || !consent}
+              disabled={organizing || !integratedMemo.trim()}
               onClick={() => void organizeMemo()}
               className="min-h-10 shrink-0 bg-blue-700 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
             >
