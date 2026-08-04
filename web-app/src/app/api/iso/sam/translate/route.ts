@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({
-      error: '영문 자동 초안 기능을 사용하려면 Netlify 환경변수 OPENAI_API_KEY를 설정해야 합니다. 직접 영문 입력과 승인은 지금도 가능합니다.',
+      error: '영문 자동 초안 기능을 사용하려면 Netlify 환경변수 OPENAI_API_KEY를 설정한 뒤 사이트를 재배포해 주세요. 직접 영문 입력과 승인은 지금도 가능합니다.',
     }, { status: 503 });
   }
   const body = await request.json().catch(() => ({})) as { fields?: Array<{ key: string; ko: string }> };
