@@ -47,6 +47,8 @@ export interface SamProgressUpdate {
   id: string;
   date: string;
   status: SamProgressStatus;
+  sourceMemo?: string;
+  briefing?: SamBilingualText;
   accomplishments: SamBilingualText;
   customerMeetings: SamBilingualText;
   pipelineChanges: SamBilingualText;
@@ -55,6 +57,7 @@ export interface SamProgressUpdate {
   owner: string;
   dueDate: string;
   managerSupport: SamBilingualText;
+  uncategorized?: SamBilingualText;
   createdAt: string;
   createdBy: string;
 }

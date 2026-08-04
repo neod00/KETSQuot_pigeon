@@ -189,6 +189,8 @@ export async function addSamProgressUpdate(
         id: randomUUID(),
         date: text(input.date) || now.slice(0, 10),
         status: input.status || 'on-track',
+        sourceMemo: text(input.sourceMemo),
+        briefing: bilingual(input.briefing),
         accomplishments: bilingual(input.accomplishments),
         customerMeetings: bilingual(input.customerMeetings),
         pipelineChanges: bilingual(input.pipelineChanges),
@@ -197,6 +199,7 @@ export async function addSamProgressUpdate(
         owner: text(input.owner || account.manager),
         dueDate: text(input.dueDate),
         managerSupport: bilingual(input.managerSupport),
+        uncategorized: bilingual(input.uncategorized),
         createdAt: now,
         createdBy: username,
       };

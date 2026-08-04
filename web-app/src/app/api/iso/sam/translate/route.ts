@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.OPENAI_TRANSLATION_MODEL || 'gpt-4.1-mini',
+      model: process.env.OPENAI_TRANSLATION_MODEL || 'gpt-5.6-luna',
       input: [
         { role: 'system', content: 'Translate Korean strategic account management text into concise professional UK business English for LRQA headquarters. Preserve names, acronyms, dates and numbers. Return only a JSON object keyed by the supplied keys.' },
         { role: 'user', content: JSON.stringify(Object.fromEntries(fields.map((field) => [field.key, field.ko]))) },

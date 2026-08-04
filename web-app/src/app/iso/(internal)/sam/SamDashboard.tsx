@@ -38,6 +38,8 @@ const emptyPair = (): SamBilingualText => ({ ko: '', en: '', status: 'review' })
 const emptyUpdate = (): Partial<SamProgressUpdate> => ({
   date: new Date().toISOString().slice(0, 10),
   status: 'on-track',
+  sourceMemo: '',
+  briefing: emptyPair(),
   accomplishments: emptyPair(),
   customerMeetings: emptyPair(),
   pipelineChanges: emptyPair(),
@@ -46,6 +48,7 @@ const emptyUpdate = (): Partial<SamProgressUpdate> => ({
   owner: 'Dal',
   dueDate: '',
   managerSupport: emptyPair(),
+  uncategorized: emptyPair(),
 });
 
 const statusLabel: Record<SamProgressStatus, string> = {
@@ -70,14 +73,50 @@ const formatKrw = (value: number) => value > 0
 
 const meetingLabels = {
   ko: {
-    title: 'SAM Account Review', change: '최근 진행현황', pipeline: '연결 Pipeline',
-    risk: '현재 Risk', next: '다음 조치', support: '매니저 지원 요청',
+    title: 'SAM Account Review',
+    subtitle: '핵심 변화와 의사결정 항목을 먼저 보고, 필요할 때 활동·Pipeline·Action 근거를 펼쳐봅니다.',
+    briefing: '핵심 브리핑',
+    change: '최근 진행현황',
+    pipeline: '연결 Pipeline',
+    risk: '현재 Risk',
+    next: '다음 조치',
+    support: '매니저 지원 요청',
+    lastUpdate: '최근 업데이트',
+    nextReview: '다음 검토',
+    stale: '업데이트 필요',
     noUpdate: '등록된 진행 업데이트가 없습니다.',
+    recentActivity: '최근 활동',
+    pipelineDetail: 'Pipeline 상세',
+    actionStakeholder: 'Action · Stakeholder',
+    noPipeline: '정확한 회사·계열사·별칭 기준으로 연결된 Pipeline이 없습니다.',
+    noActions: '등록된 Action 또는 Stakeholder가 없습니다.',
+    owner: '담당',
+    due: '기한',
+    meeting: '고객 미팅',
+    pipelineChange: 'Pipeline 변화',
   },
   en: {
-    title: 'SAM Account Review', change: 'Latest Progress', pipeline: 'Linked Pipeline',
-    risk: 'Current Risk', next: 'Next Actions', support: 'Manager Support Required',
+    title: 'SAM Account Review',
+    subtitle: 'Start with key changes and decisions, then expand the supporting activity, pipeline and action detail.',
+    briefing: 'Executive Briefing',
+    change: 'Latest Progress',
+    pipeline: 'Linked Pipeline',
+    risk: 'Current Risk',
+    next: 'Next Actions',
+    support: 'Manager Support Required',
+    lastUpdate: 'Last Update',
+    nextReview: 'Next Review',
+    stale: 'Update Required',
     noUpdate: 'No progress update has been registered.',
+    recentActivity: 'Recent Activity',
+    pipelineDetail: 'Pipeline Detail',
+    actionStakeholder: 'Actions & Stakeholders',
+    noPipeline: 'No pipeline is linked by an exact account, affiliate, alias or manual match.',
+    noActions: 'No action or stakeholder has been registered.',
+    owner: 'Owner',
+    due: 'Due',
+    meeting: 'Customer Meeting',
+    pipelineChange: 'Pipeline Change',
   },
 };
 
@@ -459,18 +498,153 @@ function ProgressSection({
   onAdd: () => void;
   busy: boolean;
 }) {
-  const pair = (key: 'accomplishments' | 'customerMeetings' | 'pipelineChanges' | 'blockers' | 'nextActions' | 'managerSupport') =>
-    (updateDraft[key] || emptyPair()) as SamBilingualText;
-  const setPair = (key: 'accomplishments' | 'customerMeetings' | 'pipelineChanges' | 'blockers' | 'nextActions' | 'managerSupport', value: SamBilingualText) =>
+  type UpdateTextKey =
+    | 'briefing' | 'accomplishments' | 'customerMeetings' | 'pipelineChanges'
+    | 'blockers' | 'nextActions' | 'managerSupport' | 'uncategorized';
+  type OrganizedResult = Record<UpdateTextKey, { ko: string; en: string }> & {
+    status: SamProgressStatus;
+    dueDate: string;
+  };
+
+  const [integratedMemo, setIntegratedMemo] = useState('');
+  const [organizeMode, setOrganizeMode] = useState<'append' | 'replace'>('append');
+  const [consent, setConsent] = useState(false);
+  const [organizing, setOrganizing] = useState(false);
+  const [organizeMessage, setOrganizeMessage] = useState('');
+
+  useEffect(() => {
+    if (!updateDraft.sourceMemo) {
+      setIntegratedMemo('');
+      setConsent(false);
+      setOrganizeMessage('');
+    }
+  }, [updateDraft.sourceMemo]);
+
+  const pair = (key: UpdateTextKey) => (updateDraft[key] || emptyPair()) as SamBilingualText;
+  const setPair = (key: UpdateTextKey, value: SamBilingualText) =>
     setUpdateDraft({ ...updateDraft, [key]: value });
+  const mergePair = (current: SamBilingualText, incoming: { ko: string; en: string }) => ({
+    ko: organizeMode === 'append'
+      ? [current.ko.trim(), incoming.ko.trim()].filter(Boolean).join('\n')
+      : incoming.ko.trim(),
+    en: organizeMode === 'append'
+      ? [current.en.trim(), incoming.en.trim()].filter(Boolean).join('\n')
+      : incoming.en.trim(),
+    status: 'review' as const,
+  });
+
+  const organizeMemo = async () => {
+    if (!integratedMemo.trim() || !consent) return;
+    setOrganizing(true);
+    setOrganizeMessage('');
+    try {
+      const response = await fetch('/api/iso/sam/organize-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memo: integratedMemo,
+          accountName: account.name.ko || account.name.en,
+          consent: true,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '통합 메모를 정리하지 못했습니다.');
+      const result = payload.result as OrganizedResult;
+      const next = { ...updateDraft };
+      const keys: UpdateTextKey[] = [
+        'briefing', 'accomplishments', 'customerMeetings', 'pipelineChanges',
+        'blockers', 'nextActions', 'managerSupport', 'uncategorized',
+      ];
+      keys.forEach((key) => {
+        next[key] = mergePair(pair(key), result[key]);
+      });
+      next.sourceMemo = organizeMode === 'append'
+        ? [updateDraft.sourceMemo?.trim(), integratedMemo.trim()].filter(Boolean).join('\n\n')
+        : integratedMemo.trim();
+      next.status = result.status;
+      if (result.dueDate) next.dueDate = result.dueDate;
+      setUpdateDraft(next);
+      setOrganizeMessage('항목별 한국어·영문 초안을 만들었습니다. 아래 내용을 검토한 뒤 저장해 주세요.');
+    } catch (error) {
+      setOrganizeMessage(error instanceof Error ? error.message : '통합 메모를 정리하지 못했습니다.');
+    } finally {
+      setOrganizing(false);
+    }
+  };
+
   return (
     <section className="mt-8 border-t border-slate-300 pt-6">
       <h3 className="text-lg font-bold">진행현황 업데이트</h3>
       <p className="mt-1 text-sm text-slate-500">업데이트는 누적 보관되며 회의 모드에서 지난 회의 이후 변경사항으로 표시됩니다.</p>
-      <div className="mt-4 grid gap-3 md:grid-cols-4"><label className="text-sm font-semibold">기준일<input type="date" className="mt-1 w-full border p-2" value={updateDraft.date || ''} onChange={(e) => setUpdateDraft({ ...updateDraft, date: e.target.value })} /></label><label className="text-sm font-semibold">상태<select className="mt-1 w-full border p-2" value={updateDraft.status} onChange={(e) => setUpdateDraft({ ...updateDraft, status: e.target.value as SamProgressStatus })}><option value="on-track">정상</option><option value="watch">관찰</option><option value="at-risk">위험</option></select></label><label className="text-sm font-semibold">담당자<input className="mt-1 w-full border p-2" value={updateDraft.owner || ''} onChange={(e) => setUpdateDraft({ ...updateDraft, owner: e.target.value })} /></label><label className="text-sm font-semibold">완료 예정일<input type="date" className="mt-1 w-full border p-2" value={updateDraft.dueDate || ''} onChange={(e) => setUpdateDraft({ ...updateDraft, dueDate: e.target.value })} /></label></div>
-      <div className="mt-4 space-y-4"><BilingualEditor label="이번 기간 성과" value={pair('accomplishments')} onChange={(value) => setPair('accomplishments', value)} /><BilingualEditor label="고객 미팅" value={pair('customerMeetings')} onChange={(value) => setPair('customerMeetings', value)} /><BilingualEditor label="Pipeline 변화" value={pair('pipelineChanges')} onChange={(value) => setPair('pipelineChanges', value)} /><BilingualEditor label="현재 장애요인" value={pair('blockers')} onChange={(value) => setPair('blockers', value)} /><BilingualEditor label="다음 조치" value={pair('nextActions')} onChange={(value) => setPair('nextActions', value)} /><BilingualEditor label="매니저 지원 요청" value={pair('managerSupport')} onChange={(value) => setPair('managerSupport', value)} /></div>
-      <button type="button" disabled={busy} onClick={onAdd} className="mt-4 bg-teal-700 px-5 py-2 text-sm font-bold text-white disabled:bg-slate-300">진행현황 추가</button>
-      <div className="mt-6 space-y-3">{account.updates.map((update) => <article key={update.id} className="border-l-4 border-slate-300 bg-white p-4"><div className="flex flex-wrap items-center gap-2"><strong>{update.date}</strong><span className={`border px-2 py-0.5 text-xs font-bold ${statusClass[update.status]}`}>{statusLabel[update.status]}</span><span className="text-xs text-slate-500">{update.owner}</span></div><p className="mt-2 text-sm">{update.accomplishments.ko || update.nextActions.ko || '내용 없음'}</p></article>)}{!account.updates.length && <p className="text-sm text-slate-500">등록된 진행현황이 없습니다.</p>}</div>
+
+      <div className="mt-4 border-l-4 border-blue-700 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h4 className="font-bold text-slate-950">통합 활동 메모</h4>
+            <p className="text-sm text-slate-500">완료한 일, 고객 미팅, Pipeline 변화, Risk와 다음 할 일을 평소 문장으로 한 번에 입력하세요.</p>
+          </div>
+          <span className="mt-1 self-start border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-bold text-teal-800">AI 분류 · 영문 초안</span>
+        </div>
+        <textarea
+          className="mt-3 min-h-36 w-full resize-y border border-slate-300 bg-white px-3 py-3 text-sm leading-6 text-slate-900"
+          placeholder="예: 8월 3일 현대차 환경팀과 미팅했고 2027년 GHG 갱신 범위를 논의했다. 견적은 다음 주 금요일까지 제출 예정이며 가격 자료는 매니저 지원이 필요하다."
+          value={integratedMemo}
+          onChange={(event) => setIntegratedMemo(event.target.value)}
+        />
+        <div className="mt-3 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="inline-flex self-start border border-slate-300 bg-slate-100 p-1" role="group" aria-label="정리 결과 반영 방식">
+            <button type="button" onClick={() => setOrganizeMode('append')} className={`min-h-9 px-3 text-sm font-bold ${organizeMode === 'append' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>기존 내용에 추가</button>
+            <button type="button" onClick={() => setOrganizeMode('replace')} className={`min-h-9 px-3 text-sm font-bold ${organizeMode === 'replace' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>기존 내용 교체</button>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label className="flex items-start gap-2 text-xs leading-5 text-slate-600">
+              <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-blue-700" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+              <span>입력한 Account 활동 메모가 정리 목적으로 OpenAI API에 전송되는 것에 동의합니다.</span>
+            </label>
+            <button
+              type="button"
+              disabled={organizing || !integratedMemo.trim() || !consent}
+              onClick={() => void organizeMemo()}
+              className="min-h-10 shrink-0 bg-blue-700 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {organizing ? '정리 중...' : 'AI로 항목 정리'}
+            </button>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">AI 결과는 아래 편집칸에만 반영되며, 진행현황 추가 버튼을 누르기 전까지 저장되지 않습니다.</p>
+        {organizeMessage && <p className="mt-2 border-l-2 border-teal-500 pl-2 text-sm font-semibold text-slate-700">{organizeMessage}</p>}
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
+        <label className="text-sm font-semibold">기준일<input type="date" className="mt-1 w-full border p-2" value={updateDraft.date || ''} onChange={(e) => setUpdateDraft({ ...updateDraft, date: e.target.value })} /></label>
+        <label className="text-sm font-semibold">상태<select className="mt-1 w-full border p-2" value={updateDraft.status} onChange={(e) => setUpdateDraft({ ...updateDraft, status: e.target.value as SamProgressStatus })}><option value="on-track">정상</option><option value="watch">관찰</option><option value="at-risk">위험</option></select></label>
+        <label className="text-sm font-semibold">담당자<input className="mt-1 w-full border p-2" value={updateDraft.owner || ''} onChange={(e) => setUpdateDraft({ ...updateDraft, owner: e.target.value })} /></label>
+        <label className="text-sm font-semibold">완료 예정일<input type="date" className="mt-1 w-full border p-2" value={updateDraft.dueDate || ''} onChange={(e) => setUpdateDraft({ ...updateDraft, dueDate: e.target.value })} /></label>
+      </div>
+      <div className="mt-4 space-y-4">
+        <BilingualEditor label="핵심 브리핑" value={pair('briefing')} onChange={(value) => setPair('briefing', value)} />
+        <BilingualEditor label="이번 기간 성과" value={pair('accomplishments')} onChange={(value) => setPair('accomplishments', value)} />
+        <BilingualEditor label="고객 미팅" value={pair('customerMeetings')} onChange={(value) => setPair('customerMeetings', value)} />
+        <BilingualEditor label="Pipeline 변화" value={pair('pipelineChanges')} onChange={(value) => setPair('pipelineChanges', value)} />
+        <BilingualEditor label="현재 장애요인" value={pair('blockers')} onChange={(value) => setPair('blockers', value)} />
+        <BilingualEditor label="다음 조치" value={pair('nextActions')} onChange={(value) => setPair('nextActions', value)} />
+        <BilingualEditor label="매니저 지원 요청" value={pair('managerSupport')} onChange={(value) => setPair('managerSupport', value)} />
+        <BilingualEditor label="미분류 메모" value={pair('uncategorized')} onChange={(value) => setPair('uncategorized', value)} />
+      </div>
+      <button type="button" disabled={busy || organizing} onClick={onAdd} className="mt-4 bg-teal-700 px-5 py-2 text-sm font-bold text-white disabled:bg-slate-300">진행현황 추가</button>
+      <div className="mt-6 space-y-3">
+        {account.updates.map((update) => (
+          <article key={update.id} className="border-l-4 border-slate-300 bg-white p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <strong>{update.date}</strong>
+              <span className={`border px-2 py-0.5 text-xs font-bold ${statusClass[update.status]}`}>{statusLabel[update.status]}</span>
+              <span className="text-xs text-slate-500">{update.owner}</span>
+            </div>
+            <p className="mt-2 whitespace-pre-line text-sm">{update.briefing?.ko || update.accomplishments.ko || update.nextActions.ko || '내용 없음'}</p>
+          </article>
+        ))}
+        {!account.updates.length && <p className="text-sm text-slate-500">등록된 진행현황이 없습니다.</p>}
+      </div>
     </section>
   );
 }
@@ -484,18 +658,185 @@ function MeetingMode({
   onOpen: (id: string) => void;
 }) {
   const labels = meetingLabels[language];
-  const field = (value: SamBilingualText) => value[language] || (language === 'en' ? 'Translation pending' : '내용 없음');
+  const field = (value?: SamBilingualText) =>
+    value?.[language]?.trim() || (language === 'en' ? 'Translation pending' : '내용 없음');
+  const statusText = (status: SamProgressStatus) => language === 'ko'
+    ? statusLabel[status]
+    : ({ 'on-track': 'On track', watch: 'Watch', 'at-risk': 'At risk' })[status];
+  const cadenceText = (cadence: SamReviewCadence) => language === 'ko'
+    ? ({ weekly: '매주', biweekly: '격주', monthly: '매월' })[cadence]
+    : ({ weekly: 'Weekly', biweekly: 'Biweekly', monthly: 'Monthly' })[cadence];
+  const matchText = (match: SamAccountView['pipeline'][number]['matchedBy']) => {
+    const values = language === 'ko'
+      ? { account: 'Account 일치', affiliate: '계열사 일치', alias: '별칭 일치', manual: '수동 연결' }
+      : { account: 'Account match', affiliate: 'Affiliate match', alias: 'Alias match', manual: 'Manual link' };
+    return values[match];
+  };
+
   return (
     <section className="mt-5">
-      <div className="flex flex-col gap-3 border-b border-slate-300 pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold text-teal-700">MANAGER REVIEW</p><h3 className="mt-1 text-xl font-bold">{labels.title}</h3><p className="text-sm text-slate-500">{language === 'ko' ? '실제 진행현황, Pipeline, Risk와 다음 조치를 회의용으로 정리합니다.' : 'Review live progress, linked pipeline, risks and next actions.'}</p></div><div className="inline-flex border border-slate-300 bg-slate-100 p-1"><button type="button" onClick={() => setLanguage('ko')} className={`px-4 py-2 text-sm font-bold ${language === 'ko' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>한국어</button><button type="button" onClick={() => setLanguage('en')} className={`px-4 py-2 text-sm font-bold ${language === 'en' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>English</button></div></div>
-      <div className="mt-5 space-y-5">{accounts.map((account) => {
-        const update = account.updates[0];
-        const progress = update ? field(update.accomplishments) : labels.noUpdate;
-        const nextAction = update ? field(update.nextActions) : field(account.growthStrategy);
-        const support = update ? field(update.managerSupport) : '-';
-        const status = update?.status || (account.atRisk ? 'at-risk' : 'on-track');
-        return <article key={account.id} className="border border-slate-300 bg-white"><header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4"><div><h4 className="text-lg font-bold">{language === 'ko' ? account.name.ko : account.name.en}</h4><p className="text-xs text-slate-500">{account.manager} · {account.reviewCadence}</p></div><div className="flex items-center gap-2"><span className={`border px-2 py-1 text-xs font-bold ${statusClass[status]}`}>{language === 'ko' ? statusLabel[status] : status.replace('-', ' ')}</span><button type="button" onClick={() => onOpen(account.id)} className="border px-3 py-1.5 text-xs font-bold">{language === 'ko' ? '상세' : 'Details'}</button></div></header><div className="grid md:grid-cols-2 lg:grid-cols-5"><div className="p-4"><p className="text-xs font-bold text-slate-500">{labels.change}</p><p className="mt-2 text-sm">{progress}</p></div><div className="border-t p-4 md:border-l md:border-t-0"><p className="text-xs font-bold text-slate-500">{labels.pipeline}</p><p className="mt-2 font-bold">{account.activePipelineUsd > 0 ? formatKrw(account.activePipelineUsd) : formatUsd(account.dealValueUsd)}</p><p className="text-xs text-slate-500">{account.pipeline.length} linked records</p></div><div className="border-t p-4 lg:border-l lg:border-t-0"><p className="text-xs font-bold text-slate-500">{labels.risk}</p><p className="mt-2 text-sm">{field(account.risk)}</p></div><div className="border-t p-4 md:border-l lg:border-t-0"><p className="text-xs font-bold text-slate-500">{labels.next}</p><p className="mt-2 text-sm">{nextAction}</p></div><div className="border-t p-4 lg:border-l lg:border-t-0"><p className="text-xs font-bold text-slate-500">{labels.support}</p><p className="mt-2 text-sm">{support}</p></div></div></article>;
-      })}</div>
+      <div className="flex flex-col gap-3 border-b border-slate-300 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold text-teal-700">MANAGER REVIEW</p>
+          <h3 className="mt-1 text-xl font-bold">{labels.title}</h3>
+          <p className="max-w-3xl text-sm text-slate-500">{labels.subtitle}</p>
+        </div>
+        <div className="inline-flex self-start border border-slate-300 bg-slate-100 p-1 sm:self-auto">
+          <button type="button" onClick={() => setLanguage('ko')} className={`px-4 py-2 text-sm font-bold ${language === 'ko' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>한국어</button>
+          <button type="button" onClick={() => setLanguage('en')} className={`px-4 py-2 text-sm font-bold ${language === 'en' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>English</button>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-5">
+        {accounts.map((account) => {
+          const update = account.updates[0];
+          const lastUpdate = update?.date || '';
+          const age = lastUpdate
+            ? Math.floor((Date.now() - new Date(`${lastUpdate}T00:00:00`).getTime()) / 86400000)
+            : Number.POSITIVE_INFINITY;
+          const stale = age > 30;
+          const status = update?.status || (account.atRisk ? 'at-risk' : 'on-track');
+          const progress = update ? field(update.accomplishments) : labels.noUpdate;
+          const briefing = update?.briefing && (update.briefing.ko || update.briefing.en)
+            ? field(update.briefing)
+            : update
+              ? field(update.accomplishments)
+              : field(account.qbrOutcome.ko || account.qbrOutcome.en ? account.qbrOutcome : account.growthStrategy);
+          const nextAction = update ? field(update.nextActions) : field(account.growthStrategy);
+          const support = update ? field(update.managerSupport) : '-';
+          const accountName = language === 'ko' ? account.name.ko : account.name.en;
+          const pipelineAmount = account.pipeline.reduce((sum, record) => sum + record.amount, 0);
+
+          return (
+            <article key={account.id} className="border border-slate-300 bg-white">
+              <header className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-lg font-bold">{accountName}</h4>
+                    <span className={`border px-2 py-1 text-xs font-bold ${statusClass[status]}`}>{statusText(status)}</span>
+                    {stale && <span className="border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-900">{labels.stale}</span>}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {account.manager} · {cadenceText(account.reviewCadence)}
+                    {' · '}{labels.lastUpdate}: {lastUpdate || '-'}
+                    {' · '}{labels.nextReview}: {account.nextReviewDate || account.nextQbrDate || '-'}
+                  </p>
+                </div>
+                <button type="button" onClick={() => onOpen(account.id)} className="min-h-9 self-start border border-slate-300 px-3 text-xs font-bold hover:bg-slate-50">
+                  {language === 'ko' ? 'Account 상세' : 'Account Details'}
+                </button>
+              </header>
+
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-5">
+                <p className="text-xs font-bold uppercase text-teal-700">{labels.briefing}</p>
+                <p className="mt-2 max-w-5xl whitespace-pre-line text-sm font-semibold leading-6 text-slate-900">{briefing}</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 xl:grid-cols-5">
+                <div className="p-4">
+                  <p className="text-xs font-bold text-slate-500">{labels.change}</p>
+                  <p className="mt-2 whitespace-pre-line text-sm">{progress}</p>
+                </div>
+                <div className="border-t p-4 md:border-l md:border-t-0">
+                  <p className="text-xs font-bold text-slate-500">{labels.pipeline}</p>
+                  <p className="mt-2 font-bold">{formatKrw(pipelineAmount)}</p>
+                  <p className="text-xs text-slate-500">{account.pipeline.length} {language === 'ko' ? '건 연결' : 'linked records'}</p>
+                </div>
+                <div className="border-t p-4 xl:border-l xl:border-t-0">
+                  <p className="text-xs font-bold text-slate-500">{labels.risk}</p>
+                  <p className="mt-2 whitespace-pre-line text-sm">{update?.blockers && (update.blockers.ko || update.blockers.en) ? field(update.blockers) : field(account.risk)}</p>
+                </div>
+                <div className="border-t p-4 md:border-l xl:border-t-0">
+                  <p className="text-xs font-bold text-slate-500">{labels.next}</p>
+                  <p className="mt-2 whitespace-pre-line text-sm">{nextAction}</p>
+                  {(update?.owner || update?.dueDate) && <p className="mt-2 text-xs text-slate-500">{labels.owner}: {update?.owner || '-'} · {labels.due}: {update?.dueDate || '-'}</p>}
+                </div>
+                <div className="border-t p-4 xl:border-l xl:border-t-0">
+                  <p className="text-xs font-bold text-slate-500">{labels.support}</p>
+                  <p className="mt-2 whitespace-pre-line text-sm">{support}</p>
+                </div>
+              </div>
+
+              <div className="grid border-t border-slate-200 lg:grid-cols-3">
+                <details className="group border-b border-slate-200 lg:border-b-0 lg:border-r">
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-bold hover:bg-slate-50">
+                    <span>{labels.recentActivity}</span>
+                    <span className="text-slate-400 group-open:rotate-180">⌄</span>
+                  </summary>
+                  <div className="space-y-3 border-t border-slate-200 px-4 py-4">
+                    {account.updates.slice(0, 3).map((item) => (
+                      <div key={item.id} className="border-l-2 border-teal-500 pl-3 text-sm">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <strong>{item.date}</strong>
+                          <span className={`border px-1.5 py-0.5 text-[11px] font-bold ${statusClass[item.status]}`}>{statusText(item.status)}</span>
+                        </div>
+                        <p className="mt-1 whitespace-pre-line">{item.briefing && (item.briefing.ko || item.briefing.en) ? field(item.briefing) : field(item.accomplishments)}</p>
+                        {(item.customerMeetings.ko || item.customerMeetings.en) && <p className="mt-1 text-xs text-slate-600"><strong>{labels.meeting}:</strong> {field(item.customerMeetings)}</p>}
+                        {(item.pipelineChanges.ko || item.pipelineChanges.en) && <p className="mt-1 text-xs text-slate-600"><strong>{labels.pipelineChange}:</strong> {field(item.pipelineChanges)}</p>}
+                      </div>
+                    ))}
+                    {!account.updates.length && <p className="text-sm text-slate-500">{labels.noUpdate}</p>}
+                  </div>
+                </details>
+
+                <details className="group border-b border-slate-200 lg:border-b-0 lg:border-r">
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-bold hover:bg-slate-50">
+                    <span>{labels.pipelineDetail} · {account.pipeline.length}</span>
+                    <span className="text-slate-400 group-open:rotate-180">⌄</span>
+                  </summary>
+                  <div className="border-t border-slate-200">
+                    {account.pipeline.length > 0 ? (
+                      <div className="max-h-80 overflow-auto">
+                        {account.pipeline.map((record) => (
+                          <div key={record.id} className="border-b border-slate-100 px-4 py-3 text-sm last:border-b-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <strong>{record.companyName || '-'}</strong>
+                              <strong className="whitespace-nowrap">{formatKrw(record.amount)}</strong>
+                            </div>
+                            <p className="mt-1">{record.opportunityName || record.product || '-'}</p>
+                            <p className="mt-1 text-xs text-slate-500">{record.product || '-'} · {record.stage || '-'} · {record.quotedAt || '-'}</p>
+                            <p className="mt-1 text-xs font-semibold text-teal-700">{matchText(record.matchedBy)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="px-4 py-5 text-sm text-slate-500">{labels.noPipeline}</p>}
+                  </div>
+                </details>
+
+                <details className="group">
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-bold hover:bg-slate-50">
+                    <span>{labels.actionStakeholder}</span>
+                    <span className="text-slate-400 group-open:rotate-180">⌄</span>
+                  </summary>
+                  <div className="space-y-4 border-t border-slate-200 px-4 py-4">
+                    {account.actions.map((action) => (
+                      <div key={action.id} className="text-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <strong>{field(action.goal)}</strong>
+                          <span className={`border px-1.5 py-0.5 text-[11px] font-bold ${action.status === 'done' ? statusClass['on-track'] : action.status === 'at-risk' ? statusClass['at-risk'] : 'border-slate-200 bg-slate-50 text-slate-700'}`}>{action.status}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">{labels.owner}: {action.owner || '-'} · {labels.due}: {action.dueDate || '-'}</p>
+                      </div>
+                    ))}
+                    {account.contacts.map((contact) => (
+                      <div key={contact.id} className="border-t border-slate-100 pt-3 text-sm">
+                        <strong>{contact.name}</strong>
+                        <p className="text-xs text-slate-500">{field(contact.role)} · {contact.supportStatus} · {contact.influence}</p>
+                        {(contact.action.ko || contact.action.en) && <p className="mt-1 text-xs">{field(contact.action)}</p>}
+                      </div>
+                    ))}
+                    {!account.actions.length && !account.contacts.length && (
+                      update
+                        ? <div className="text-sm"><strong>{labels.next}</strong><p className="mt-1 whitespace-pre-line">{nextAction}</p><p className="mt-2 text-xs text-slate-500">{labels.owner}: {update.owner || '-'} · {labels.due}: {update.dueDate || '-'}</p></div>
+                        : <p className="text-sm text-slate-500">{labels.noActions}</p>
+                    )}
+                  </div>
+                </details>
+              </div>
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
