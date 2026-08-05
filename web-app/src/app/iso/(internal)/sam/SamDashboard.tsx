@@ -231,6 +231,8 @@ function PipelineRelationshipNode({
 }
 
 function PipelineRelationshipMap({ account }: { account: SamAccountView }) {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
+  const [affiliateQuery, setAffiliateQuery] = useState('');
   const parentRecords = account.pipeline.filter((record) => !record.matchedAffiliateId);
   const affiliateRows = account.affiliates.map((affiliate) => ({
     affiliate,
@@ -238,24 +240,72 @@ function PipelineRelationshipMap({ account }: { account: SamAccountView }) {
   }));
   const linkedAffiliates = affiliateRows.filter((row) => row.records.length > 0).length;
   const totalAmount = account.pipeline.reduce((sum, record) => sum + record.amount, 0);
+  const normalizedQuery = affiliateQuery.trim().toLowerCase();
+  const visibleRows = affiliateRows.filter(({ affiliate, records }) => {
+    const statusMatches = statusFilter === 'all'
+      || (statusFilter === 'linked' && records.length > 0)
+      || (statusFilter === 'unlinked' && records.length === 0);
+    const queryMatches = !normalizedQuery || [affiliate.nameKo, affiliate.nameEn, affiliate.category, ...affiliate.aliases]
+      .join(' ')
+      .toLowerCase()
+      .includes(normalizedQuery);
+    return statusMatches && queryMatches;
+  });
+  const groupedRows = visibleRows.reduce<Record<string, typeof visibleRows>>((groups, row) => {
+    const category = row.affiliate.category || '기타';
+    groups[category] = [...(groups[category] || []), row];
+    return groups;
+  }, {});
   return (
     <section className="mt-6 border border-slate-300 bg-white" aria-labelledby="relationship-map-title">
       <div className="grid border-b border-slate-300 bg-slate-950 text-white lg:grid-cols-[minmax(0,1fr)_repeat(3,auto)] lg:items-center">
         <div className="p-4 sm:p-5">
           <p className="text-xs font-bold uppercase text-teal-300">Account relationship map</p>
           <h4 id="relationship-map-title" className="mt-1 text-lg font-bold">{account.name.ko || account.name.en} 관계사 · Pipeline 맵</h4>
-          <p className="mt-1 text-xs text-slate-300">Parent명, 계열사명, 별칭의 정확 일치와 수동 연결을 기준으로 표시합니다.</p>
+          <p className="mt-1 text-xs text-slate-300">공식 계열사 기본 맵 위에 회사명·별칭이 정확히 일치하는 Pipeline을 표시합니다.</p>
+          {account.affiliateCatalog && (
+            <p className="mt-2 text-xs text-slate-400">
+              {account.affiliateCatalog.scope} · 조사 기준 {account.affiliateCatalog.asOf}
+              {' · '}<a className="font-semibold text-teal-300 underline" href={account.affiliateCatalog.sourceUrl} target="_blank" rel="noreferrer">공식 자료</a>
+            </p>
+          )}
         </div>
         <div className="border-t border-slate-700 px-4 py-3 lg:border-l lg:border-t-0"><p className="text-xs text-slate-400">그룹 Pipeline</p><p className="font-bold">{formatKrw(totalAmount)}</p></div>
         <div className="border-t border-slate-700 px-4 py-3 lg:border-l lg:border-t-0"><p className="text-xs text-slate-400">연결 건수</p><p className="font-bold">{account.pipeline.length}건</p></div>
         <div className="border-t border-slate-700 px-4 py-3 lg:border-l lg:border-t-0"><p className="text-xs text-slate-400">계열사 커버리지</p><p className="font-bold">{linkedAffiliates} / {account.affiliates.length}</p></div>
       </div>
+      {account.affiliateCatalog?.regulatoryCount && (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          공정위 2026년 국내 소속회사 수는 {account.affiliateCatalog.regulatoryCount}개이며, 아래 맵은 그룹 공식 사이트가 공개한 주요 회사와 사용자가 추가한 회사를 표시합니다.
+        </div>
+      )}
       <div className="bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">PARENT</div>
       <PipelineRelationshipNode label={`${account.name.ko || account.name.en} 직접 연결`} secondary={account.name.en} records={parentRecords} parent />
-      <div className="bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">AFFILIATES · {account.affiliates.length}</div>
-      {affiliateRows.map(({ affiliate, records }) => (
-        <PipelineRelationshipNode key={affiliate.id} label={affiliate.nameKo || affiliate.nameEn} secondary={affiliate.nameEn} aliases={affiliate.aliases} records={records} />
+      <div className="grid gap-3 border-y border-slate-300 bg-slate-100 p-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+        <label className="text-xs font-bold text-slate-600">
+          계열사 검색
+          <input className="mt-1 min-h-10 w-full border border-slate-300 bg-white px-3 text-sm font-normal text-slate-950" placeholder="회사명, 영문명, 업종, 별칭" value={affiliateQuery} onChange={(event) => setAffiliateQuery(event.target.value)} />
+        </label>
+        <label className="text-xs font-bold text-slate-600">
+          Pipeline 상태
+          <select className="mt-1 min-h-10 w-full border border-slate-300 bg-white px-3 text-sm font-normal text-slate-950" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
+            <option value="all">전체 {account.affiliates.length}개</option>
+            <option value="linked">Pipeline 있음 {linkedAffiliates}개</option>
+            <option value="unlinked">Pipeline 없음 {account.affiliates.length - linkedAffiliates}개</option>
+          </select>
+        </label>
+      </div>
+      {Object.entries(groupedRows).map(([category, rows]) => (
+        <div key={category}>
+          <div className="flex items-center justify-between bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
+            <span>{category}</span><span>{rows.length}개</span>
+          </div>
+          {rows.map(({ affiliate, records }) => (
+            <PipelineRelationshipNode key={affiliate.id} label={affiliate.nameKo || affiliate.nameEn} secondary={affiliate.nameEn} aliases={affiliate.aliases} records={records} />
+          ))}
+        </div>
       ))}
+      {account.affiliates.length > 0 && visibleRows.length === 0 && <p className="px-4 py-6 text-sm text-slate-500">검색 조건에 맞는 계열사가 없습니다.</p>}
       {!account.affiliates.length && <p className="px-4 py-6 text-sm text-slate-500">등록된 관계사·계열사가 없습니다. 오른쪽 계열사 관리에서 추가해 주세요.</p>}
     </section>
   );
@@ -538,9 +588,16 @@ export default function SamDashboard() {
             <aside className="space-y-5">
               <div className="border border-slate-300 bg-white p-4">
                 <h4 className="font-bold">계열사 매핑 관리</h4>
-                <p className="mt-1 text-xs leading-5 text-slate-500">계열사 한글명·영문명·별칭을 등록하면 세일즈 현황의 회사명과 자동으로 비교합니다. 추가 후 변경 저장을 눌러주세요.</p>
-                <p className="mt-3 border-y border-slate-200 py-2 text-sm"><strong>{draft.affiliates.length}개</strong> 계열사 등록</p>
-                <div className="mt-3 space-y-2">{draft.affiliates.map((affiliate) => <div key={affiliate.id} className="border-b pb-2 text-sm"><strong>{affiliate.nameKo || affiliate.nameEn}</strong><div className="text-xs text-slate-500">{affiliate.nameEn} {affiliate.aliases.length ? `· 별칭 ${affiliate.aliases.join(', ')}` : ''}</div></div>)}</div>
+                <p className="mt-1 text-xs leading-5 text-slate-500">조사된 공식 계열사는 자동으로 유지됩니다. 새 회사나 별칭은 아래에서 추가하고 변경 저장을 눌러주세요.</p>
+                <div className="mt-3 border-y border-slate-200 py-3 text-sm">
+                  <p><strong>{draft.affiliates.length}개</strong> 계열사 등록</p>
+                  {draft.affiliateCatalog && <p className="mt-1 text-xs text-slate-500">{draft.affiliateCatalog.sourceName} · {draft.affiliateCatalog.asOf}</p>}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {Object.entries(draft.affiliates.reduce<Record<string, number>>((counts, affiliate) => ({ ...counts, [affiliate.category || '사용자 추가']: (counts[affiliate.category || '사용자 추가'] || 0) + 1 }), {})).map(([category, count]) => (
+                    <span key={category} className="border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">{category} {count}</span>
+                  ))}
+                </div>
                 <div className="mt-3 grid gap-2"><input className="border p-2 text-sm" placeholder="계열사 한글명" value={affiliateDraft.nameKo} onChange={(e) => setAffiliateDraft({ ...affiliateDraft, nameKo: e.target.value })} /><input className="border p-2 text-sm" placeholder="Affiliate English name" value={affiliateDraft.nameEn} onChange={(e) => setAffiliateDraft({ ...affiliateDraft, nameEn: e.target.value })} /><input className="border p-2 text-sm" placeholder="별칭, 쉼표로 구분" value={affiliateDraft.aliases} onChange={(e) => setAffiliateDraft({ ...affiliateDraft, aliases: e.target.value })} /><button type="button" onClick={addAffiliate} className="border px-3 py-2 text-sm font-bold">계열사 추가</button></div>
               </div>
             </aside>

@@ -3,6 +3,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { getIsoBinary, getIsoJson, setIsoBinary, updateIsoJson } from '@/lib/isoStorage';
 import { initialSamAccounts } from '@/lib/samSeed';
+import { mergeOfficialAffiliateCatalog } from '@/lib/samAffiliateCatalog';
 import { listSalesRecords } from '@/lib/salesRecords';
 import type {
   SamAccount,
@@ -34,7 +35,8 @@ const bilingual = (value?: Partial<SamBilingualText>, fallback = ''): SamBilingu
 
 const readAccounts = async () => {
   const saved = await getIsoJson<SamAccount[]>(STORE, ACCOUNT_KEY);
-  return saved?.length ? saved : initialSamAccounts();
+  const accounts = saved?.length ? saved : initialSamAccounts();
+  return accounts.map(mergeOfficialAffiliateCatalog);
 };
 
 const defaultAccount = (input: SamAccountInput, username: string): SamAccount => {

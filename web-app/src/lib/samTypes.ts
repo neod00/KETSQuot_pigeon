@@ -13,7 +13,17 @@ export interface SamAffiliate {
   nameKo: string;
   nameEn: string;
   aliases: string[];
+  category?: string;
+  source?: 'official' | 'manual';
   d365AccountId?: string;
+}
+
+export interface SamAffiliateCatalogInfo {
+  sourceName: string;
+  sourceUrl: string;
+  asOf: string;
+  scope: string;
+  regulatoryCount?: number;
 }
 
 export interface SamContact {
@@ -88,6 +98,7 @@ export interface SamAccount {
   notes: SamBilingualText;
   reviewCadence: SamReviewCadence;
   nextReviewDate: string;
+  affiliateCatalog?: SamAffiliateCatalogInfo;
   affiliates: SamAffiliate[];
   manualSalesRecordIds: string[];
   contacts: SamContact[];
