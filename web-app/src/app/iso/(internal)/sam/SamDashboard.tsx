@@ -166,6 +166,25 @@ const pipelineMatchLabel = (matchedBy: SamAccountView['pipeline'][number]['match
   manual: '수동 연결',
 })[matchedBy];
 
+function PipelineRecordList({ records }: { records: SamAccountView['pipeline'] }) {
+  if (!records.length) return <p className="text-sm text-slate-500">현재 세일즈 현황에서 일치하는 Pipeline이 없습니다.</p>;
+  return (
+    <div className="divide-y divide-slate-200">
+      {records.map((record) => (
+        <div key={record.id} className="grid gap-2 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0">
+            <strong>{record.companyName || '-'}</strong>
+            <p className="mt-0.5 text-slate-700">{record.opportunityName || record.product || '-'}</p>
+            <p className="mt-1 text-xs text-slate-500">{record.product || '-'} · {record.stage || '-'} · {record.quotedAt || '-'}</p>
+            <p className="mt-1 text-xs font-semibold text-teal-700">{pipelineMatchLabel(record.matchedBy)}</p>
+          </div>
+          <strong className="whitespace-nowrap sm:text-right">{formatKrw(record.amount)}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PipelineRelationshipNode({
   label,
   secondary,
@@ -210,21 +229,7 @@ function PipelineRelationshipNode({
         </div>
       </summary>
       <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
-        {hasPipeline ? (
-          <div className="divide-y divide-slate-200">
-            {records.map((record) => (
-              <div key={record.id} className="grid gap-2 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto]">
-                <div className="min-w-0">
-                  <strong>{record.companyName || '-'}</strong>
-                  <p className="mt-0.5 text-slate-700">{record.opportunityName || record.product || '-'}</p>
-                  <p className="mt-1 text-xs text-slate-500">{record.product || '-'} · {record.stage || '-'} · {record.quotedAt || '-'}</p>
-                  <p className="mt-1 text-xs font-semibold text-teal-700">{pipelineMatchLabel(record.matchedBy)}</p>
-                </div>
-                <strong className="whitespace-nowrap sm:text-right">{formatKrw(record.amount)}</strong>
-              </div>
-            ))}
-          </div>
-        ) : <p className="text-sm text-slate-500">현재 세일즈 현황에서 일치하는 Pipeline이 없습니다.</p>}
+        <PipelineRecordList records={records} />
       </div>
     </details>
   );
@@ -233,6 +238,8 @@ function PipelineRelationshipNode({
 function PipelineRelationshipMap({ account }: { account: SamAccountView }) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [affiliateQuery, setAffiliateQuery] = useState('');
+  const [relationshipView, setRelationshipView] = useState<'compact' | 'map' | 'detail'>('compact');
+  const [selectedMapNode, setSelectedMapNode] = useState('parent');
   const parentRecords = account.pipeline.filter((record) => !record.matchedAffiliateId);
   const affiliateRows = account.affiliates.map((affiliate) => ({
     affiliate,
@@ -256,6 +263,11 @@ function PipelineRelationshipMap({ account }: { account: SamAccountView }) {
     groups[category] = [...(groups[category] || []), row];
     return groups;
   }, {});
+  const selectedAffiliateRow = affiliateRows.find((row) => row.affiliate.id === selectedMapNode);
+  const selectedMapRecords = selectedMapNode === 'parent' ? parentRecords : selectedAffiliateRow?.records || [];
+  const selectedMapLabel = selectedMapNode === 'parent'
+    ? `${account.name.ko || account.name.en} 직접 연결`
+    : selectedAffiliateRow?.affiliate.nameKo || selectedAffiliateRow?.affiliate.nameEn || '';
   return (
     <section className="mt-6 border border-slate-300 bg-white" aria-labelledby="relationship-map-title">
       <div className="grid border-b border-slate-300 bg-slate-950 text-white lg:grid-cols-[minmax(0,1fr)_repeat(3,auto)] lg:items-center">
@@ -279,8 +291,6 @@ function PipelineRelationshipMap({ account }: { account: SamAccountView }) {
           공정위 2026년 국내 소속회사 수는 {account.affiliateCatalog.regulatoryCount}개이며, 아래 맵은 그룹 공식 사이트가 공개한 주요 회사와 사용자가 추가한 회사를 표시합니다.
         </div>
       )}
-      <div className="bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">PARENT</div>
-      <PipelineRelationshipNode label={`${account.name.ko || account.name.en} 직접 연결`} secondary={account.name.en} records={parentRecords} parent />
       <div className="grid gap-3 border-y border-slate-300 bg-slate-100 p-3 sm:grid-cols-[minmax(0,1fr)_180px]">
         <label className="text-xs font-bold text-slate-600">
           계열사 검색
@@ -295,16 +305,101 @@ function PipelineRelationshipMap({ account }: { account: SamAccountView }) {
           </select>
         </label>
       </div>
-      {Object.entries(groupedRows).map(([category, rows]) => (
-        <div key={category}>
-          <div className="flex items-center justify-between bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
-            <span>{category}</span><span>{rows.length}개</span>
-          </div>
-          {rows.map(({ affiliate, records }) => (
-            <PipelineRelationshipNode key={affiliate.id} label={affiliate.nameKo || affiliate.nameEn} secondary={affiliate.nameEn} aliases={affiliate.aliases} records={records} />
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300 px-3 py-2">
+        <p className="text-xs text-slate-500">용도에 맞게 표시 방식을 바꿀 수 있습니다.</p>
+        <div className="inline-flex border border-slate-300 bg-slate-100 p-1" role="group" aria-label="관계사 표시 방식">
+          {([
+            ['compact', '축약 보기'],
+            ['map', '관계 맵'],
+            ['detail', '상세 목록'],
+          ] as const).map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={relationshipView === value} onClick={() => setRelationshipView(value)} className={`min-h-9 px-3 text-sm font-bold ${relationshipView === value ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-white'}`}>
+              {label}
+            </button>
           ))}
         </div>
-      ))}
+      </div>
+
+      {relationshipView === 'detail' && (
+        <>
+          <div className="bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">PARENT</div>
+          <PipelineRelationshipNode label={`${account.name.ko || account.name.en} 직접 연결`} secondary={account.name.en} records={parentRecords} parent />
+          {Object.entries(groupedRows).map(([category, rows]) => (
+            <div key={category}>
+              <div className="flex items-center justify-between bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">
+                <span>{category}</span><span>{rows.length}개</span>
+              </div>
+              {rows.map(({ affiliate, records }) => (
+                <PipelineRelationshipNode key={affiliate.id} label={affiliate.nameKo || affiliate.nameEn} secondary={affiliate.nameEn} aliases={affiliate.aliases} records={records} />
+              ))}
+            </div>
+          ))}
+        </>
+      )}
+
+      {relationshipView === 'compact' && (
+        <div className="grid gap-px bg-slate-200 p-px md:grid-cols-2 xl:grid-cols-3">
+          {Object.entries(groupedRows).map(([category, rows]) => {
+            const categoryRecords = rows.flatMap((row) => row.records);
+            const categoryAmount = categoryRecords.reduce((sum, record) => sum + record.amount, 0);
+            return (
+              <section key={category} className="min-w-0 bg-white p-3" aria-label={`${category} 계열사`}>
+                <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-2">
+                  <div><h5 className="text-sm font-bold text-slate-950">{category}</h5><p className="mt-0.5 text-xs text-slate-500">{rows.length}개 회사</p></div>
+                  <div className="text-right"><p className="text-xs font-bold text-teal-700">{categoryRecords.length}건 연결</p><p className="text-xs text-slate-500">{formatKrw(categoryAmount)}</p></div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {rows.map(({ affiliate, records }) => (
+                    <span key={affiliate.id} title={`${affiliate.nameEn}${records.length ? ` · ${records.length}건 · ${formatKrw(records.reduce((sum, record) => sum + record.amount, 0))}` : ''}`} className={`inline-flex items-center gap-1 border-l-2 px-2 py-1 text-xs ${records.length ? 'border-l-teal-500 bg-teal-50 font-bold text-teal-900' : 'border-l-slate-300 bg-slate-50 text-slate-600'}`}>
+                      <span className={`h-1.5 w-1.5 ${records.length ? 'bg-teal-500' : 'bg-slate-300'}`} />
+                      {affiliate.nameKo || affiliate.nameEn}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+
+      {relationshipView === 'map' && (
+        <div className="bg-slate-50 px-3 py-5 sm:px-5">
+          <div className="mx-auto max-w-sm text-center">
+            <button type="button" onClick={() => setSelectedMapNode('parent')} className={`w-full border-2 px-4 py-3 text-left ${selectedMapNode === 'parent' ? 'border-blue-600 bg-blue-50' : 'border-slate-950 bg-white'}`}>
+              <span className="text-xs font-bold uppercase text-teal-700">Parent</span>
+              <span className="mt-1 block font-bold text-slate-950">{account.name.ko || account.name.en}</span>
+              <span className="mt-1 block text-xs text-slate-500">직접 연결 {parentRecords.length}건 · {formatKrw(parentRecords.reduce((sum, record) => sum + record.amount, 0))}</span>
+            </button>
+            <div className="mx-auto h-7 w-px bg-slate-400" />
+          </div>
+          <div className="grid gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
+            {Object.entries(groupedRows).map(([category, rows]) => (
+              <section key={category} className="min-w-0 border-t-2 border-slate-400 pt-2" aria-label={`${category} 관계 맵`}>
+                <div className="mb-2 flex items-center justify-between gap-2"><h5 className="text-sm font-bold text-slate-950">{category}</h5><span className="text-xs text-slate-500">{rows.length}개</span></div>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {rows.map(({ affiliate, records }) => {
+                    const amount = records.reduce((sum, record) => sum + record.amount, 0);
+                    const selected = selectedMapNode === affiliate.id;
+                    return (
+                      <button key={affiliate.id} type="button" onClick={() => setSelectedMapNode(affiliate.id)} className={`min-w-0 border px-2 py-2 text-left ${selected ? 'border-blue-600 bg-blue-50' : records.length ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-white hover:border-slate-400'}`}>
+                        <span className="flex items-center gap-1.5"><span className={`h-2 w-2 shrink-0 ${records.length ? 'bg-teal-500' : 'bg-slate-300'}`} /><strong className="truncate text-xs text-slate-950">{affiliate.nameKo || affiliate.nameEn}</strong></span>
+                        <span className="mt-1 block truncate text-xs text-slate-500">{records.length}건 · {formatKrw(amount)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+          <div className="mt-5 border-t-2 border-slate-950 bg-white px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+              <div><p className="text-xs font-bold uppercase text-teal-700">Selected company</p><h5 className="font-bold text-slate-950">{selectedMapLabel}</h5></div>
+              <p className="text-sm font-bold">{selectedMapRecords.length}건 · {formatKrw(selectedMapRecords.reduce((sum, record) => sum + record.amount, 0))}</p>
+            </div>
+            <PipelineRecordList records={selectedMapRecords} />
+          </div>
+        </div>
+      )}
       {account.affiliates.length > 0 && visibleRows.length === 0 && <p className="px-4 py-6 text-sm text-slate-500">검색 조건에 맞는 계열사가 없습니다.</p>}
       {!account.affiliates.length && <p className="px-4 py-6 text-sm text-slate-500">등록된 관계사·계열사가 없습니다. 오른쪽 계열사 관리에서 추가해 주세요.</p>}
     </section>
