@@ -80,19 +80,38 @@ const defaultAccount = (input: SamAccountInput, username: string): SamAccount =>
 };
 
 const companyMatchers = (account: SamAccount) => {
-  const map = new Map<string, SamPipelineRecord['matchedBy']>();
-  [account.name.ko, account.name.en].forEach((name) => {
+  const map = new Map<string, {
+    matchedBy: SamPipelineRecord['matchedBy'];
+    matchedAffiliateId?: string;
+    matchedEntityName: string;
+  }>();
+  const addMatcher = (name: string, match: {
+    matchedBy: SamPipelineRecord['matchedBy'];
+    matchedAffiliateId?: string;
+    matchedEntityName: string;
+  }) => {
     const key = normalizeCompany(name);
-    if (key) map.set(key, 'account');
+    if (key && !map.has(key)) map.set(key, match);
+  };
+  const accountName = account.name.ko || account.name.en;
+  [account.name.ko, account.name.en].forEach((name) => {
+    addMatcher(name, { matchedBy: 'account', matchedEntityName: accountName });
   });
   account.affiliates.forEach((affiliate) => {
+    const affiliateName = affiliate.nameKo || affiliate.nameEn;
     [affiliate.nameKo, affiliate.nameEn].forEach((name) => {
-      const key = normalizeCompany(name);
-      if (key) map.set(key, 'affiliate');
+      addMatcher(name, {
+        matchedBy: 'affiliate',
+        matchedAffiliateId: affiliate.id,
+        matchedEntityName: affiliateName,
+      });
     });
     affiliate.aliases.forEach((alias) => {
-      const key = normalizeCompany(alias);
-      if (key) map.set(key, 'alias');
+      addMatcher(alias, {
+        matchedBy: 'alias',
+        matchedAffiliateId: affiliate.id,
+        matchedEntityName: affiliateName,
+      });
     });
   });
   return map;
@@ -112,8 +131,8 @@ export async function listSamAccountsWithPipeline(): Promise<SamAccountView[]> {
     const manual = new Set(account.manualSalesRecordIds);
     const pipeline = sales.flatMap((record): SamPipelineRecord[] => {
       const candidates = [record.companyName, record.accountName].map(normalizeCompany).filter(Boolean);
-      const matched = candidates.map((candidate) => matchers.get(candidate)).find(Boolean);
-      const matchedBy = manual.has(record.id) ? 'manual' : matched;
+      const matched = candidates.map((candidate) => matchers.get(candidate)).find((value) => Boolean(value));
+      const matchedBy = manual.has(record.id) ? 'manual' : matched?.matchedBy;
       if (!matchedBy) return [];
       return [{
         id: record.id,
@@ -124,6 +143,8 @@ export async function listSamAccountsWithPipeline(): Promise<SamAccountView[]> {
         amount: record.amountIncludingExpenses,
         quotedAt: record.quotedAt,
         matchedBy,
+        matchedAffiliateId: matched?.matchedAffiliateId,
+        matchedEntityName: matched?.matchedEntityName || account.name.ko || account.name.en,
       }];
     });
     const activePipelineUsd = pipeline

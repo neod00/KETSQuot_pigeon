@@ -89,6 +89,7 @@ const meetingLabels = {
     pipelineDetail: 'Pipeline 상세',
     actionStakeholder: 'Action · Stakeholder',
     noPipeline: '정확한 회사·계열사·별칭 기준으로 연결된 Pipeline이 없습니다.',
+    coverage: '계열사 Pipeline 커버리지',
     noActions: '등록된 Action 또는 Stakeholder가 없습니다.',
     owner: '담당',
     due: '기한',
@@ -112,6 +113,7 @@ const meetingLabels = {
     pipelineDetail: 'Pipeline Detail',
     actionStakeholder: 'Actions & Stakeholders',
     noPipeline: 'No pipeline is linked by an exact account, affiliate, alias or manual match.',
+    coverage: 'Affiliate Pipeline Coverage',
     noActions: 'No action or stakeholder has been registered.',
     owner: 'Owner',
     due: 'Due',
@@ -154,6 +156,108 @@ function BilingualEditor({
         </span>
       </label>
     </div>
+  );
+}
+
+const pipelineMatchLabel = (matchedBy: SamAccountView['pipeline'][number]['matchedBy']) => ({
+  account: 'Parent명 일치',
+  affiliate: '계열사명 일치',
+  alias: '별칭 일치',
+  manual: '수동 연결',
+})[matchedBy];
+
+function PipelineRelationshipNode({
+  label,
+  secondary,
+  aliases = [],
+  records,
+  parent = false,
+}: {
+  label: string;
+  secondary?: string;
+  aliases?: string[];
+  records: SamAccountView['pipeline'];
+  parent?: boolean;
+}) {
+  const amount = records.reduce((sum, record) => sum + record.amount, 0);
+  const hasPipeline = records.length > 0;
+  return (
+    <details className={`group border-b border-slate-200 last:border-b-0 ${parent ? 'border-l-4 border-l-teal-600' : 'border-l-4 border-l-slate-200'}`}>
+      <summary className="grid min-h-16 cursor-pointer list-none gap-3 px-4 py-3 hover:bg-slate-50 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <strong className="text-sm text-slate-950">{label}</strong>
+            <span className={`border px-2 py-0.5 text-xs font-bold ${hasPipeline ? 'border-teal-200 bg-teal-50 text-teal-800' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+              {hasPipeline ? 'Pipeline 있음' : 'Pipeline 없음'}
+            </span>
+          </div>
+          {(secondary || aliases.length > 0) && (
+            <p className="mt-1 truncate text-xs text-slate-500" title={[secondary, aliases.length ? `별칭: ${aliases.join(', ')}` : ''].filter(Boolean).join(' · ')}>
+              {[secondary, aliases.length ? `별칭: ${aliases.join(', ')}` : ''].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
+        <div className="text-left sm:min-w-20 sm:text-right">
+          <p className="text-xs text-slate-500">연결 건수</p>
+          <p className="font-bold text-slate-950">{records.length}건</p>
+        </div>
+        <div className="flex items-center justify-between gap-3 sm:min-w-32 sm:justify-end">
+          <div className="text-left sm:text-right">
+            <p className="text-xs text-slate-500">Pipeline</p>
+            <p className="font-bold text-slate-950">{formatKrw(amount)}</p>
+          </div>
+          <span className="text-slate-400 transition-transform group-open:rotate-180">⌄</span>
+        </div>
+      </summary>
+      <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
+        {hasPipeline ? (
+          <div className="divide-y divide-slate-200">
+            {records.map((record) => (
+              <div key={record.id} className="grid gap-2 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="min-w-0">
+                  <strong>{record.companyName || '-'}</strong>
+                  <p className="mt-0.5 text-slate-700">{record.opportunityName || record.product || '-'}</p>
+                  <p className="mt-1 text-xs text-slate-500">{record.product || '-'} · {record.stage || '-'} · {record.quotedAt || '-'}</p>
+                  <p className="mt-1 text-xs font-semibold text-teal-700">{pipelineMatchLabel(record.matchedBy)}</p>
+                </div>
+                <strong className="whitespace-nowrap sm:text-right">{formatKrw(record.amount)}</strong>
+              </div>
+            ))}
+          </div>
+        ) : <p className="text-sm text-slate-500">현재 세일즈 현황에서 일치하는 Pipeline이 없습니다.</p>}
+      </div>
+    </details>
+  );
+}
+
+function PipelineRelationshipMap({ account }: { account: SamAccountView }) {
+  const parentRecords = account.pipeline.filter((record) => !record.matchedAffiliateId);
+  const affiliateRows = account.affiliates.map((affiliate) => ({
+    affiliate,
+    records: account.pipeline.filter((record) => record.matchedAffiliateId === affiliate.id),
+  }));
+  const linkedAffiliates = affiliateRows.filter((row) => row.records.length > 0).length;
+  const totalAmount = account.pipeline.reduce((sum, record) => sum + record.amount, 0);
+  return (
+    <section className="mt-6 border border-slate-300 bg-white" aria-labelledby="relationship-map-title">
+      <div className="grid border-b border-slate-300 bg-slate-950 text-white lg:grid-cols-[minmax(0,1fr)_repeat(3,auto)] lg:items-center">
+        <div className="p-4 sm:p-5">
+          <p className="text-xs font-bold uppercase text-teal-300">Account relationship map</p>
+          <h4 id="relationship-map-title" className="mt-1 text-lg font-bold">{account.name.ko || account.name.en} 관계사 · Pipeline 맵</h4>
+          <p className="mt-1 text-xs text-slate-300">Parent명, 계열사명, 별칭의 정확 일치와 수동 연결을 기준으로 표시합니다.</p>
+        </div>
+        <div className="border-t border-slate-700 px-4 py-3 lg:border-l lg:border-t-0"><p className="text-xs text-slate-400">그룹 Pipeline</p><p className="font-bold">{formatKrw(totalAmount)}</p></div>
+        <div className="border-t border-slate-700 px-4 py-3 lg:border-l lg:border-t-0"><p className="text-xs text-slate-400">연결 건수</p><p className="font-bold">{account.pipeline.length}건</p></div>
+        <div className="border-t border-slate-700 px-4 py-3 lg:border-l lg:border-t-0"><p className="text-xs text-slate-400">계열사 커버리지</p><p className="font-bold">{linkedAffiliates} / {account.affiliates.length}</p></div>
+      </div>
+      <div className="bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">PARENT</div>
+      <PipelineRelationshipNode label={`${account.name.ko || account.name.en} 직접 연결`} secondary={account.name.en} records={parentRecords} parent />
+      <div className="bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">AFFILIATES · {account.affiliates.length}</div>
+      {affiliateRows.map(({ affiliate, records }) => (
+        <PipelineRelationshipNode key={affiliate.id} label={affiliate.nameKo || affiliate.nameEn} secondary={affiliate.nameEn} aliases={affiliate.aliases} records={records} />
+      ))}
+      {!account.affiliates.length && <p className="px-4 py-6 text-sm text-slate-500">등록된 관계사·계열사가 없습니다. 오른쪽 계열사 관리에서 추가해 주세요.</p>}
+    </section>
   );
 }
 
@@ -433,18 +537,15 @@ export default function SamDashboard() {
             </div>
             <aside className="space-y-5">
               <div className="border border-slate-300 bg-white p-4">
-                <h4 className="font-bold">Pipeline 연결 기준</h4>
-                <p className="mt-1 text-xs text-slate-500">아래 그룹명·계열사·별칭의 정확 일치 또는 수동 연결만 집계합니다.</p>
+                <h4 className="font-bold">계열사 매핑 관리</h4>
+                <p className="mt-1 text-xs leading-5 text-slate-500">계열사 한글명·영문명·별칭을 등록하면 세일즈 현황의 회사명과 자동으로 비교합니다. 추가 후 변경 저장을 눌러주세요.</p>
+                <p className="mt-3 border-y border-slate-200 py-2 text-sm"><strong>{draft.affiliates.length}개</strong> 계열사 등록</p>
                 <div className="mt-3 space-y-2">{draft.affiliates.map((affiliate) => <div key={affiliate.id} className="border-b pb-2 text-sm"><strong>{affiliate.nameKo || affiliate.nameEn}</strong><div className="text-xs text-slate-500">{affiliate.nameEn} {affiliate.aliases.length ? `· 별칭 ${affiliate.aliases.join(', ')}` : ''}</div></div>)}</div>
                 <div className="mt-3 grid gap-2"><input className="border p-2 text-sm" placeholder="계열사 한글명" value={affiliateDraft.nameKo} onChange={(e) => setAffiliateDraft({ ...affiliateDraft, nameKo: e.target.value })} /><input className="border p-2 text-sm" placeholder="Affiliate English name" value={affiliateDraft.nameEn} onChange={(e) => setAffiliateDraft({ ...affiliateDraft, nameEn: e.target.value })} /><input className="border p-2 text-sm" placeholder="별칭, 쉼표로 구분" value={affiliateDraft.aliases} onChange={(e) => setAffiliateDraft({ ...affiliateDraft, aliases: e.target.value })} /><button type="button" onClick={addAffiliate} className="border px-3 py-2 text-sm font-bold">계열사 추가</button></div>
               </div>
-              <div className="border border-slate-300 bg-white p-4">
-                <h4 className="font-bold">연결된 Pipeline</h4>
-                <p className="mt-1 text-xl font-bold">{formatKrw(draft.activePipelineUsd)}</p>
-                <div className="mt-3 space-y-2">{draft.pipeline.map((record) => <div key={record.id} className="border-t pt-2 text-sm"><strong>{record.companyName}</strong><p>{record.product || record.opportunityName}</p><p className="text-xs text-slate-500">{record.matchedBy} · {formatKrw(record.amount)}</p></div>)}{!draft.pipeline.length && <p className="text-sm text-slate-500">정확히 연결된 세일즈 데이터가 없습니다.</p>}</div>
-              </div>
             </aside>
           </div>
+          <PipelineRelationshipMap account={draft} />
           <ProgressSection account={draft} updateDraft={updateDraft} setUpdateDraft={setUpdateDraft} onAdd={() => void addUpdate()} busy={busy} />
         </section>
       )}
@@ -703,6 +804,9 @@ function MeetingMode({
           const support = update ? field(update.managerSupport) : '-';
           const accountName = language === 'ko' ? account.name.ko : account.name.en;
           const pipelineAmount = account.pipeline.reduce((sum, record) => sum + record.amount, 0);
+          const linkedAffiliates = new Set(account.pipeline
+            .map((record) => record.matchedAffiliateId)
+            .filter((id): id is string => Boolean(id))).size;
 
           return (
             <article key={account.id} className="border border-slate-300 bg-white">
@@ -738,6 +842,9 @@ function MeetingMode({
                   <p className="text-xs font-bold text-slate-500">{labels.pipeline}</p>
                   <p className="mt-2 font-bold">{formatKrw(pipelineAmount)}</p>
                   <p className="text-xs text-slate-500">{account.pipeline.length} {language === 'ko' ? '건 연결' : 'linked records'}</p>
+                  <p className="mt-1 text-xs font-semibold text-teal-700">
+                    {labels.coverage}: {linkedAffiliates} / {account.affiliates.length}
+                  </p>
                 </div>
                 <div className="border-t p-4 xl:border-l xl:border-t-0">
                   <p className="text-xs font-bold text-slate-500">{labels.risk}</p>
@@ -792,7 +899,7 @@ function MeetingMode({
                             </div>
                             <p className="mt-1">{record.opportunityName || record.product || '-'}</p>
                             <p className="mt-1 text-xs text-slate-500">{record.product || '-'} · {record.stage || '-'} · {record.quotedAt || '-'}</p>
-                            <p className="mt-1 text-xs font-semibold text-teal-700">{matchText(record.matchedBy)}</p>
+                            <p className="mt-1 text-xs font-semibold text-teal-700">{record.matchedEntityName || accountName} · {matchText(record.matchedBy)}</p>
                           </div>
                         ))}
                       </div>

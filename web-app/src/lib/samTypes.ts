@@ -109,6 +109,8 @@ export interface SamPipelineRecord {
   amount: number;
   quotedAt: string;
   matchedBy: 'account' | 'affiliate' | 'alias' | 'manual';
+  matchedAffiliateId?: string;
+  matchedEntityName?: string;
 }
 
 export interface SamAccountView extends SamAccount {
