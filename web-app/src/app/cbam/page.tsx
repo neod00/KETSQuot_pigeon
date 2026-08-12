@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { FormEvent, useMemo, useState } from 'react';
 import {
   CBAM_GOODS,
@@ -87,11 +86,7 @@ export default function CbamApplicationPage() {
             <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-700">LRQA Korea · CBAM Services</p>
             <p className="mt-1 text-lg font-black">탄소국경조정제도 서비스 신청</p>
           </div>
-          <nav className="flex items-center gap-2 text-sm font-bold">
-            <Link href="/" className="rounded-lg border border-slate-300 px-3 py-2 hover:bg-slate-50">K-ETS</Link>
-            <Link href="/iso" className="rounded-lg border border-slate-300 px-3 py-2 hover:bg-slate-50">ISO</Link>
-            <Link href="/cbam/admin" className="rounded-lg bg-slate-950 px-3 py-2 text-white hover:bg-slate-800">내부 관리</Link>
-          </nav>
+          <img src="/lrqa-logo.png" alt="LRQA" className="h-12 w-auto bg-slate-950 p-2" />
         </div>
       </header>
 
@@ -221,4 +216,3 @@ function Check({ checked, onChange, label }: { checked: boolean; onChange: (valu
 }
 
 function Summary({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4"><dt className="text-slate-400">{label}</dt><dd className="font-bold">{value}</dd></div>; }
-

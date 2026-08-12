@@ -10,11 +10,15 @@ import {
   type StoredCbamApplication,
 } from '@/lib/cbam';
 
+type AdminView = 'applications' | 'quotes' | 'contracts';
+
 export default function CbamAdminPage() {
   const [applications, setApplications] = useState<StoredCbamApplication[]>([]);
   const [selected, setSelected] = useState<StoredCbamApplication | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState<AdminView>('applications');
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,13 +45,25 @@ export default function CbamAdminPage() {
     value: applications.reduce((sum, item) => sum + item.estimatedCost, 0),
   }), [applications]);
 
+  const copyApplicationLink = async () => {
+    await navigator.clipboard.writeText(`${window.location.origin}/cbam`);
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1800);
+  };
+
+  const viewContent = {
+    applications: { title: '신청서 접수현황', description: '접수된 고객 신청서와 자동 산정된 검증일수 및 근거를 확인합니다.' },
+    quotes: { title: '견적서', description: '접수 정보를 기반으로 검증일수, 단가, 제경비와 VAT를 검토하여 견적서를 작성합니다.' },
+    contracts: { title: '계약서', description: '접수 범위와 확정 비용을 바탕으로 CBAM 서비스 계약서를 작성합니다.' },
+  }[activeView];
+
   return (
     <main className="min-h-screen bg-[#f4f6f8] text-slate-950">
       <header className="bg-slate-950 text-white">
         <div className="mx-auto max-w-[1500px] px-5 py-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div><p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">Internal review workspace</p><h1 className="mt-1 text-2xl font-black">CBAM 신청·견적 관리</h1></div>
-            <div className="flex items-center gap-2"><Link href="/cbam" className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold hover:bg-white/10">공개 신청서</Link><Link href="/" className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-950">메인으로</Link></div>
+            <div><p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">Internal review workspace</p><h1 className="mt-1 text-2xl font-black">CBAM 관리</h1></div>
+            <div className="flex flex-wrap items-center gap-2"><Link href="/cbam" target="_blank" rel="noreferrer" className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold hover:bg-white/10">고객 신청서 열기</Link><button type="button" onClick={copyApplicationLink} className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold hover:bg-white/10">{linkCopied ? '링크 복사됨' : '신청서 링크 복사'}</button><Link href="/" className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-950">메인으로</Link></div>
           </div>
           <div className="mt-7 grid gap-px overflow-hidden rounded-2xl bg-white/10 sm:grid-cols-4">
             <Stat label="전체 신청" value={`${stats.total}건`} /><Stat label="신규 접수" value={`${stats.newCount}건`} /><Stat label="예상 검증일" value={`${stats.totalDays.toFixed(1)}일`} /><Stat label="예상 공급가" value={formatKrw(stats.value)} />
@@ -56,14 +72,25 @@ export default function CbamAdminPage() {
       </header>
 
       <div className="mx-auto max-w-[1500px] px-5 py-7">
+        <nav className="mb-6 flex flex-wrap gap-2 border-b border-slate-300" aria-label="CBAM 관리 메뉴">
+          {([
+            ['applications', '신청서 접수현황'],
+            ['quotes', '견적서'],
+            ['contracts', '계약서'],
+          ] as const).map(([view, label]) => (
+            <button key={view} type="button" onClick={() => setActiveView(view)} className={`min-h-11 border-b-4 px-5 py-3 text-sm font-black transition ${activeView === view ? 'border-teal-700 bg-white text-slate-950' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>
+              {label}
+            </button>
+          ))}
+        </nav>
         {error && <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5"><p className="font-bold text-amber-900">{error}</p><button onClick={() => load()} className="mt-3 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white">다시 시도</button></div>}
         <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_.85fr]">
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 p-5"><div><h2 className="text-lg font-black">접수된 신청서</h2><p className="mt-1 text-sm text-slate-500">행을 선택하면 상세 산정근거와 문서 생성 기능이 표시됩니다.</p></div><button onClick={() => load()} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-50">새로고침</button></div>
+            <div className="flex items-center justify-between border-b border-slate-200 p-5"><div><h2 className="text-lg font-black">{viewContent.title}</h2><p className="mt-1 text-sm text-slate-500">{viewContent.description}</p></div><button onClick={() => load()} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-50">새로고침</button></div>
             <div className="overflow-x-auto">
               <table className="min-w-[900px] w-full text-left text-sm">
-                <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-500"><tr><Th>접수번호 / 일시</Th><Th>업체</Th><Th>업무</Th><Th>복잡도</Th><Th>심사일수</Th><Th>예상비용</Th><Th>상태</Th></tr></thead>
-                <tbody>{loading ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">불러오는 중...</td></tr> : applications.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">접수된 신청서가 없습니다.</td></tr> : applications.map(application => <tr key={application.reference} onClick={() => setSelected(application)} className={`cursor-pointer border-t border-slate-100 transition hover:bg-teal-50 ${selected?.reference === application.reference ? 'bg-teal-50' : ''}`}><Td><strong className="block">{application.reference}</strong><span className="mt-1 block text-xs text-slate-500">{formatDateTime(application.submittedAt)}</span></Td><Td><strong className="block">{application.companyName}</strong><span className="mt-1 block text-xs text-slate-500">{application.contactName} · {application.country}</span></Td><Td>{serviceTypeLabel(application.serviceType)}<span className="mt-1 block text-xs text-slate-500">{clientTypeLabel(application.clientType)}</span></Td><Td><Badge tone={application.complexity === 'very_complex' || application.complexity === 'complex' ? 'amber' : 'teal'}>{complexityLabel(application.complexity)}</Badge></Td><Td><strong>{application.quotedDays.toFixed(1)}일</strong><span className="mt-1 block text-xs text-slate-500">원시 {application.rawDays.toFixed(2)}일</span></Td><Td className="font-bold">{formatKrw(application.estimatedCost)}</Td><Td><Badge tone="blue">{application.status}</Badge></Td></tr>)}</tbody>
+                <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-500"><tr><Th>접수번호 / 일시</Th><Th>업체</Th><Th>업무</Th><Th>복잡도</Th><Th>심사일수</Th><Th>예상비용</Th><Th>{activeView === 'applications' ? '상태' : '작업'}</Th></tr></thead>
+                <tbody>{loading ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">불러오는 중...</td></tr> : applications.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">접수된 신청서가 없습니다.</td></tr> : applications.map(application => <tr key={application.reference} onClick={() => setSelected(application)} className={`cursor-pointer border-t border-slate-100 transition hover:bg-teal-50 ${selected?.reference === application.reference ? 'bg-teal-50' : ''}`}><Td><strong className="block">{application.reference}</strong><span className="mt-1 block text-xs text-slate-500">{formatDateTime(application.submittedAt)}</span></Td><Td><strong className="block">{application.companyName}</strong><span className="mt-1 block text-xs text-slate-500">{application.contactName} · {application.country}</span></Td><Td>{serviceTypeLabel(application.serviceType)}<span className="mt-1 block text-xs text-slate-500">{clientTypeLabel(application.clientType)}</span></Td><Td><Badge tone={application.complexity === 'very_complex' || application.complexity === 'complex' ? 'amber' : 'teal'}>{complexityLabel(application.complexity)}</Badge></Td><Td><strong>{application.quotedDays.toFixed(1)}일</strong><span className="mt-1 block text-xs text-slate-500">원시 {application.rawDays.toFixed(2)}일</span></Td><Td className="font-bold">{formatKrw(application.estimatedCost)}</Td><Td>{activeView === 'applications' ? <Badge tone="blue">{application.status}</Badge> : <Link href={`/cbam/documents?type=${activeView === 'quotes' ? 'quote' : 'contract'}&ref=${encodeURIComponent(application.reference)}`} onClick={event => event.stopPropagation()} className="inline-flex rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white hover:bg-teal-700">{activeView === 'quotes' ? '견적서 작성' : '계약서 작성'}</Link>}</Td></tr>)}</tbody>
               </table>
             </div>
           </section>
