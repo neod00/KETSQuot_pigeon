@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
@@ -31,28 +33,49 @@ const must = (value, message) => {
   return value;
 };
 
-const requestWithWindowsTrustStore = (url, options = {}) => new Promise((resolve, reject) => {
-  const child = spawn('powershell.exe', [
-    '-NoProfile',
-    '-ExecutionPolicy', 'Bypass',
-    '-File', path.join(root, 'invoke-sam-api.ps1'),
-    '-Url', url,
-  ], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
-  let stdout = '';
-  let stderr = '';
-  child.stdout.on('data', (chunk) => { stdout += chunk; });
-  child.stderr.on('data', (chunk) => { stderr += chunk; });
-  child.on('error', reject);
-  child.on('close', (code) => {
-    if (code !== 0) return reject(new Error(stderr.trim() || `Windows API request failed (${code})`));
-    try { resolve(JSON.parse(stdout)); } catch { reject(new Error('Windows API response was not valid JSON.')); }
+const redactRequestSecrets = (value, options = {}) => {
+  let redacted = String(value || '');
+  Object.values(options.headers || {}).forEach((secret) => {
+    if (secret) redacted = redacted.replaceAll(String(secret), '[redacted]');
   });
-  child.stdin.end(JSON.stringify({
+  return redacted;
+};
+
+const requestWithWindowsTrustStore = async (url, options = {}) => {
+  const requestPath = path.join(os.tmpdir(), `lrqa-sam-request-${randomUUID()}.json`);
+  await fs.writeFile(requestPath, JSON.stringify({
     method: options.method || 'GET',
     headers: options.headers || {},
     body: options.body || null,
-  }));
-});
+  }), { encoding: 'utf8', mode: 0o600 });
+
+  try {
+    return await new Promise((resolve, reject) => {
+      const child = spawn('powershell.exe', [
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-File', path.join(root, 'invoke-sam-api.ps1'),
+        '-Url', url,
+        '-RequestPath', requestPath,
+      ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', (chunk) => { stdout += chunk; });
+      child.stderr.on('data', (chunk) => { stderr += chunk; });
+      child.on('error', reject);
+      child.on('close', (code) => {
+        if (code !== 0) {
+          return reject(new Error(redactRequestSecrets(stderr.trim(), options) || `Windows API request failed (${code})`));
+        }
+        try { resolve(JSON.parse(stdout)); } catch { reject(new Error('Windows API response was not valid JSON.')); }
+      });
+    });
+  } finally {
+    await fs.unlink(requestPath).catch(() => undefined);
+  }
+};
 
 const request = async (url, options = {}) => {
   try {

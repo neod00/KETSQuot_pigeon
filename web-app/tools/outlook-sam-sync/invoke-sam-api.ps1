@@ -1,10 +1,16 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$Url
+    [string]$Url,
+
+    [Parameter(Mandatory = $true)]
+    [string]$RequestPath
 )
 
 $ErrorActionPreference = 'Stop'
-$request = [Console]::In.ReadToEnd() | ConvertFrom-Json
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
+$request = Get-Content -LiteralPath $RequestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $headers = @{}
 foreach ($property in $request.headers.psobject.Properties) {
     $headers[$property.Name] = [string]$property.Value
@@ -18,8 +24,8 @@ $parameters = @{
 }
 
 if ($null -ne $request.body) {
-    $parameters['ContentType'] = 'application/json'
-    $parameters['Body'] = [string]$request.body
+    $parameters['ContentType'] = 'application/json; charset=utf-8'
+    $parameters['Body'] = $utf8.GetBytes([string]$request.body)
 }
 
 try {
