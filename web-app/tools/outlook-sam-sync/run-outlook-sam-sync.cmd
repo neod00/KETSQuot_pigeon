@@ -1,1 +1,2 @@
-@echo off & "C:\Users\KQAKDZ\OneDrive - LRQA\문서\AI\D365_auto\node_portable\node.exe" "%~dp0outlook-sam-sync.mjs" %*
+@echo off
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-outlook-sam-sync.ps1" %*
