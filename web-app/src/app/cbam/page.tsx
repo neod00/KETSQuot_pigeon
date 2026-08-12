@@ -1,12 +1,9 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import {
   CBAM_GOODS,
   MANAGEMENT_SYSTEMS,
-  calculateCbamDays,
-  clientTypeLabel,
-  complexityLabel,
   createDefaultCbamApplication,
   type CbamApplicationInput,
 } from '@/lib/cbam';
@@ -19,8 +16,6 @@ export default function CbamApplicationPage() {
   const [submittedReference, setSubmittedReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const calculation = useMemo(() => calculateCbamDays(form), [form]);
-
   const update = <K extends keyof CbamApplicationInput>(key: K, value: CbamApplicationInput[K]) =>
     setForm(current => ({ ...current, [key]: value }));
 
@@ -63,15 +58,8 @@ export default function CbamApplicationPage() {
           <div className="mb-8 inline-flex h-14 w-14 items-center justify-center rounded-full bg-teal-400 text-2xl text-slate-950">✓</div>
           <p className="text-sm font-bold uppercase tracking-[0.22em] text-teal-300">Application received</p>
           <h1 className="mt-3 text-4xl font-black tracking-tight">CBAM 서비스 신청이 접수되었습니다.</h1>
-          <p className="mt-5 text-lg leading-8 text-slate-300">접수번호는 <strong className="text-white">{submittedReference}</strong>입니다. 담당자가 증빙자료와 산정 결과를 검토한 뒤 최종 일정 및 비용을 안내합니다.</p>
-          <div className="mt-8 rounded-2xl bg-white/10 p-5">
-            <p className="text-sm text-slate-300">자동 예비 산정</p>
-            <div className="mt-2 flex flex-wrap items-end gap-x-8 gap-y-3">
-              <div><span className="text-3xl font-black">{calculation.quotedDays.toFixed(1)}</span> <span className="text-slate-300">검증일</span></div>
-              <div><span className="text-2xl font-bold">{complexityLabel(calculation.complexity)}</span> <span className="text-slate-300">복잡도</span></div>
-            </div>
-            <p className="mt-3 text-xs leading-5 text-slate-400">이 값은 P1173 Verifier Day Framework에 따른 내부 검토 시작값이며 최종 견적이 아닙니다.</p>
-          </div>
+          <p className="mt-5 text-lg leading-8 text-slate-300">접수번호는 <strong className="text-white">{submittedReference}</strong>입니다.</p>
+          <div className="mt-8 border-l-4 border-teal-400 bg-white/10 px-5 py-4 text-sm leading-7 text-slate-200">제출된 정보를 바탕으로 LRQA 담당자가 검증 범위와 필요 일수를 검토한 후 일정 및 견적을 안내해 드립니다.</div>
           <button onClick={() => { setForm(createDefaultCbamApplication()); setSubmittedReference(''); }} className="mt-8 rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-950 hover:bg-teal-300">새 신청서 작성</button>
         </div>
       </main>
@@ -177,22 +165,18 @@ export default function CbamApplicationPage() {
 
           <aside className="lg:sticky lg:top-5">
             <div className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-xl">
-              <div className="border-b border-white/10 p-6"><p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-300">Preliminary review</p><h2 className="mt-2 text-xl font-black">예비 산정 요약</h2></div>
-              <div className="p-6">
-                <p className="text-sm text-slate-400">고객 유형</p><p className="mt-1 font-bold">{clientTypeLabel(form.clientType)}</p>
-                <div className="mt-6 grid grid-cols-2 gap-4">
-                  <div className="rounded-xl bg-white/10 p-4"><p className="text-xs text-slate-400">복잡도</p><p className="mt-1 text-xl font-black">{complexityLabel(calculation.complexity)}</p></div>
-                  <div className="rounded-xl bg-teal-400 p-4 text-slate-950"><p className="text-xs font-bold opacity-70">예비 일수</p><p className="mt-1 text-xl font-black">{calculation.quotedDays.toFixed(1)}일</p></div>
-                </div>
-                <dl className="mt-6 space-y-3 border-t border-white/10 pt-5 text-sm">
-                  <Summary label="SARA / Stage 1" value={`${calculation.saraDays.toFixed(2)}일`} />
-                  <Summary label="검증 / Stage 2·3" value={`${calculation.verificationDays.toFixed(2)}일`} />
-                  <Summary label="독립 기술검토" value={`${calculation.technicalReviewDays.toFixed(2)}일`} />
-                  <Summary label="조정" value={`${calculation.adjustmentPercent}%`} />
-                </dl>
-                <p className="mt-5 text-xs leading-5 text-slate-400">P1173 CBAM Verifier Day Framework r0 (Jan 2025)에 따른 시작값입니다. Lead Verifier의 적격성·범위·증빙 검토 후 확정됩니다.</p>
+              <div className="border-b border-white/10 p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-300">CBAM resources</p>
+                <h2 className="mt-2 text-xl font-black">CBAM 준비 자료</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-300">신청 전 참고할 수 있는 LRQA 공식 안내 자료입니다.</p>
               </div>
+              <nav aria-label="CBAM 참고 자료" className="divide-y divide-white/10">
+                <ResourceLink title="CBAM 제도 및 LRQA 지원 서비스" description="적용 대상, 시행 일정과 LRQA 지원 범위를 확인합니다." href="https://www.lrqa.com/ko-kr/carbon-border-adjustment-mechanism-cbam/" />
+                <ResourceLink title="기업이 놓치기 쉬운 5가지 준비사항" description="데이터, 공급망 및 검증 준비 과정의 주요 리스크를 살펴봅니다." href="https://www.lrqa.com/ko-kr/insights/articles/five-things-companies-overlook-when-preparing-for-cbam/" />
+                <ResourceLink title="CBAM 시행 일정 한눈에 보기" description="주요 규제 일정과 단계별 대응 과제를 확인합니다." href="https://www.lrqa.com/ko-kr/resources/cbam-timeline-infographic/" />
+              </nav>
             </div>
+            <div className="mt-4 border-l-4 border-teal-600 bg-white p-5 text-sm leading-6 text-slate-700 shadow-sm">제출된 정보를 바탕으로 LRQA 담당자가 검증 범위와 필요 일수를 검토한 후 일정 및 견적을 안내해 드립니다.</div>
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs leading-5 text-amber-900"><strong className="block text-sm">2026 규정 안내</strong>실제값 검증은 EU 국가 인정기관이 인정한 독립 검증자가 수행해야 합니다. 본 신청은 계약 및 검증 착수 전 적격성 검토 단계입니다.</div>
           </aside>
         </div>
@@ -215,4 +199,16 @@ function Check({ checked, onChange, label }: { checked: boolean; onChange: (valu
   return <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800"><input className="mt-0.5 h-4 w-4 accent-teal-700" type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} /><span>{label}</span></label>;
 }
 
-function Summary({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4"><dt className="text-slate-400">{label}</dt><dd className="font-bold">{value}</dd></div>; }
+function ResourceLink({ title, description, href }: { title: string; description: string; href: string }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="group block p-6 transition hover:bg-white/10 focus:bg-white/10 focus:outline-none">
+      <span className="flex items-start justify-between gap-4">
+        <span>
+          <span className="block font-bold text-white">{title}</span>
+          <span className="mt-2 block text-sm leading-6 text-slate-300">{description}</span>
+        </span>
+        <span aria-hidden="true" className="text-lg font-bold text-teal-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5">↗</span>
+      </span>
+    </a>
+  );
+}
