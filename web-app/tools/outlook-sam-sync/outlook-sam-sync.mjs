@@ -3,6 +3,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
@@ -30,11 +31,41 @@ const must = (value, message) => {
   return value;
 };
 
+const requestWithWindowsTrustStore = (url, options = {}) => new Promise((resolve, reject) => {
+  const child = spawn('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-File', path.join(root, 'invoke-sam-api.ps1'),
+    '-Url', url,
+  ], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (chunk) => { stdout += chunk; });
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  child.on('error', reject);
+  child.on('close', (code) => {
+    if (code !== 0) return reject(new Error(stderr.trim() || `Windows API request failed (${code})`));
+    try { resolve(JSON.parse(stdout)); } catch { reject(new Error('Windows API response was not valid JSON.')); }
+  });
+  child.stdin.end(JSON.stringify({
+    method: options.method || 'GET',
+    headers: options.headers || {},
+    body: options.body || null,
+  }));
+});
+
 const request = async (url, options = {}) => {
-  const response = await fetch(url, options);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || `SAM API 요청에 실패했습니다. (${response.status})`);
-  return payload;
+  try {
+    const response = await fetch(url, options);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `SAM API request failed (${response.status})`);
+    return payload;
+  } catch (error) {
+    const certificateError = String(error?.cause || error).includes('unable to get local issuer certificate');
+    if (!certificateError) throw error;
+    console.log('Using the Windows trust store for the SAM API connection.');
+    return requestWithWindowsTrustStore(url, options);
+  }
 };
 
 const userDataDir = (config) => path.resolve(root, config.profileDirectory || 'edge-profile');
