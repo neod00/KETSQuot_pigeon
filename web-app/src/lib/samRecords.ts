@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { getIsoBinary, getIsoJson, setIsoBinary, updateIsoJson } from '@/lib/isoStorage';
 import { initialSamAccounts } from '@/lib/samSeed';
 import { mergeOfficialAffiliateCatalog } from '@/lib/samAffiliateCatalog';
@@ -11,6 +11,10 @@ import type {
   SamAccountView,
   SamBilingualText,
   SamDocument,
+  SamMailDraft,
+  SamMailMessageRef,
+  SamMailSyncStatus,
+  SamOrganizedProgress,
   SamPipelineRecord,
   SamProgressUpdate,
 } from '@/lib/samTypes';
@@ -18,6 +22,13 @@ import type {
 const STORE = 'sam-business';
 const ACCOUNT_KEY = 'accounts.json';
 const DOCUMENT_KEY = 'documents.json';
+const MAIL_DRAFT_KEY = 'mail-drafts.json';
+const MAIL_SYNC_KEY = 'mail-sync.json';
+
+type SamMailSyncCredential = {
+  secretHash: string;
+  createdAt: string;
+};
 
 const text = (value: unknown) => String(value ?? '').trim();
 const number = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -201,7 +212,7 @@ export async function addSamProgressUpdate(
   accountId: string,
   input: Partial<SamProgressUpdate>,
   username: string,
-) {
+): Promise<SamProgressUpdate | null> {
   let saved: SamProgressUpdate | null = null;
   await updateIsoJson<SamAccount[]>(STORE, ACCOUNT_KEY, (current) => {
     const accounts = current?.length ? current : initialSamAccounts();
@@ -230,6 +241,115 @@ export async function addSamProgressUpdate(
     });
   });
   return saved;
+}
+
+const safeHash = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex');
+
+export async function issueSamMailSyncKey() {
+  const key = `sam_${randomBytes(32).toString('base64url')}`;
+  await updateIsoJson<SamMailSyncCredential>(STORE, MAIL_SYNC_KEY, () => ({
+    secretHash: safeHash(key),
+    createdAt: new Date().toISOString(),
+  }));
+  return { key, createdAt: new Date().toISOString() };
+}
+
+export async function hasSamMailSyncKey() {
+  return Boolean(await getIsoJson<SamMailSyncCredential>(STORE, MAIL_SYNC_KEY));
+}
+
+export async function verifySamMailSyncKey(candidate: string | null | undefined) {
+  if (!candidate) return false;
+  const credential = await getIsoJson<SamMailSyncCredential>(STORE, MAIL_SYNC_KEY);
+  if (!credential?.secretHash) return false;
+  const candidateHash = safeHash(candidate);
+  const expected = Buffer.from(credential.secretHash, 'hex');
+  const actual = Buffer.from(candidateHash, 'hex');
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+export async function listSamMailDrafts(accountId: string) {
+  return (await getIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY) || [])
+    .filter((draft) => draft.accountId === accountId)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+export async function findSamMailDraft(accountId: string, draftId: string) {
+  return (await listSamMailDrafts(accountId)).find((draft) => draft.id === draftId) || null;
+}
+
+export async function hasNewSamMailMessageRefs(messageRefs: SamMailMessageRef[]) {
+  const knownIds = new Set((await getIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY) || [])
+    .flatMap((draft) => draft.messageRefs.map((message) => message.id)));
+  return messageRefs.some((message) => message.id && !knownIds.has(message.id));
+}
+
+export async function createSamMailDraft({
+  accountId,
+  source,
+  messageRefs,
+  analysis,
+  username,
+}: {
+  accountId: string;
+  source: SamMailDraft['source'];
+  messageRefs: SamMailMessageRef[];
+  analysis: SamOrganizedProgress;
+  username: string;
+}) {
+  const knownDrafts = await getIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY) || [];
+  const knownIds = new Set(knownDrafts.flatMap((draft) => draft.messageRefs.map((message) => message.id)));
+  const newRefs = messageRefs.filter((message) => message.id && !knownIds.has(message.id));
+  if (!newRefs.length) return { draft: null, duplicate: true };
+
+  const draft: SamMailDraft = {
+    id: randomUUID(),
+    accountId,
+    source,
+    status: 'pending',
+    messageRefs: newRefs,
+    analysis,
+    createdAt: new Date().toISOString(),
+    createdBy: username,
+  };
+  await updateIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY, (current) => [draft, ...(current || [])]);
+  return { draft, duplicate: false };
+}
+
+export async function setSamMailDraftStatus({
+  accountId,
+  draftId,
+  status,
+  updateId,
+}: {
+  accountId: string;
+  draftId: string;
+  status: Extract<SamMailDraft['status'], 'approved' | 'discarded'>;
+  updateId?: string;
+}): Promise<SamMailDraft | null> {
+  let saved: SamMailDraft | null = null;
+  await updateIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY, (current) => (current || []).map((draft) => {
+    if (draft.id !== draftId || draft.accountId !== accountId) return draft;
+    saved = {
+      ...draft,
+      status,
+      approvedAt: status === 'approved' ? new Date().toISOString() : undefined,
+      approvedUpdateId: status === 'approved' ? updateId : undefined,
+    };
+    return saved;
+  }));
+  return saved;
+}
+
+export async function recordSamMailSyncStatus(status: SamMailSyncStatus) {
+  await updateIsoJson<SamMailSyncStatus[]>(STORE, 'mail-sync-status.json', (current) => {
+    const remaining = (current || []).filter((item) => item.accountId !== status.accountId);
+    return [status, ...remaining].slice(0, 20);
+  });
+}
+
+export async function listSamMailSyncStatuses() {
+  return await getIsoJson<SamMailSyncStatus[]>(STORE, 'mail-sync-status.json') || [];
 }
 
 export async function saveSamDocument(

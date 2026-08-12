@@ -1,0 +1,9 @@
+{
+  "siteUrl": "https://ketsquot-pigeon.netlify.app",
+  "syncKey": "앱의 Outlook Web 수집기 연결에서 발급한 키",
+  "folderName": "SAM-AI 대상",
+  "profileDirectory": "edge-profile",
+  "edgeExecutablePath": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "maxMessages": 20,
+  "visible": false
+}

@@ -72,6 +72,52 @@ export interface SamProgressUpdate {
   createdBy: string;
 }
 
+export interface SamOrganizedProgress {
+  status: SamProgressStatus;
+  dueDate: string;
+  briefing: SamBilingualText;
+  accomplishments: SamBilingualText;
+  customerMeetings: SamBilingualText;
+  pipelineChanges: SamBilingualText;
+  blockers: SamBilingualText;
+  nextActions: SamBilingualText;
+  managerSupport: SamBilingualText;
+  uncategorized: SamBilingualText;
+}
+
+export interface SamMailMessageRef {
+  id: string;
+  conversationId?: string;
+  subject: string;
+  from: string;
+  to: string;
+  receivedAt: string;
+  webLink?: string;
+}
+
+export interface SamMailDraft {
+  id: string;
+  accountId: string;
+  source: 'outlook-web' | 'eml-upload';
+  status: 'pending' | 'approved' | 'discarded';
+  messageRefs: SamMailMessageRef[];
+  analysis: SamOrganizedProgress;
+  createdAt: string;
+  createdBy: string;
+  approvedAt?: string;
+  approvedUpdateId?: string;
+}
+
+export interface SamMailSyncStatus {
+  accountId: string;
+  source: 'outlook-web' | 'eml-upload';
+  attemptedAt: string;
+  completedAt?: string;
+  relatedMessages: number;
+  draftsCreated: number;
+  error?: string;
+}
+
 export interface SamAccount {
   id: string;
   name: SamBilingualText;

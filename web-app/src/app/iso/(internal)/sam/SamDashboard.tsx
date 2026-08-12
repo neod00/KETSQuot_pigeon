@@ -5,10 +5,13 @@ import type {
   SamAccountView,
   SamBilingualText,
   SamDocument,
+  SamMailDraft,
+  SamMailSyncStatus,
   SamProgressStatus,
   SamProgressUpdate,
   SamReviewCadence,
 } from '@/lib/samTypes';
+import { parseSamEml } from '@/lib/samEml';
 
 type View = 'dashboard' | 'accounts' | 'detail' | 'meeting' | 'translation' | 'documents';
 type Language = 'ko' | 'en';
@@ -424,6 +427,7 @@ export default function SamDashboard() {
   const [updateDraft, setUpdateDraft] = useState<Partial<SamProgressUpdate>>(emptyUpdate);
   const [affiliateDraft, setAffiliateDraft] = useState({ nameKo: '', nameEn: '', aliases: '' });
   const fileInput = useRef<HTMLInputElement>(null);
+  const emlInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const response = await fetch('/api/iso/sam', { cache: 'no-store' });
@@ -698,7 +702,15 @@ export default function SamDashboard() {
             </aside>
           </div>
           <PipelineRelationshipMap account={draft} />
-          <ProgressSection account={draft} updateDraft={updateDraft} setUpdateDraft={setUpdateDraft} onAdd={() => void addUpdate()} busy={busy} />
+          <ProgressSection
+            account={draft}
+            updateDraft={updateDraft}
+            setUpdateDraft={setUpdateDraft}
+            onAdd={() => void addUpdate()}
+            busy={busy}
+            emlInput={emlInput}
+            onAccountChanged={load}
+          />
         </section>
       )}
 
@@ -743,13 +755,15 @@ function AccountTable({ accounts, onOpen }: { accounts: SamAccountView[]; onOpen
 }
 
 function ProgressSection({
-  account, updateDraft, setUpdateDraft, onAdd, busy,
+  account, updateDraft, setUpdateDraft, onAdd, busy, emlInput, onAccountChanged,
 }: {
   account: SamAccountView;
   updateDraft: Partial<SamProgressUpdate>;
   setUpdateDraft: (value: Partial<SamProgressUpdate>) => void;
   onAdd: () => void;
   busy: boolean;
+  emlInput: React.RefObject<HTMLInputElement | null>;
+  onAccountChanged: () => Promise<void>;
 }) {
   type UpdateTextKey =
     | 'briefing' | 'accomplishments' | 'customerMeetings' | 'pipelineChanges'
@@ -763,6 +777,13 @@ function ProgressSection({
   const [organizeMode, setOrganizeMode] = useState<'append' | 'replace'>('append');
   const [organizing, setOrganizing] = useState(false);
   const [organizeMessage, setOrganizeMessage] = useState('');
+  const [mailDrafts, setMailDrafts] = useState<SamMailDraft[]>([]);
+  const [mailSyncStatus, setMailSyncStatus] = useState<SamMailSyncStatus | null>(null);
+  const [syncConfigured, setSyncConfigured] = useState(false);
+  const [syncKeyDisplay, setSyncKeyDisplay] = useState('');
+  const [mailBusy, setMailBusy] = useState(false);
+  const [mailMessage, setMailMessage] = useState('');
+  const [selectedMailDraftId, setSelectedMailDraftId] = useState('');
 
   useEffect(() => {
     if (!updateDraft.sourceMemo) {
@@ -770,6 +791,19 @@ function ProgressSection({
       setOrganizeMessage('');
     }
   }, [updateDraft.sourceMemo]);
+
+  const loadMailDrafts = useCallback(async () => {
+    const response = await fetch(`/api/iso/sam/mail?accountId=${encodeURIComponent(account.id)}`, { cache: 'no-store' });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Outlook 초안을 불러오지 못했습니다.');
+    setMailDrafts(payload.drafts || []);
+    setMailSyncStatus(payload.status || null);
+    setSyncConfigured(Boolean(payload.syncConfigured));
+  }, [account.id]);
+
+  useEffect(() => {
+    void loadMailDrafts().catch((error) => setMailMessage(error instanceof Error ? error.message : 'Outlook 초안을 불러오지 못했습니다.'));
+  }, [loadMailDrafts]);
 
   const pair = (key: UpdateTextKey) => (updateDraft[key] || emptyPair()) as SamBilingualText;
   const setPair = (key: UpdateTextKey, value: SamBilingualText) =>
@@ -823,10 +857,189 @@ function ProgressSection({
     }
   };
 
+  const applyMailDraft = (draft: SamMailDraft) => {
+    const next = { ...updateDraft };
+    const keys: UpdateTextKey[] = [
+      'briefing', 'accomplishments', 'customerMeetings', 'pipelineChanges',
+      'blockers', 'nextActions', 'managerSupport', 'uncategorized',
+    ];
+    keys.forEach((key) => { next[key] = draft.analysis[key]; });
+    next.date = draft.createdAt.slice(0, 10);
+    next.status = draft.analysis.status;
+    next.dueDate = draft.analysis.dueDate;
+    next.owner = updateDraft.owner || account.manager;
+    next.sourceMemo = `Outlook AI 초안 · ${draft.messageRefs.length}건\n${draft.messageRefs.map((message) => `- ${message.receivedAt || '-'} | ${message.from || '-'} | ${message.subject || '(제목 없음)'}`).join('\n')}`;
+    setUpdateDraft(next);
+    setSelectedMailDraftId(draft.id);
+    setMailMessage('AI 초안을 아래 편집칸에 불러왔습니다. 수정 후 승인·반영을 누르면 진행현황 이력에 저장됩니다.');
+  };
+
+  const approveMailDraft = async (draft: SamMailDraft) => {
+    setMailBusy(true);
+    setMailMessage('');
+    try {
+      const response = await fetch(`/api/iso/sam/mail/${draft.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: account.id, action: 'approve', update: updateDraft }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '초안을 반영하지 못했습니다.');
+      setUpdateDraft(emptyUpdate());
+      setSelectedMailDraftId('');
+      await Promise.all([loadMailDrafts(), onAccountChanged()]);
+      setMailMessage('승인한 AI 초안을 Account 진행현황 이력에 반영했습니다.');
+    } catch (error) {
+      setMailMessage(error instanceof Error ? error.message : '초안을 반영하지 못했습니다.');
+    } finally {
+      setMailBusy(false);
+    }
+  };
+
+  const approveSelectedMailDraft = async () => {
+    const selected = mailDrafts.find((draft) => draft.id === selectedMailDraftId && draft.status === 'pending');
+    if (!selected) return;
+    await approveMailDraft(selected);
+  };
+
+  const discardMailDraft = async (draft: SamMailDraft) => {
+    setMailBusy(true);
+    setMailMessage('');
+    try {
+      const response = await fetch(`/api/iso/sam/mail/${draft.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: account.id, action: 'discard' }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '초안을 제외하지 못했습니다.');
+      await loadMailDrafts();
+      setMailMessage('메일 초안을 제외했습니다. 메일 원문은 저장되지 않습니다.');
+    } catch (error) {
+      setMailMessage(error instanceof Error ? error.message : '초안을 제외하지 못했습니다.');
+    } finally {
+      setMailBusy(false);
+    }
+  };
+
+  const importEml = async (files?: FileList | null) => {
+    const emlFiles = Array.from(files || []).filter((file) => /\.eml$/i.test(file.name));
+    if (!emlFiles.length) return;
+    setMailBusy(true);
+    setMailMessage('');
+    try {
+      const parsed = await Promise.all(emlFiles.map(parseSamEml));
+      const valid = parsed.filter((message) => message.body.trim());
+      if (!valid.length) throw new Error('본문을 읽을 수 있는 .eml 파일이 없습니다.');
+      const response = await fetch('/api/iso/sam/mail', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: account.id,
+          source: 'eml-upload',
+          messages: valid.map(({ id, subject, from, to, receivedAt }) => ({ id, subject, from, to, receivedAt })),
+          content: valid.map((message) => `[메일]\n제목: ${message.subject}\n발신: ${message.from}\n수신: ${message.to}\n일시: ${message.receivedAt}\n본문:\n${message.body}`).join('\n\n---\n\n'),
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '.eml 파일을 분석하지 못했습니다.');
+      await loadMailDrafts();
+      setMailMessage(payload.duplicate ? '이미 처리한 메일입니다. 중복 초안은 만들지 않았습니다.' : `${valid.length}개 메일을 분석해 AI 초안을 만들었습니다.`);
+    } catch (error) {
+      setMailMessage(error instanceof Error ? error.message : '.eml 파일을 분석하지 못했습니다.');
+    } finally {
+      setMailBusy(false);
+      if (emlInput.current) emlInput.current.value = '';
+    }
+  };
+
+  const issueSyncKey = async () => {
+    setMailBusy(true);
+    setMailMessage('');
+    try {
+      const response = await fetch('/api/iso/sam/mail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'issue-sync-key' }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '동기화 키를 만들지 못했습니다.');
+      setSyncKeyDisplay(payload.key || '');
+      setSyncConfigured(true);
+      setMailMessage('동기화 키를 만들었습니다. 이 화면을 닫기 전에 로컬 수집기 설정에 한 번만 붙여 넣으세요. 키는 다시 표시되지 않습니다.');
+    } catch (error) {
+      setMailMessage(error instanceof Error ? error.message : '동기화 키를 만들지 못했습니다.');
+    } finally {
+      setMailBusy(false);
+    }
+  };
+
   return (
     <section className="mt-8 border-t border-slate-300 pt-6">
       <h3 className="text-lg font-bold">진행현황 업데이트</h3>
       <p className="mt-1 text-sm text-slate-500">업데이트는 누적 보관되며 회의 모드에서 지난 회의 이후 변경사항으로 표시됩니다.</p>
+
+      <div className="mt-4 border border-slate-300 bg-white">
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="font-bold text-slate-950">Outlook AI 동기화</h4>
+              <span className={`border px-2 py-1 text-xs font-bold ${mailSyncStatus?.error ? 'border-amber-200 bg-amber-50 text-amber-900' : mailSyncStatus?.completedAt ? 'border-teal-200 bg-teal-50 text-teal-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                {mailSyncStatus?.error ? '확인 필요' : mailSyncStatus?.completedAt ? '정상' : '설정 전'}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              {mailSyncStatus?.error
+                ? `마지막 시도: ${new Date(mailSyncStatus.attemptedAt).toLocaleString('ko-KR')} · ${mailSyncStatus.error}`
+                : mailSyncStatus?.completedAt
+                  ? `마지막 확인: ${new Date(mailSyncStatus.completedAt).toLocaleString('ko-KR')} · 관련 메일 ${mailSyncStatus.relatedMessages}건 · AI 초안 ${mailSyncStatus.draftsCreated}건`
+                  : 'Outlook Web 수집기 또는 .eml 업로드로 선택한 메일을 AI 초안으로 만듭니다.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input ref={emlInput} type="file" accept=".eml,message/rfc822" multiple className="hidden" onChange={(event) => void importEml(event.target.files)} />
+            <button type="button" disabled={mailBusy} onClick={() => emlInput.current?.click()} className="min-h-10 border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 disabled:bg-slate-100">.eml 가져오기</button>
+            <button type="button" disabled={mailBusy} onClick={() => void loadMailDrafts()} className="min-h-10 border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 disabled:bg-slate-100">새로고침</button>
+          </div>
+        </div>
+        <div className="grid gap-3 bg-slate-50 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <p className="text-xs leading-5 text-slate-600">메일 본문은 AI 분석 요청에만 사용되며 앱에는 저장하지 않습니다. 저장되는 정보는 AI 초안과 제목·발신자·일시·Outlook 원문 링크입니다.</p>
+          <button type="button" disabled={mailBusy} onClick={() => void issueSyncKey()} className="min-h-9 border border-blue-700 px-3 text-xs font-bold text-blue-800 disabled:opacity-50">
+            {syncConfigured ? '수집기 키 다시 만들기' : 'Outlook Web 수집기 연결'}
+          </button>
+        </div>
+        {syncKeyDisplay && <div className="border-t border-amber-200 bg-amber-50 px-4 py-3"><p className="text-xs font-bold text-amber-900">로컬 수집기 전용 키 · 한 번만 표시됩니다</p><code className="mt-1 block break-all border border-amber-200 bg-white p-2 text-xs text-slate-950">{syncKeyDisplay}</code></div>}
+        <details className="border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
+          <summary className="cursor-pointer font-semibold text-slate-800">Outlook Web 자동수집 설정 방법</summary>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-5">
+            <li>Outlook에서 SAM 관련 메일을 <strong>SAM-AI 대상</strong> 폴더로 모으는 규칙을 만듭니다.</li>
+            <li>위에서 만든 키를 로컬 수집기 설정에 한 번 입력합니다.</li>
+            <li>수집기는 전용 Edge 프로필로 지정 폴더만 확인하고, 새 메일을 현재 Account의 AI 초안으로 보냅니다.</li>
+            <li>로그인 만료나 화면 변경 시에는 이 화면에서 상태를 확인하고, .eml 파일 업로드로 계속 처리할 수 있습니다.</li>
+          </ol>
+        </details>
+        {mailMessage && <p className="border-t border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">{mailMessage}</p>}
+      </div>
+
+      {mailDrafts.filter((draft) => draft.status === 'pending').length > 0 && (
+        <section className="mt-4 border border-teal-200 bg-teal-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs font-bold uppercase text-teal-700">AI 검토 대기</p><h4 className="mt-1 font-bold text-slate-950">Outlook 기반 진행현황 초안 {mailDrafts.filter((draft) => draft.status === 'pending').length}건</h4></div><span className="text-xs text-slate-600">승인 전에는 Account Detail에 반영되지 않습니다.</span></div>
+          <div className="mt-3 space-y-3">
+            {mailDrafts.filter((draft) => draft.status === 'pending').map((draft) => (
+              <article key={draft.id} className="border border-teal-200 bg-white p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div><p className="text-xs font-bold text-teal-700">{draft.source === 'outlook-web' ? 'Outlook Web 자동수집' : '.eml 업로드'} · 관련 메일 {draft.messageRefs.length}건</p><p className="mt-1 whitespace-pre-line text-sm font-semibold text-slate-950">{draft.analysis.briefing.ko || draft.analysis.accomplishments.ko || draft.analysis.nextActions.ko || 'AI가 분류한 내용이 없습니다.'}</p></div>
+                  <span className={`self-start border px-2 py-1 text-xs font-bold ${statusClass[draft.analysis.status]}`}>{statusLabel[draft.analysis.status]}</span>
+                </div>
+                <div className="mt-3 border-y border-slate-200 py-3 text-xs text-slate-600">
+                  {draft.messageRefs.map((mail) => <div key={mail.id} className="py-1"><strong>{mail.from || '-'}</strong> · {mail.subject || '(제목 없음)'} · {mail.receivedAt || '-'} {mail.webLink && <a className="ml-2 font-bold text-blue-700 underline" href={mail.webLink} target="_blank" rel="noreferrer">Outlook 원문</a>}</div>)}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={mailBusy} onClick={() => applyMailDraft(draft)} className="min-h-9 border border-slate-300 px-3 text-sm font-bold">초안 검토·수정</button><button type="button" disabled={mailBusy} onClick={() => void discardMailDraft(draft)} className="min-h-9 border border-red-200 px-3 text-sm font-bold text-red-700">제외</button><button type="button" disabled={mailBusy} onClick={() => { applyMailDraft(draft); setMailMessage('아래 편집칸의 내용까지 검토한 뒤 승인·반영을 눌러 주세요.'); }} className="min-h-9 bg-teal-700 px-3 text-sm font-bold text-white">편집칸으로 가져오기</button></div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mt-4 border-l-4 border-blue-700 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
@@ -881,7 +1094,14 @@ function ProgressSection({
         <BilingualEditor label="매니저 지원 요청" value={pair('managerSupport')} onChange={(value) => setPair('managerSupport', value)} />
         <BilingualEditor label="미분류 메모" value={pair('uncategorized')} onChange={(value) => setPair('uncategorized', value)} />
       </div>
-      <button type="button" disabled={busy || organizing} onClick={onAdd} className="mt-4 bg-teal-700 px-5 py-2 text-sm font-bold text-white disabled:bg-slate-300">진행현황 추가</button>
+      <button
+        type="button"
+        disabled={busy || organizing || mailBusy}
+        onClick={() => selectedMailDraftId ? void approveSelectedMailDraft() : onAdd()}
+        className="mt-4 bg-teal-700 px-5 py-2 text-sm font-bold text-white disabled:bg-slate-300"
+      >
+        {selectedMailDraftId ? '승인·Account Detail 반영' : '진행현황 추가'}
+      </button>
       <div className="mt-6 space-y-3">
         {account.updates.map((update) => (
           <article key={update.id} className="border-l-4 border-slate-300 bg-white p-4">
