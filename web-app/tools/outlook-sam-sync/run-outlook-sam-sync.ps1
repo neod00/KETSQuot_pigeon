@@ -4,10 +4,15 @@ $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
 if ($nodeCommand) {
     $nodePath = $nodeCommand.Source
 } else {
-    $oneDrive = Join-Path $env:USERPROFILE 'OneDrive - LRQA'
-    $nodePath = Get-ChildItem -LiteralPath $oneDrive -Filter node.exe -File -Recurse -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -match 'D365_auto\\node_portable\\node\.exe$' } |
-        Select-Object -First 1 -ExpandProperty FullName
+    $oneDrive = if ($env:OneDriveCommercial) { $env:OneDriveCommercial } else { Join-Path $env:USERPROFILE 'OneDrive - LRQA' }
+    $knownNodePath = Join-Path $oneDrive '문서\AI\D365_auto\node_portable\node.exe'
+    if (Test-Path -LiteralPath $knownNodePath) {
+        $nodePath = $knownNodePath
+    } else {
+        $nodePath = Get-ChildItem -LiteralPath $oneDrive -Filter node.exe -File -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match 'D365_auto\\node_portable\\node\.exe$' } |
+            Select-Object -First 1 -ExpandProperty FullName
+    }
 }
 
 if (-not $nodePath) {

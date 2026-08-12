@@ -129,6 +129,10 @@ async function main() {
   const headers = { 'x-sam-sync-key': syncKey };
   const catalog = await request(`${siteUrl.replace(/\/$/, '')}/api/iso/sam/mail`, { headers });
   const accounts = catalog.accounts || [];
+  if (process.argv.includes('--check-api')) {
+    console.log(`SAM API connection OK (${accounts.length} accounts).`);
+    return;
+  }
 
   const context = await chromium.launchPersistentContext(userDataDir(config), {
     channel: 'msedge',
