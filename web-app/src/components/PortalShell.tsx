@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { label: 'K-ETS 견적', href: '/generator' },
   { label: 'K-ETS 계약', href: '/kets-contract' },
   { label: 'P827 계약', href: '/system' },
+  { label: 'CBAM 신청 관리', href: '/cbam/admin' },
 ];
 
 const pageTitle = (pathname: string) => {
@@ -37,6 +38,9 @@ const pageTitle = (pathname: string) => {
   if (pathname === '/generator') return 'K-ETS 검증 견적서 생성기';
   if (pathname === '/kets-contract') return 'K-ETS 검증 계약서 생성기';
   if (pathname === '/system') return 'P827 계약서 생성기';
+  if (pathname === '/cbam/admin') return 'CBAM 신청·견적 관리';
+  if (pathname === '/cbam/documents') return 'CBAM 견적·계약 문서 생성';
+  if (pathname === '/cbam') return 'CBAM 서비스 신청';
   return 'LRQA Korea 업무 포털';
 };
 
@@ -51,6 +55,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const [design, setDesign] = useState<PortalDesign>('modern');
   const [session, setSession] = useState<SessionSummary | null>(null);
   const isAuthPage = pathname === '/iso/login' || pathname === '/iso/setup' || pathname === '/iso/request-access';
+  const isPublicPage = pathname === '/cbam';
 
   useEffect(() => {
     const syncDesign = () => {
@@ -75,7 +80,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   }, [design]);
 
   useEffect(() => {
-    if (pathname === '/' || isAuthPage) return;
+    if (pathname === '/' || isAuthPage || isPublicPage) return;
     let active = true;
     fetch('/api/iso/auth/session')
       .then(response => response.ok ? response.json() : null)
@@ -86,7 +91,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
     return () => {
       active = false;
     };
-  }, [isAuthPage, pathname]);
+  }, [isAuthPage, isPublicPage, pathname]);
 
   const changeDesign = (nextDesign: PortalDesign) => {
     localStorage.setItem(DESIGN_STORAGE_KEY, nextDesign);
@@ -96,7 +101,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
 
   const title = useMemo(() => pageTitle(pathname), [pathname]);
 
-  if (pathname === '/') return children;
+  if (pathname === '/' || isPublicPage) return children;
 
   if (isAuthPage) {
     return (

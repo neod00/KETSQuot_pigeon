@@ -17,6 +17,7 @@ const NAV_ITEMS = [
     { label: '세일즈 현황', href: '/iso/sales' },
     { label: 'D365 생성', href: '/iso/sales?mode=d365' },
     { label: 'K-ETS 검증', href: '/generator' },
+    { label: 'CBAM 신청', href: '/cbam' },
     { label: '문서함', href: '/iso/documents' },
 ];
 
@@ -25,6 +26,7 @@ const QUICK_ACTIONS = [
     { code: 'ETS', label: 'K-ETS 견적 작성', detail: '검증 견적 빠른 생성', href: '/generator' },
     { code: 'DOC', label: 'K-ETS 계약서', detail: 'Word 계약 문서 생성', href: '/kets-contract' },
     { code: '365', label: 'Excel 가져오기', detail: '세일즈 현황 업데이트', href: '/iso/sales' },
+    { code: 'CBM', label: 'CBAM 신청·관리', detail: '신청 접수와 검증일수 산정', href: '/cbam/admin' },
 ];
 
 const PAGE_LINKS: Record<string, string> = {
@@ -162,7 +164,7 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                             <div className={styles.metrics}>
                                 <div className={styles.metric}>
                                     <div className={styles.metricLabel}>운영 도구</div>
-                                    <div className={styles.metricValue}>4개</div>
+                                    <div className={styles.metricValue}>5개</div>
                                     <div className={styles.metricNote}>견적·계약 생성기</div>
                                 </div>
                                 <div className={styles.metric}>
