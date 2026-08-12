@@ -43,11 +43,15 @@ async function hasValidSession(token?: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const samMailSyncRequest =
+    pathname === '/api/iso/sam/mail' &&
+    Boolean(request.headers.get('x-sam-sync-key'));
   const publicPath =
     pathname === '/iso/login' ||
     pathname === '/iso/setup' ||
     pathname === '/iso/request-access' ||
-    pathname.startsWith('/api/iso/auth/');
+    pathname.startsWith('/api/iso/auth/') ||
+    samMailSyncRequest;
   if (publicPath) return NextResponse.next();
 
   const validSession = await hasValidSession(request.cookies.get(SESSION_COOKIE)?.value);
