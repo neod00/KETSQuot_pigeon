@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { generateIsoQuoteDocx, type IsoQuoteDocxData } from '@/utils/isoQuoteDocxGenerator';
+import { generateIsoContractDocx } from '@/utils/isoContractDocxGenerator';
 import {
   DEFAULT_CBAM_DAY_RATE,
   DEFAULT_CBAM_EXPENSES,
@@ -26,6 +28,8 @@ export default function CbamDocumentsPage() {
   const [discount, setDiscount] = useState('0');
   const [vatMode, setVatMode] = useState<'separate' | 'included'>('separate');
   const [validityDays, setValidityDays] = useState('30');
+  const [wordBusy, setWordBusy] = useState(false);
+  const [wordMessage, setWordMessage] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -50,6 +54,81 @@ export default function CbamDocumentsPage() {
     return { days, rate, expenseValue, discountValue, subtotal, vat, total };
   }, [dayRate, discount, expenses, quotedDays, vatMode]);
 
+  const downloadWord = async () => {
+    if (!application) return;
+    setWordBusy(true);
+    setWordMessage('');
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      const productDisplay = 'P1173 CBAM Verification Service';
+      const scopeSummary = [
+        `고객 유형: ${clientTypeLabel(application.clientType)}`,
+        `대상 연도: ${application.verificationYears.join(', ') || '-'}`,
+        `CBAM 상품: ${application.cbamGoods.join(', ') || '-'}`,
+        `CN 코드: ${application.cnCodes || '-'}`,
+        `검증 대상: ${application.sites || application.companyName}`,
+        '보증 수준: 합리적 보증(Reasonable Assurance)',
+      ].join(' / ');
+      const documentData: IsoQuoteDocxData = {
+        companyName: application.companyName,
+        contactPerson: application.contactName,
+        docId: application.reference.replace('CBAM-', documentType === 'contract' ? 'C-CBAM-' : 'Q-CBAM-'),
+        issueDate: date,
+        auditType: 'CBAM 검증',
+        standards: ['CBAM'],
+        standardCosts: [{ standard: 'CBAM', stage1Days: cost.days, stage2Days: 0, surveillanceDays: 0, recertDays: 0, dayRate: cost.rate }],
+        scope: scopeSummary,
+        siteName: application.sites || application.companyName,
+        siteAddress: application.address || '-',
+        employeeCount: '-',
+        stage1Days: cost.days,
+        stage2Days: 0,
+        surveillanceDays: 0,
+        recertDays: 0,
+        dayRate: cost.rate,
+        expenses: cost.expenseValue,
+        certFee: 0,
+        discount: cost.discountValue,
+        vatType: vatMode === 'included' ? '포함' : '별도',
+        contractYears: '단일 검증 업무',
+        paymentTerms: '송장 일자로부터 30일 이내 현금으로 지급되어야 합니다.',
+        validity: `${validityDays}일`,
+        documentTitle: 'CBAM 검증 서비스 제안서',
+        productDisplay,
+        serviceLabel: 'P1173 CBAM 검증 서비스',
+        outputFileName: documentType === 'contract' ? 'LRQA_CBAM_서비스_계약서' : 'LRQA_CBAM_검증_견적서',
+      };
+
+      if (documentType === 'contract') {
+        const importerOrOperator = application.clientType === 'importer' ? '수입자(Importer)' : '제3국 사업자(Operator)';
+        await generateIsoContractDocx({
+          ...documentData,
+          signerTitle: '-',
+          customerPhone: application.phone,
+          customerEmail: application.email,
+          postalCode: '-',
+          businessRegistrationNumber: '-',
+          billingAddress: application.address || '-',
+          serviceAgreementParagraphs: [
+            'LRQA는 P1173 CBAM 절차와 다음 기준의 최신판에 따라 검증을 수행합니다: ISO/IEC 17029(검증·타당성평가기관의 일반 원칙 및 요구사항), IAF MD6(ISO 14065 적용 의무문서), ISO 14064-3(온실가스 주장에 대한 검증 및 타당성평가 지침).',
+            `검증의 성격: ${importerOrOperator}의 CBAM 검증. LRQA는 위험 기반 표본추출 방식으로 CBAM 신고서 또는 커뮤니케이션 템플릿의 보고 데이터, 해당 기간의 특정 내재배출량 및 관련 시 총 수입상품을 검증합니다.`,
+            '검증 목적: 검증 대상 CBAM 신고서의 적정성, 계약 시 확정한 중요성 수준(2% 또는 5%), 그리고 CBAM 규정 준수 여부를 확인하는 검증의견서(Verification Opinion Statement)를 고객에게 제공합니다.',
+            `검증 범위: CBAM 상품 ${application.cbamGoods.join(', ') || '-'}, 8자리 CN 코드 ${application.cnCodes || '-'}, 대상 연도 ${application.verificationYears.join(', ') || '-'}, 검증 대상 사업장 ${application.sites || application.companyName}. 수입자 검증 대상과 소재지는 계약 검토 시 최종 확정합니다.`,
+            '보증 수준은 합리적 보증(Reasonable Assurance)입니다. 인정은 ENAC 인정범위에 따르며, 검증 기준은 Regulation (EU) 2023/956, Commission Implementing Regulation (EU) 2023/1773 및 해당 EU 회원국의 국가별 요구사항을 포함합니다.',
+          ],
+        });
+      } else {
+        await generateIsoQuoteDocx(documentData);
+      }
+      setWordMessage(`${documentType === 'contract' ? '계약서' : '견적서'} Word 파일을 생성했습니다.`);
+    } catch (error) {
+      console.error(error);
+      setWordMessage(`Word 파일 생성 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+    } finally {
+      setWordBusy(false);
+    }
+  };
+
   if (loading) return <main className="grid min-h-screen place-items-center bg-slate-100 p-6"><p className="font-bold text-slate-600">신청서 데이터를 불러오는 중...</p></main>;
   if (!application) return <main className="grid min-h-screen place-items-center bg-slate-100 p-6"><div className="max-w-lg rounded-2xl bg-white p-8 text-center shadow"><h1 className="text-2xl font-black">문서 데이터를 찾을 수 없습니다.</h1><p className="mt-3 text-slate-600">{loadError || '내부 관리 화면에서 신청서를 선택한 뒤 문서 생성을 실행해 주세요.'}</p><Link className="mt-6 inline-block rounded-lg bg-slate-950 px-4 py-3 font-bold text-white" href="/cbam/admin">내부 관리로 이동</Link></div></main>;
 
@@ -68,8 +147,10 @@ export default function CbamDocumentsPage() {
           <Control label="할인 금액"><input value={discount} onChange={e => setDiscount(e.target.value)} /></Control>
           <Control label="VAT"><select value={vatMode} onChange={e => setVatMode(e.target.value as 'separate' | 'included')}><option value="separate">별도</option><option value="included">포함</option></select></Control>
           <Control label="견적 유효기간(일)"><input value={validityDays} onChange={e => setValidityDays(e.target.value)} /></Control>
+          <button onClick={downloadWord} disabled={wordBusy} className="self-end rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-50">{wordBusy ? 'Word 생성 중...' : `Word ${documentType === 'contract' ? '계약서' : '견적서'} 다운로드`}</button>
           <button onClick={() => window.print()} className="self-end rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-black text-white hover:bg-teal-800">인쇄 / PDF 저장</button>
         </div>
+        {wordMessage && <p role="status" className={`mt-4 text-sm font-bold ${wordMessage.includes('실패') ? 'text-red-700' : 'text-teal-700'}`}>{wordMessage}</p>}
       </section>
 
       {documentType === 'quote'

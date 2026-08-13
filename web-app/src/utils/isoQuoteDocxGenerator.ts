@@ -39,6 +39,10 @@ export interface IsoQuoteDocxData {
   contractYears: string;
   paymentTerms: string;
   validity: string;
+  documentTitle?: string;
+  productDisplay?: string;
+  serviceLabel?: string;
+  outputFileName?: string;
 }
 
 const TEMPLATE_PATH = '/templates/LRQA_ISO_Audit_Quote_Template.docx';
@@ -206,9 +210,16 @@ const normalizeStandardCosts = (data: IsoQuoteDocxData): IsoStandardCostData[] =
 const toCostRows = (data: IsoQuoteDocxData) =>
   normalizeStandardCosts(data).map((input) => ({
     ...input,
-    label: (STANDARD_VERSION[input.standard] || input.standard) + ' ' + auditPhrase(data.auditType),
+    label: data.serviceLabel || (STANDARD_VERSION[input.standard] || input.standard) + ' ' + auditPhrase(data.auditType),
     ...calculateIsoQuoteCost(input, data.auditType),
-  }));
+  })).map((row) => data.serviceLabel ? {
+    ...row,
+    activeAuditDays: row.stage1Days + row.stage2Days,
+    activeAuditFee: row.stage1Fee + row.stage2Fee,
+    singleLineAudit: true,
+    futureAuditDays: null,
+    note: '-',
+  } : row);
 
 type CostRow = ReturnType<typeof toCostRows>[number];
 
@@ -269,26 +280,13 @@ const replaceCostRows = (xml: string, costRows: CostRow[], data: IsoQuoteDocxDat
   return xml.slice(0, firstTemplateRow.start) + nextRows.join('') + xml.slice(secondTemplateRow.end);
 };
 
-export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
-  if (typeof window === 'undefined') return;
-
-  const [{ default: PizZip }, { default: PizZipUtils }, { default: saveAs }] = await Promise.all([
-    import('pizzip'),
-    import('pizzip/utils/index.js'),
-    import('file-saver'),
-  ]);
-
-  const content = await getBinaryContent(TEMPLATE_PATH, PizZipUtils);
-  const zip = new PizZip(content);
-  const documentFile = zip.file('word/document.xml');
-  if (!documentFile) throw new Error('word/document.xml not found in ISO quote template');
-
+export const buildIsoQuoteDocumentXml = (templateXml: string, data: IsoQuoteDocxData) => {
   const costRows = toCostRows(data);
   const selectedStandards = costRows.map((row) => row.standard);
-  const standardDisplay = selectedStandards
+  const standardDisplay = data.productDisplay || selectedStandards
     .map((standard) => STANDARD_VERSION[standard] || standard)
     .join(', ');
-  const title = `${standardDisplay} ${auditPhrase(data.auditType)} 제안서`;
+  const title = data.documentTitle || `${standardDisplay} ${auditPhrase(data.auditType)} 제안서`;
   const quotedAuditDays = costRows.reduce((sum, row) => sum + row.activeAuditDays, 0);
   const auditFeeTotal = costRows.reduce((sum, row) => sum + row.activeAuditFee, 0);
   const hasExpenses = data.expenses > 0;
@@ -329,10 +327,28 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
   setRange(234, 234, data.companyName || '고객');
   setRange(236, 236, data.companyName || '고객');
 
-  let patchedXml = patchTextNodes(documentFile.asText(), updates);
+  let patchedXml = patchTextNodes(templateXml, updates);
   patchedXml = patchFutureAuditHeader(patchedXml, data.auditType);
   patchedXml = replaceCostRows(patchedXml, costRows, data);
   patchedXml = boldTotalRow(patchedXml);
+  return patchedXml;
+};
+
+export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
+  if (typeof window === 'undefined') return;
+
+  const [{ default: PizZip }, { default: PizZipUtils }, { default: saveAs }] = await Promise.all([
+    import('pizzip'),
+    import('pizzip/utils/index.js'),
+    import('file-saver'),
+  ]);
+
+  const content = await getBinaryContent(TEMPLATE_PATH, PizZipUtils);
+  const zip = new PizZip(content);
+  const documentFile = zip.file('word/document.xml');
+  if (!documentFile) throw new Error('word/document.xml not found in ISO quote template');
+
+  const patchedXml = buildIsoQuoteDocumentXml(documentFile.asText(), data);
   zip.file('word/document.xml', patchedXml);
 
   const output = zip.generate({
@@ -340,9 +356,10 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
 
-  const standardFileLabel = safeFilePart(selectedStandards.join('_'));
   const companyFileLabel = safeFilePart(data.companyName || '고객사');
-  const fileName = `LRQA_심사 견적서_${standardFileLabel} 심사 견적서_${companyFileLabel}_${formatYmd(data.issueDate)}.docx`;
+  const fileName = data.outputFileName
+    ? `${safeFilePart(data.outputFileName)}_${companyFileLabel}_${formatYmd(data.issueDate)}.docx`
+    : `LRQA_심사 견적서_${safeFilePart(data.standards.join('_'))} 심사 견적서_${companyFileLabel}_${formatYmd(data.issueDate)}.docx`;
   saveAs(output, fileName);
   return { blob: output, fileName };
 };

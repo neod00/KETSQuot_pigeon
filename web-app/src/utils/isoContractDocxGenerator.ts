@@ -7,6 +7,7 @@ export interface IsoContractDocxData extends IsoQuoteDocxData {
   postalCode: string;
   businessRegistrationNumber: string;
   billingAddress: string;
+  serviceAgreementParagraphs?: string[];
 }
 
 const TEMPLATE_PATH = '/templates/SEO_Assessment_Contract_Kor_회사명.docx';
@@ -319,8 +320,14 @@ const removeRowExact = (xml: string, label: string) =>
   replaceMatchingRows(xml, (rowXml) => hasExactFirstCell(rowXml, label), () => '');
 const buildAuditRow = (templateXml: string, row: CostRow, data: IsoContractDocxData) => {
   const currentCycle = isCurrentCycle(data.auditType);
-  const label = `${STANDARD_VERSION[row.standard] || row.standard} ${auditPhrase(data.auditType)}`;
+  const label = data.serviceLabel || `${STANDARD_VERSION[row.standard] || row.standard} ${auditPhrase(data.auditType)}`;
   let next = setCell(templateXml, 0, label);
+  if (data.serviceLabel) {
+    next = setCell(next, 1, `${formatDays(row.stage1Days + row.stage2Days)}일`);
+    next = setCell(next, 2, formatWon(row.stage1Fee + row.stage2Fee));
+    next = setCell(next, 3, '-');
+    return setCell(next, 4, '-');
+  }
   if (currentCycle) {
     next = setCell(next, 1, `${formatDays(row.activeAuditDays)}일`);
     next = setCell(next, 2, formatWon(row.activeAuditFee));
@@ -365,7 +372,7 @@ const replaceTemplateTokens = (xml: string, data: IsoContractDocxData, standardD
 
 export const buildIsoContractDocumentXml = (templateXml: string, data: IsoContractDocxData) => {
   const costRows = toCostRows(data);
-  const standardDisplay = costRows.map((row) => STANDARD_VERSION[row.standard] || row.standard).join(', ');
+  const standardDisplay = data.productDisplay || costRows.map((row) => STANDARD_VERSION[row.standard] || row.standard).join(', ');
   const totalAuditDays = costRows.reduce((sum, row) => sum + row.activeAuditDays, 0);
   const auditFeeTotal = costRows.reduce((sum, row) => sum + row.activeAuditFee, 0);
   const hasExpenses = data.expenses > 0;
@@ -391,6 +398,23 @@ export const buildIsoContractDocumentXml = (templateXml: string, data: IsoContra
   xml = replaceParagraph(xml, '이 제안은 발행일로부터 90일 동안 유효합니다.', '이 제안은 발행일로부터 ' + (data.validity || '90일') + ' 동안 유효합니다.');
   xml = replaceParagraph(xml, '고객:  ', `고객: ${data.companyName || '고객사명'},`);
   xml = replaceParagraph(xml, '각각 LRQA와', `각각 LRQA와 ${data.companyName || '고객사명'}를 대표하여 권한이 부여된 대표자에 의해 서명됨`);
+
+  if (data.serviceAgreementParagraphs?.length) {
+    const serviceParagraphNeedles = [
+      '서비스 제공의 인증은 영국 인정기관',
+      '본 계약 하에 고객에게 제공되는 서비스는',
+      '고객은 인증을 신청하는 심사 체계에',
+      '심사 기간은 인정기관의 심사일수 산정 기준',
+      '고객이 제공한 정보를 바탕으로 진행된 현장/원격 심사',
+    ];
+    serviceParagraphNeedles.forEach((needle, index) => {
+      xml = replaceParagraph(xml, needle, data.serviceAgreementParagraphs?.[index] || '');
+    });
+    const missingServiceText = data.serviceAgreementParagraphs.filter((paragraph) => !getText(xml).includes(paragraph));
+    if (missingServiceText.length > 0) {
+      throw new Error('CBAM service agreement scope was not fully inserted into the ISO contract template.');
+    }
+  }
 
   xml = patchRowContaining(xml, 'SIGNED by LRQA Korea Limited', { 0: `SIGNED by ${data.companyName || '고객사명'}` });
   xml = patchRowExact(xml, '직책:', { 1: data.signerTitle || '-' });
@@ -449,7 +473,9 @@ export const generateIsoContractDocx = async (data: IsoContractDocxData) => {
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
 
-  const fileName = `SEO_Assessment_Contract_Kor_${safeFilePart(data.companyName || '고객사')}_${formatYmd(data.issueDate)}.docx`;
+  const fileName = data.outputFileName
+    ? `${safeFilePart(data.outputFileName)}_${safeFilePart(data.companyName || '고객사')}_${formatYmd(data.issueDate)}.docx`
+    : `SEO_Assessment_Contract_Kor_${safeFilePart(data.companyName || '고객사')}_${formatYmd(data.issueDate)}.docx`;
   saveAs(output, fileName);
   return { blob: output, fileName };
 };
