@@ -30,6 +30,8 @@ export default function ApplicationAuditAssistant({
   const [analysis, setAnalysis] = useState(initialAnalysis);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const scopeConcerns = analysis?.scopeConcerns || [];
+  const eaCodeCandidates = analysis?.eaCandidates || [];
 
   const analyse = async () => {
     setLoading(true);
@@ -100,6 +102,35 @@ export default function ApplicationAuditAssistant({
               {list('고객 확인 질문', analysis.questionsForClient, 'slate')}
               {list('리스크 / 검토 유의사항', analysis.riskFlags, 'red')}
             </div>
+            {(analysis.suggestedScope || scopeConcerns.length > 0) && (
+              <section className="rounded-md border border-blue-200 bg-blue-50 px-3 py-3 text-blue-950">
+                <h4 className="text-sm font-bold">인증범위 검토 제안</h4>
+                {analysis.suggestedScope && <p className="mt-2 text-sm leading-6">{analysis.suggestedScope}</p>}
+                {scopeConcerns.length > 0 && (
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                    {scopeConcerns.map((value, index) => <li key={`scope-${index}`}>{value}</li>)}
+                  </ul>
+                )}
+                <p className="mt-2 text-xs font-medium">LRMS03-03-04A 기준의 초안입니다. 실제 활동과 제한사항은 담당자가 최종 확인해야 합니다.</p>
+              </section>
+            )}
+            {eaCodeCandidates.length > 0 && (
+              <section className="rounded-md border border-violet-200 bg-violet-50 px-3 py-3 text-violet-950">
+                <h4 className="text-sm font-bold">EA 코드 후보</h4>
+                <p className="mt-1 text-sm">AI가 신청서와 기존 ADJ EA/NACE 목록을 대조해 제안한 후보입니다. 심사자 보조용이며 자동 확정되거나 ADJ에 자동 입력되지 않습니다.</p>
+                <div className="mt-3 grid gap-2 lg:grid-cols-3">
+                  {eaCodeCandidates.map((candidate) => (
+                    <article key={candidate.code} className="border border-violet-200 bg-white px-3 py-2">
+                      <p className="font-mono text-xs font-bold text-violet-800">{candidate.code}</p>
+                      <p className="mt-1 text-sm font-bold text-slate-900">{candidate.title}</p>
+                      {candidate.applicableStandards.length > 0 && <p className="mt-1 text-xs text-slate-600">{candidate.applicableStandards.join(', ')}</p>}
+                      {candidate.rationale && <p className="mt-2 text-xs leading-5 text-slate-700">{candidate.rationale}</p>}
+                    </article>
+                  ))}
+                </div>
+                <a href="/adj" target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-bold text-violet-800 underline">ADJ EA 코드 조회 열기</a>
+              </section>
+            )}
             {analysis.clientEmailDraft && (
               <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">

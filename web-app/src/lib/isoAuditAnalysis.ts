@@ -1,6 +1,8 @@
 import 'server-only';
 
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { AuditDurationInput } from './auditDurationEngine';
 import { getIsoJson, setIsoJson } from './isoStorage';
 import type { IsoApplication, IsoAuditAnalysis } from './isoTypes';
@@ -18,6 +20,44 @@ const percentage = (value: unknown) => {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? Math.max(0, Math.min(100, Math.round(numeric / 20) * 20)) : undefined;
 };
+
+type EaCatalogItem = {
+  code?: string;
+  title?: string;
+  naceHeading?: string;
+  naceDescription?: string;
+  oldCodes?: string[];
+};
+
+const eaCatalogForPrompt = async () => {
+  try {
+    const raw = await readFile(path.join(process.cwd(), 'public', 'adj', 'ea-code-data.json'), 'utf8');
+    const parsed = JSON.parse(raw) as { codes?: EaCatalogItem[] };
+    return (parsed.codes || []).slice(0, 50).map((item) => ({
+      code: String(item.code || ''),
+      title: String(item.title || ''),
+      naceHeading: String(item.naceHeading || ''),
+      oldCodes: Array.isArray(item.oldCodes) ? item.oldCodes.slice(0, 12) : [],
+    })).filter((item) => item.code && item.title);
+  } catch {
+    return [];
+  }
+};
+
+const eaCandidates = (value: unknown): IsoAuditAnalysis['eaCandidates'] => Array.isArray(value)
+  ? value.slice(0, 3).flatMap((item) => {
+    const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+    const code = String(record.code || '').trim().toUpperCase();
+    const title = String(record.title || '').trim();
+    if (!/^EA\d{2}$/.test(code) || !title) return [];
+    return [{
+      code,
+      title: title.slice(0, 180),
+      applicableStandards: list(record.applicableStandards, 3),
+      rationale: String(record.rationale || '').trim().slice(0, 800),
+    }];
+  })
+  : [];
 
 const toSuggestedInput = (value: unknown): IsoAuditAnalysis['suggestedInput'] => {
   const record = value && typeof value === 'object' ? value as Record<string, unknown> : {};
@@ -71,16 +111,13 @@ export async function approveIsoAuditAnalysis(applicationId: string) {
 export const applyApprovedAuditAnalysis = (input: AuditDurationInput, analysis: IsoAuditAnalysis | null): AuditDurationInput => {
   if (!analysis || analysis.status !== 'approved') return input;
   const suggestion = analysis.suggestedInput;
-  const multiSite = Object.fromEntries(Object.entries(suggestion.multiSite || {}).filter(([, value]) => typeof value === 'boolean'));
   const integration = Object.fromEntries(Object.entries(suggestion.integration || {}).filter(([, value]) => typeof value === 'number'));
   return {
     ...input,
     complexity: { ...input.complexity, ...suggestion.complexity },
-    multiSite: {
-      eligible: typeof multiSite.eligible === 'boolean' ? multiSite.eligible : input.multiSite?.eligible || false,
-      samplingAllowed: typeof multiSite.samplingAllowed === 'boolean' ? multiSite.samplingAllowed : input.multiSite?.samplingAllowed || false,
-      effectiveCycle: typeof multiSite.effectiveCycle === 'boolean' ? multiSite.effectiveCycle : input.multiSite?.effectiveCycle || false,
-    },
+    // An AI application review cannot supply the documentary evidence required for MD1/MD22.
+    // Multi-site sampling is therefore set only in the quote screen after a reviewer records it.
+    multiSite: input.multiSite,
     integration: {
       level: typeof integration.level === 'number' ? integration.level : input.integration?.level || 0,
       teamAbility: typeof integration.teamAbility === 'number' ? integration.teamAbility : input.integration?.teamAbility || 0,
@@ -104,6 +141,7 @@ export async function analyseIsoApplication({
   const sourceFields = Object.fromEntries(
     Object.entries(application.sourceFields).map(([key, value]) => [key.slice(0, 160), String(value ?? '').slice(0, 2000)]).slice(0, 160),
   );
+  const activityCodeCatalog = await eaCatalogForPrompt();
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -112,7 +150,7 @@ export async function analyseIsoApplication({
       input: [
         {
           role: 'system',
-          content: `You are assisting an LRQA ISO certification assessor. Review the full submitted application only as an advisory review against IAF MD1, MD5, MD11 and the LRQA product procedure. Do not invent facts, audit time, legal eligibility, employee reductions, multi-site eligibility, integration evidence, sector codes or competence. The deterministic calculation is provided separately and remains the baseline. Identify missing evidence and customer questions. Suggest complexity only when the written activity supports it; otherwise omit it. Suggest multi-site sampling only when every relevant condition is explicitly evidenced. Return Korean and only this JSON object: {"summary":"","missingInformation":[""],"questionsForClient":[""],"riskFlags":[""],"clientEmailDraft":"","suggestedInput":{"complexity":{"ISO 9001":"medium","ISO 14001":"medium","ISO 45001":"medium"},"multiSite":{"eligible":false,"samplingAllowed":false,"effectiveCycle":false},"integration":{"level":0,"teamAbility":0},"overrideJustification":""}}.`,
+          content: `You are assisting an LRQA ISO certification assessor. Review the full submitted application only as an advisory review against IAF MD1, MD5, MD11, MD22 for ISO 45001 multi-site OH&S systems, LRMS03-03-04A certification scope guidance, and the LRQA product procedure. Do not invent facts, audit time, legal eligibility, employee reductions, multi-site eligibility, integration evidence, sector codes or competence. The deterministic calculation is provided separately and remains the baseline. Identify missing evidence and customer questions. Suggest complexity only when the written activity supports it; otherwise omit it. For multi-site sampling, require evidence of a common management system, legal or contractual link, central function control, internal audit, management review, a complete site list, and rationale. For ISO 45001, sampling is not appropriate where sites do not have comparable activities, processes and OH&S risks; require site-specific risk evidence. A certification scope draft is advisory only. EA candidates must be selected only from the provided catalog and are recommendations for an authorised reviewer, never an automatic decision. Return Korean and only this JSON object: {"summary":"","missingInformation":[""],"questionsForClient":[""],"riskFlags":[""],"clientEmailDraft":"","suggestedScope":"","scopeConcerns":[""],"eaCandidates":[{"code":"EA01","title":"","applicableStandards":["ISO 9001"],"rationale":""}],"suggestedInput":{"complexity":{"ISO 9001":"medium","ISO 14001":"medium","ISO 45001":"medium"},"multiSite":{"eligible":false,"samplingAllowed":false,"effectiveCycle":false},"integration":{"level":0,"teamAbility":0},"overrideJustification":""}}.`,
         },
         {
           role: 'user',
@@ -136,6 +174,7 @@ export async function analyseIsoApplication({
               sourceFields,
             },
             deterministicAuditInput: auditInput,
+            eaCatalog: activityCodeCatalog,
           }),
         },
       ],
@@ -161,6 +200,9 @@ export async function analyseIsoApplication({
     questionsForClient: list(parsed.questionsForClient),
     riskFlags: list(parsed.riskFlags),
     clientEmailDraft: String(parsed.clientEmailDraft ?? '').trim().slice(0, 5000),
+    suggestedScope: String(parsed.suggestedScope ?? '').trim().slice(0, 1800),
+    scopeConcerns: list(parsed.scopeConcerns),
+    eaCandidates: eaCandidates(parsed.eaCandidates),
     suggestedInput: toSuggestedInput(parsed.suggestedInput),
   };
   await setIsoJson(STORE, keyFor(application.id), analysis);

@@ -1,4 +1,5 @@
 import type { AuditDurationInput, AuditDurationResult } from './auditDurationEngine';
+import type { IsoMultiSiteEvidence } from './isoMultiSiteEvidence';
 
 export type IsoApplicationStatus = 'new' | 'in_review' | 'needs_information' | 'quote_ready' | 'completed';
 
@@ -52,6 +53,14 @@ export interface IsoAuditAnalysis {
   questionsForClient: string[];
   riskFlags: string[];
   clientEmailDraft: string;
+  suggestedScope: string;
+  scopeConcerns: string[];
+  eaCandidates: Array<{
+    code: string;
+    title: string;
+    applicableStandards: string[];
+    rationale: string;
+  }>;
   suggestedInput: {
     complexity?: Record<string, 'high' | 'medium' | 'low' | 'limited'>;
     multiSite?: {
@@ -103,6 +112,7 @@ export interface IsoQuoteInput {
     input: AuditDurationInput;
     result: AuditDurationResult;
     appliedAt?: string;
+    multiSiteEvidence?: IsoMultiSiteEvidence;
   };
 }
 

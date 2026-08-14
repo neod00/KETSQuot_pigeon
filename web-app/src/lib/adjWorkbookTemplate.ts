@@ -2,6 +2,7 @@ import 'server-only';
 
 import PizZip from 'pizzip';
 import type { AuditDurationInput, AuditDurationResult } from './auditDurationEngine';
+import { normaliseMultiSiteEvidence, type IsoMultiSiteEvidence } from './isoMultiSiteEvidence';
 
 export interface AdjWorkbookRequest {
   companyName: string;
@@ -14,6 +15,7 @@ export interface AdjWorkbookRequest {
   siteName?: string;
   siteAddress?: string;
   siteCount?: number;
+  multiSiteEvidence?: IsoMultiSiteEvidence;
   auditInput: AuditDurationInput;
   auditResult: AuditDurationResult;
 }
@@ -70,6 +72,7 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
     siteCount > 1 ? `Declared sites: ${siteCount}. Complete the remaining site rows and sampling evidence before approval.` : '',
     request.auditResult.warnings.length ? `Review required: ${request.auditResult.warnings.join(' | ')}` : '',
   ].filter(Boolean).join('\n');
+  const multiSiteEvidence = normaliseMultiSiteEvidence(request.multiSiteEvidence, siteCount);
 
   // Client Info is worksheet 3 in the protected LRQA ADJ v3 workbook.
   updateWorksheet(zip, 'xl/worksheets/sheet3.xml', {
@@ -92,6 +95,17 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
     D71: request.siteAddress || '',
     E71: scope,
   });
+  if (siteCount > 1 && multiSiteEvidence.sites.length > 0) {
+    const siteUpdates: Record<string, string> = {};
+    multiSiteEvidence.sites.slice(0, 101).forEach((site, index) => {
+      const row = 71 + index;
+      siteUpdates[`B${row}`] = site.name;
+      siteUpdates[`C${row}`] = index === 0 ? 'Main Site' : 'Site';
+      siteUpdates[`D${row}`] = site.address;
+      siteUpdates[`E${row}`] = site.activities;
+    });
+    updateWorksheet(zip, 'xl/worksheets/sheet3.xml', siteUpdates);
+  }
 
   // Effective Employees is worksheet 6. Populate the three standard rows only;
   // the template formulas continue to calculate ENP, sampling and audit days.

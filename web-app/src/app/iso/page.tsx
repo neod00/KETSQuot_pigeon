@@ -16,6 +16,15 @@ import {
 } from '../../lib/auditDurationEngine';
 import type { IsoQuoteDraft, IsoQuoteDraftStatus, IsoQuoteInput } from '../../lib/isoTypes';
 import {
+  canApplyMultiSiteSampling,
+  createMultiSiteRecords,
+  emptyMultiSiteEvidence,
+  multiSiteEvidenceIssues,
+  multiSiteReference,
+  normaliseMultiSiteEvidence,
+  type IsoMultiSiteEvidence,
+} from '../../lib/isoMultiSiteEvidence';
+import {
   calculateIsoQuoteCost,
   futureAuditHeader,
   isCurrentCycleQuote,
@@ -136,6 +145,7 @@ export default function ISOQuotePage() {
   const [multiSiteEligible, setMultiSiteEligible] = useState(false);
   const [samplingAllowed, setSamplingAllowed] = useState(false);
   const [effectiveCycle, setEffectiveCycle] = useState(false);
+  const [multiSiteEvidence, setMultiSiteEvidence] = useState<IsoMultiSiteEvidence>(emptyMultiSiteEvidence);
   const [integrationLevel, setIntegrationLevel] = useState('0');
   const [teamAbility, setTeamAbility] = useState('0');
   const [auditCalculationAppliedAt, setAuditCalculationAppliedAt] = useState('');
@@ -223,6 +233,10 @@ export default function ISOQuotePage() {
         setMultiSiteEligible(Boolean(importedAudit.multiSite?.eligible));
         setSamplingAllowed(Boolean(importedAudit.multiSite?.samplingAllowed));
         setEffectiveCycle(Boolean(importedAudit.multiSite?.effectiveCycle));
+        setMultiSiteEvidence(normaliseMultiSiteEvidence(
+          imported.auditCalculation?.multiSiteEvidence,
+          Math.max(1, Number(imported.siteCount) || 1),
+        ));
         setIntegrationLevel(toInputNumber(importedAudit.integration?.level, '0'));
         setTeamAbility(toInputNumber(importedAudit.integration?.teamAbility, '0'));
         setAuditCalculationAppliedAt(imported.auditCalculation?.appliedAt || '');
@@ -312,6 +326,19 @@ export default function ISOQuotePage() {
     ),
     [standards],
   );
+  const parsedSiteCount = Math.max(1, Number.parseInt(siteCount.replace(/[^0-9]/g, ''), 10) || 1);
+  const normalisedMultiSiteEvidence = useMemo(
+    () => normaliseMultiSiteEvidence(multiSiteEvidence, parsedSiteCount),
+    [multiSiteEvidence, parsedSiteCount],
+  );
+  const multiSiteIssues = useMemo(
+    () => multiSiteEvidenceIssues(normalisedMultiSiteEvidence, parsedSiteCount, coreStandards),
+    [coreStandards, normalisedMultiSiteEvidence, parsedSiteCount],
+  );
+  const multiSiteReady = useMemo(
+    () => canApplyMultiSiteSampling(normalisedMultiSiteEvidence, parsedSiteCount, coreStandards),
+    [coreStandards, normalisedMultiSiteEvidence, parsedSiteCount],
+  );
   const auditDurationInput = useMemo<AuditDurationInput>(() => ({
     standards: [...standards, ...(customStandardName ? [customStandardName] : [])],
     fullTimeEmployees: Math.max(0, Number.parseInt(employeeCount.replace(/[^0-9]/g, ''), 10) || 0),
@@ -321,11 +348,11 @@ export default function ISOQuotePage() {
     effectiveEmployeeOverride: Math.max(0, Number.parseInt(effectiveEmployeeOverride.replace(/[^0-9]/g, ''), 10) || 0) || undefined,
     overrideJustification,
     complexity,
-    siteCount: Math.max(1, Number.parseInt(siteCount.replace(/[^0-9]/g, ''), 10) || 1),
+    siteCount: parsedSiteCount,
     multiSite: {
-      eligible: multiSiteEligible,
-      samplingAllowed,
-      effectiveCycle,
+      eligible: multiSiteEligible && multiSiteReady,
+      samplingAllowed: samplingAllowed && multiSiteReady,
+      effectiveCycle: effectiveCycle && multiSiteReady,
     },
     integration: {
       level: Number.parseInt(integrationLevel, 10) || 0,
@@ -334,7 +361,7 @@ export default function ISOQuotePage() {
   }), [
     complexity, contractorEmployees, customStandardName, effectiveCycle, effectiveEmployeeOverride,
     employeeCount, integrationLevel, multiSiteEligible, overrideJustification, partTimeEmployees,
-    samplingAllowed, siteCount, standards, teamAbility,
+    multiSiteReady, parsedSiteCount, samplingAllowed, standards, teamAbility,
   ]);
   const auditDurationResult = useMemo(
     () => calculateAuditDuration(auditDurationInput),
@@ -484,6 +511,7 @@ export default function ISOQuotePage() {
       input: auditDurationInput,
       result: auditDurationResult,
       appliedAt: auditDurationValuesApplied ? auditCalculationAppliedAt || undefined : undefined,
+      multiSiteEvidence: normalisedMultiSiteEvidence,
     },
   });
 
@@ -664,14 +692,15 @@ export default function ISOQuotePage() {
     const parsedPartTimeEmployees = Math.max(0, Number.parseInt(partTimeEmployees.replace(/[^0-9]/g, ''), 10) || 0);
     const parsedContractorEmployees = Math.max(0, Number.parseInt(contractorEmployees.replace(/[^0-9]/g, ''), 10) || 0);
     const integrationAnswerCount = Math.max(0, Math.min(7, Math.round((Number.parseInt(integrationLevel, 10) || 0) * 7 / 100)));
+    const preparedSites = normaliseMultiSiteEvidence(multiSiteEvidence, parsedSiteCount).sites;
     const sites = Array.from({ length: parsedSiteCount }, (_, index) => ({
-      name: index === 0 ? (siteName || 'Main Site') : `Site ${index + 1}`,
+      name: preparedSites[index]?.name || (index === 0 ? (siteName || 'Main Site') : `Site ${index + 1}`),
       type: 'Permanent',
-      address: index === 0 ? siteAddress : '',
-      scope,
-      riskJustification: '',
-      samplingNote: '',
-      headcount: { fullTime: index === 0 ? parsedEmployeeCount : 0, partTime: index === 0 ? parsedPartTimeEmployees : 0, contractors: index === 0 ? parsedContractorEmployees : 0 },
+      address: preparedSites[index]?.address || (index === 0 ? siteAddress : ''),
+      scope: preparedSites[index]?.activities || scope,
+      riskJustification: preparedSites[index]?.ohsRiskNotes || '',
+      samplingNote: multiSiteEvidence.samplingRationale || '',
+      headcount: { fullTime: Number.parseInt(preparedSites[index]?.effectiveEmployees || '', 10) || (index === 0 ? parsedEmployeeCount : 0), partTime: index === 0 ? parsedPartTimeEmployees : 0, contractors: index === 0 ? parsedContractorEmployees : 0 },
       employeeReductionReason: '',
       furtherReductionJustification: '',
     }));
@@ -710,17 +739,17 @@ export default function ISOQuotePage() {
           teamAbility: Number.parseInt(teamAbility, 10) || 0,
         },
         sampling: {
-          multiSite: parsedSiteCount > 1 && multiSiteEligible,
+          multiSite: parsedSiteCount > 1 && multiSiteEligible && multiSiteReady,
           mainSiteExcluded: false,
-          grouping: samplingAllowed ? 'Normal Sampling' : 'No Sampling Applicable',
-          useNormalSampling: samplingAllowed,
-          stage1Sampling: samplingAllowed,
-          stage2Sampling: samplingAllowed,
-          surveillanceSampling: samplingAllowed,
-          recertSampling: samplingAllowed,
-          rationale: auditDurationResult.siteSampling
+          grouping: samplingAllowed && multiSiteReady ? 'Normal Sampling' : 'No Sampling Applicable',
+          useNormalSampling: samplingAllowed && multiSiteReady,
+          stage1Sampling: samplingAllowed && multiSiteReady,
+          stage2Sampling: samplingAllowed && multiSiteReady,
+          surveillanceSampling: samplingAllowed && multiSiteReady,
+          recertSampling: samplingAllowed && multiSiteReady,
+          rationale: multiSiteEvidence.samplingRationale || (auditDurationResult.siteSampling
             ? auditDurationResult.rationale.find((item) => item.startsWith('MD1 기준')) || ''
-            : '',
+            : ''),
         },
         sites,
       },
@@ -744,7 +773,8 @@ export default function ISOQuotePage() {
         scope,
         siteName,
         siteAddress,
-        siteCount: Math.max(1, Number.parseInt(siteCount.replace(/[^0-9]/g, ''), 10) || 1),
+        siteCount: parsedSiteCount,
+        multiSiteEvidence: normalisedMultiSiteEvidence,
         auditInput: auditDurationInput,
         auditResult: auditDurationResult,
       });
@@ -929,11 +959,95 @@ export default function ISOQuotePage() {
               </div>
             )}
 
-            {Number.parseInt(siteCount, 10) > 1 && (
-              <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 border-t border-slate-200 pt-4 text-sm">
-                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={multiSiteEligible} onChange={(event) => setMultiSiteEligible(event.target.checked)} /> 다사업장 적격성 확인</label>
-                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={samplingAllowed} onChange={(event) => setSamplingAllowed(event.target.checked)} disabled={!multiSiteEligible} /> 표본심사 적용</label>
-                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={effectiveCycle} onChange={(event) => setEffectiveCycle(event.target.checked)} disabled={!samplingAllowed} /> 갱신주기 효과성 확인</label>
+{parsedSiteCount > 1 && (
+              <div className="mt-5 border-t border-slate-200 pt-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">다사업장 적격성 및 표본심사 근거</h4>
+                    <p className="mt-1 text-xs text-slate-600">{multiSiteReference(coreStandards)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMultiSiteEvidence((current) => {
+                      const existing = normaliseMultiSiteEvidence(current, parsedSiteCount).sites;
+                      const defaults = createMultiSiteRecords(parsedSiteCount, { name: siteName, address: siteAddress });
+                      return {
+                        ...current,
+                        sites: defaults.map((site, index) => ({ ...site, ...(existing[index] || {}) })),
+                      };
+                    })}
+                    className="border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    사업장 목록 준비
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    ['commonManagementSystem', '공통 경영시스템 운영'],
+                    ['legalOrContractualLink', '중앙 기능과 사업장의 법적/계약상 연결'],
+                    ['centralFunctionControl', '중앙 기능의 운영 통제'],
+                    ['internalAuditProgramme', '모든 사업장을 포함한 내부심사'],
+                    ['managementReview', '중앙 경영검토 수행'],
+                  ].map(([key, label]) => (
+                    <label key={key} className="flex min-h-10 items-center gap-2 border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(multiSiteEvidence[key as keyof Omit<IsoMultiSiteEvidence, 'samplingRationale' | 'sites'>])}
+                        onChange={(event) => setMultiSiteEvidence((current) => ({ ...current, [key]: event.target.checked }))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <label className="mt-3 block text-xs font-medium text-slate-600">
+                  표본심사 적용 근거
+                  <textarea
+                    className="mt-1 h-20 w-full border border-slate-300 bg-white p-2 text-sm text-slate-900"
+                    value={multiSiteEvidence.samplingRationale}
+                    onChange={(event) => setMultiSiteEvidence((current) => ({ ...current, samplingRationale: event.target.value }))}
+                    placeholder="중앙 기능, 공통 절차, 사업장 간 활동·위험의 유사성 및 대표성 근거를 기록합니다."
+                  />
+                </label>
+                {normalisedMultiSiteEvidence.sites.length > 0 && (
+                  <div className="mt-3 overflow-x-auto border border-slate-200 bg-white">
+                    <table className="min-w-[900px] w-full text-left text-xs">
+                      <thead className="bg-slate-100 text-slate-700"><tr><th className="p-2">사업장</th><th className="p-2">주소</th><th className="p-2">주요 활동/공정</th><th className="p-2">유효 인원</th>{coreStandards.includes('ISO 45001') && <><th className="p-2">OH&S 위험</th><th className="p-2">공정·위험 차이</th></>}</tr></thead>
+                      <tbody>
+                        {normalisedMultiSiteEvidence.sites.map((site, index) => (
+                          <tr key={index} className="border-t border-slate-100 align-top">
+                            {(['name', 'address', 'activities', 'effectiveEmployees'] as const).map((field) => (
+                              <td key={field} className="p-2"><input className="w-full border border-slate-300 p-1.5" value={site[field]} onChange={(event) => setMultiSiteEvidence((current) => {
+                                const next = normaliseMultiSiteEvidence(current, parsedSiteCount);
+                                next.sites[index] = { ...next.sites[index], [field]: event.target.value };
+                                return next;
+                              })} /></td>
+                            ))}
+                            {coreStandards.includes('ISO 45001') && <>
+                              <td className="p-2"><select className="w-full border border-slate-300 bg-white p-1.5" value={site.ohsRisk} onChange={(event) => setMultiSiteEvidence((current) => {
+                                const next = normaliseMultiSiteEvidence(current, parsedSiteCount);
+                                next.sites[index] = { ...next.sites[index], ohsRisk: event.target.value as 'low' | 'medium' | 'high' | '' };
+                                return next;
+                              })}><option value="">선택</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></td>
+                              <td className="p-2"><input className="w-full border border-slate-300 p-1.5" value={site.ohsRiskNotes} onChange={(event) => setMultiSiteEvidence((current) => {
+                                const next = normaliseMultiSiteEvidence(current, parsedSiteCount);
+                                next.sites[index] = { ...next.sites[index], ohsRiskNotes: event.target.value };
+                                return next;
+                              })} /></td>
+                            </>}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {multiSiteIssues.length > 0 ? (
+                  <p className="mt-3 text-xs font-medium text-amber-800">표본심사 보류: {multiSiteIssues.join(', ')} 확인이 필요합니다.</p>
+                ) : <p className="mt-3 text-xs font-bold text-teal-700">필수 근거가 입력되었습니다. 담당자가 적격성과 표본심사를 최종 선택할 수 있습니다.</p>}
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3 text-sm">
+                  <label className="inline-flex items-center gap-2"><input type="checkbox" checked={multiSiteEligible} onChange={(event) => setMultiSiteEligible(event.target.checked)} disabled={!multiSiteReady} /> 다사업장 적격성 확인</label>
+                  <label className="inline-flex items-center gap-2"><input type="checkbox" checked={samplingAllowed} onChange={(event) => setSamplingAllowed(event.target.checked)} disabled={!multiSiteReady || !multiSiteEligible} /> 표본심사 적용</label>
+                  <label className="inline-flex items-center gap-2"><input type="checkbox" checked={effectiveCycle} onChange={(event) => setEffectiveCycle(event.target.checked)} disabled={!multiSiteReady || !samplingAllowed} /> 갱신주기 효과성 확인</label>
+                </div>
               </div>
             )}
 

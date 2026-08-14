@@ -1,4 +1,5 @@
 import type { AuditDurationInput, AuditDurationResult } from '../lib/auditDurationEngine';
+import type { IsoMultiSiteEvidence } from '../lib/isoMultiSiteEvidence';
 
 export interface AdjWorkbookDownloadInput {
   companyName: string;
@@ -10,6 +11,7 @@ export interface AdjWorkbookDownloadInput {
   siteName?: string;
   siteAddress?: string;
   siteCount?: number;
+  multiSiteEvidence?: IsoMultiSiteEvidence;
   auditInput: AuditDurationInput;
   auditResult: AuditDurationResult;
 }
