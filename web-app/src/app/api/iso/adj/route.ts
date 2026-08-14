@@ -7,7 +7,8 @@ import { getIsoRequestSession } from '@/lib/isoAuth';
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  if (!getIsoRequestSession(request)) {
+  const session = getIsoRequestSession(request);
+  if (!session) {
     return NextResponse.json({ error: 'Login is required.' }, { status: 401 });
   }
   const requestBody = await request.json().catch(() => null) as AdjWorkbookRequest | null;
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   }
   try {
     const template = new Uint8Array(await readFile(path.join(process.cwd(), 'templates', 'ADJ_v3.xlsx')));
-    const { bytes, fileName } = buildAdjWorkbook(template, requestBody);
+    const { bytes, fileName } = buildAdjWorkbook(template, { ...requestBody, createdBy: session.username });
     const fileBody = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     return new Response(fileBody, {
       headers: {

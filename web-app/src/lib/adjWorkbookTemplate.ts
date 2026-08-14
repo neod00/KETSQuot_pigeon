@@ -6,6 +6,7 @@ import type { AuditDurationInput, AuditDurationResult } from './auditDurationEng
 export interface AdjWorkbookRequest {
   companyName: string;
   contactPerson?: string;
+  createdBy?: string;
   issueDate?: string;
   auditType?: string;
   standards: string[];
@@ -65,6 +66,7 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
   const notes = [
     `Generated from LRQA ADJ v3 on ${issueDate}.`,
     `Scope: ${scope}`,
+    'EA sector and LRQA activity code must be selected and reviewed by an authorised competent person in ADJ.',
     siteCount > 1 ? `Declared sites: ${siteCount}. Complete the remaining site rows and sampling evidence before approval.` : '',
     request.auditResult.warnings.length ? `Review required: ${request.auditResult.warnings.join(' | ')}` : '',
   ].filter(Boolean).join('\n');
@@ -72,7 +74,7 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
   // Client Info is worksheet 3 in the protected LRQA ADJ v3 workbook.
   updateWorksheet(zip, 'xl/worksheets/sheet3.xml', {
     D16: issueDate,
-    H16: request.contactPerson || 'LRQA assessor',
+    H16: request.createdBy || request.contactPerson || 'LRQA assessor',
     D20: request.companyName || 'Client to be confirmed',
     H20: 'New',
     D22: `Effective employees: ${request.auditResult.effectiveEmployees}`,
@@ -80,9 +82,6 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
     D28: selected.has('ISO 9001') ? 'Yes' : '',
     D29: selected.has('ISO 14001') ? 'Yes' : '',
     D30: selected.has('ISO 45001') ? 'Yes' : '',
-    F28: selected.has('ISO 9001') ? scope : '',
-    F29: selected.has('ISO 14001') ? scope : '',
-    F30: selected.has('ISO 45001') ? scope : '',
     D32: notes,
     D38: '12-monthly',
     D47: isTransfer(request.auditType) ? 'Yes' : 'No',
