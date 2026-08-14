@@ -30,7 +30,9 @@ const escapeXml = (value: string) => String(value ?? '')
 const setCell = (xml: string, reference: string, value: string | number) => {
   const numeric = typeof value === 'number' && Number.isFinite(value);
   const replacement = (_full: string, attrs = '') => {
-    const cleanAttrs = attrs.replace(/\s+t="[^"]*"/g, '');
+    // The self-closing match includes the final slash in its attribute capture.
+    // Strip it before reusing attributes, otherwise Excel receives invalid XML.
+    const cleanAttrs = attrs.replace(/\/\s*$/, '').replace(/\s+t="[^"]*"/g, '');
     const inner = numeric
       ? `<v>${value}</v>`
       : `<is><t xml:space="preserve">${escapeXml(String(value))}</t></is>`;
@@ -125,7 +127,7 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
   const workbookFile = zip.file('xl/workbook.xml');
   if (workbookFile) {
     const workbookXml = workbookFile.asText().replace(/<calcPr([^>]*)\/?>(?:<\/calcPr>)?/i, (_full, attributes) =>
-      `<calcPr${String(attributes).replace(/\s+(calcMode|fullCalcOnLoad|forceFullCalc)="[^"]*"/g, '')} calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/>`);
+      `<calcPr${String(attributes).replace(/\/\s*$/, '').replace(/\s+(calcMode|fullCalcOnLoad|forceFullCalc)="[^"]*"/g, '')} calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/>`);
     zip.file('xl/workbook.xml', workbookXml);
   }
 
