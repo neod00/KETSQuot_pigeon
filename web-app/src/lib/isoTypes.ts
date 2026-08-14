@@ -1,4 +1,5 @@
 import type { AuditDurationInput, AuditDurationResult } from './auditDurationEngine';
+import type { AuditDurationAdjustment } from './auditDurationAdjustments';
 import type { IsoMultiSiteEvidence } from './isoMultiSiteEvidence';
 
 export type IsoApplicationStatus = 'new' | 'in_review' | 'needs_information' | 'quote_ready' | 'completed';
@@ -113,6 +114,7 @@ export interface IsoQuoteInput {
     result: AuditDurationResult;
     appliedAt?: string;
     multiSiteEvidence?: IsoMultiSiteEvidence;
+    adjustments?: AuditDurationAdjustment[];
   };
 }
 

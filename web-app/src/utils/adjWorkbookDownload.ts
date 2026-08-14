@@ -1,4 +1,5 @@
 import type { AuditDurationInput, AuditDurationResult } from '../lib/auditDurationEngine';
+import type { AuditDurationAdjustment } from '../lib/auditDurationAdjustments';
 import type { IsoMultiSiteEvidence } from '../lib/isoMultiSiteEvidence';
 
 export interface AdjWorkbookDownloadInput {
@@ -14,6 +15,7 @@ export interface AdjWorkbookDownloadInput {
   multiSiteEvidence?: IsoMultiSiteEvidence;
   auditInput: AuditDurationInput;
   auditResult: AuditDurationResult;
+  durationAdjustments?: AuditDurationAdjustment[];
 }
 
 export async function downloadAdjWorkbook(input: AdjWorkbookDownloadInput) {

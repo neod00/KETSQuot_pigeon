@@ -2,6 +2,7 @@ import 'server-only';
 
 import PizZip from 'pizzip';
 import type { AuditDurationInput, AuditDurationResult } from './auditDurationEngine';
+import type { AuditDurationAdjustment } from './auditDurationAdjustments';
 import { normaliseMultiSiteEvidence, type IsoMultiSiteEvidence } from './isoMultiSiteEvidence';
 
 export interface AdjWorkbookRequest {
@@ -18,6 +19,7 @@ export interface AdjWorkbookRequest {
   multiSiteEvidence?: IsoMultiSiteEvidence;
   auditInput: AuditDurationInput;
   auditResult: AuditDurationResult;
+  durationAdjustments?: AuditDurationAdjustment[];
 }
 
 const escapeXml = (value: string) => String(value ?? '')
@@ -67,11 +69,20 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
   const scope = request.scope?.trim() || 'To be confirmed by the assessor';
   const siteCount = Math.max(1, Math.floor(request.siteCount || request.auditInput.siteCount || 1));
   const issueDate = request.issueDate || new Date().toISOString().slice(0, 10);
+  const confirmedAdjustments = (request.durationAdjustments || []).filter((adjustment) => (
+    adjustment.evidenceConfirmed
+    && adjustment.justification?.trim()
+    && Number.isFinite(Number(adjustment.percent))
+    && Number(adjustment.percent) > 0
+  ));
   const notes = [
     `Generated from LRQA ADJ v3 on ${issueDate}.`,
     `Scope: ${scope}`,
     'EA sector and LRQA activity code must be selected and reviewed by an authorised competent person in ADJ.',
     siteCount > 1 ? `Declared sites: ${siteCount}. Complete the remaining site rows and sampling evidence before approval.` : '',
+    ...confirmedAdjustments.map((adjustment) => (
+      `App adjustment [${adjustment.standard}]: ${adjustment.direction === 'increase' ? 'increase' : 'decrease'} ${adjustment.percent}% - ${adjustment.factor}; ${adjustment.justification}`
+    )),
     request.auditResult.warnings.length ? `Review required: ${request.auditResult.warnings.join(' | ')}` : '',
   ].filter(Boolean).join('\n');
   const multiSiteEvidence = normaliseMultiSiteEvidence(request.multiSiteEvidence, siteCount);
@@ -123,6 +134,16 @@ export const buildAdjWorkbook = (template: Uint8Array, request: AdjWorkbookReque
     effectiveRows[`G${row}`] = contractors;
   }
   updateWorksheet(zip, 'xl/worksheets/sheet6.xml', effectiveRows);
+
+  // Keep the app selections in ADJ's own Adjustment Factors notes column. The
+  // protected ADJ formulas remain untouched for authorised assessor review.
+  if (confirmedAdjustments.length > 0) {
+    const adjustmentNotes: Record<string, string> = {};
+    confirmedAdjustments.slice(0, 20).forEach((adjustment, index) => {
+      adjustmentNotes[`L${8 + index}`] = `[${adjustment.standard}] ${adjustment.direction === 'increase' ? 'Increase' : 'Decrease'} ${adjustment.percent}% | ${adjustment.factor} | ${adjustment.justification}`;
+    });
+    updateWorksheet(zip, 'xl/worksheets/sheet7.xml', adjustmentNotes);
+  }
 
   const workbookFile = zip.file('xl/workbook.xml');
   if (workbookFile) {

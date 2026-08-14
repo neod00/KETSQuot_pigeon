@@ -14,6 +14,12 @@ import {
   type AuditDurationInput,
   type CoreIsoStandard,
 } from '../../lib/auditDurationEngine';
+import {
+  applyAuditDurationAdjustments,
+  AUDIT_DURATION_ADJUSTMENT_FACTORS,
+  type AuditDurationAdjustment,
+  type AuditDurationAdjustmentDirection,
+} from '../../lib/auditDurationAdjustments';
 import type { IsoQuoteDraft, IsoQuoteDraftStatus, IsoQuoteInput } from '../../lib/isoTypes';
 import {
   canApplyMultiSiteSampling,
@@ -148,6 +154,7 @@ export default function ISOQuotePage() {
   const [multiSiteEvidence, setMultiSiteEvidence] = useState<IsoMultiSiteEvidence>(emptyMultiSiteEvidence);
   const [integrationLevel, setIntegrationLevel] = useState('0');
   const [teamAbility, setTeamAbility] = useState('0');
+  const [durationAdjustments, setDurationAdjustments] = useState<AuditDurationAdjustment[]>([]);
   const [auditCalculationAppliedAt, setAuditCalculationAppliedAt] = useState('');
   const [expenses, setExpenses] = useState(DEFAULT_EXPENSES.toLocaleString());
   const [certFee, setCertFee] = useState(DEFAULT_CERT_FEE.toLocaleString());
@@ -239,6 +246,7 @@ export default function ISOQuotePage() {
         ));
         setIntegrationLevel(toInputNumber(importedAudit.integration?.level, '0'));
         setTeamAbility(toInputNumber(importedAudit.integration?.teamAbility, '0'));
+        setDurationAdjustments(imported.auditCalculation?.adjustments || []);
         setAuditCalculationAppliedAt(imported.auditCalculation?.appliedAt || '');
       }
 
@@ -363,9 +371,13 @@ export default function ISOQuotePage() {
     employeeCount, integrationLevel, multiSiteEligible, overrideJustification, partTimeEmployees,
     multiSiteReady, parsedSiteCount, samplingAllowed, standards, teamAbility,
   ]);
-  const auditDurationResult = useMemo(
+  const baseAuditDurationResult = useMemo(
     () => calculateAuditDuration(auditDurationInput),
     [auditDurationInput],
+  );
+  const auditDurationResult = useMemo(
+    () => applyAuditDurationAdjustments(baseAuditDurationResult, durationAdjustments),
+    [baseAuditDurationResult, durationAdjustments],
   );
   const auditDurationValuesApplied = auditDurationResult.perStandard.length > 0
     && auditDurationResult.perStandard.every((row) => {
@@ -437,6 +449,25 @@ export default function ISOQuotePage() {
 
   const updateCustomStandardInput = (field: CostField, value: string) => {
     setCustomStandardInput(current => ({ ...current, [field]: value }));
+  };
+
+  const addDurationAdjustment = () => {
+    const standard = coreStandards[0] || 'all';
+    setDurationAdjustments(current => [...current, {
+      id: crypto.randomUUID(),
+      standard,
+      factor: AUDIT_DURATION_ADJUSTMENT_FACTORS[0],
+      direction: 'increase',
+      percent: 10,
+      justification: '',
+      evidenceConfirmed: false,
+    }]);
+  };
+
+  const updateDurationAdjustment = (id: string, patch: Partial<AuditDurationAdjustment>) => {
+    setDurationAdjustments(current => current.map((adjustment) => (
+      adjustment.id === id ? { ...adjustment, ...patch } : adjustment
+    )));
   };
 
   const applyAuditDuration = () => {
@@ -512,6 +543,7 @@ export default function ISOQuotePage() {
       result: auditDurationResult,
       appliedAt: auditDurationValuesApplied ? auditCalculationAppliedAt || undefined : undefined,
       multiSiteEvidence: normalisedMultiSiteEvidence,
+      adjustments: durationAdjustments,
     },
   });
 
@@ -777,6 +809,7 @@ export default function ISOQuotePage() {
         multiSiteEvidence: normalisedMultiSiteEvidence,
         auditInput: auditDurationInput,
         auditResult: auditDurationResult,
+        durationAdjustments,
       });
       setDraftMessage('ADJ Excel workbook downloaded. Review the remaining ADJ evidence and formulas before approval.');
     } catch (error) {
@@ -956,6 +989,65 @@ export default function ISOQuotePage() {
                     </select>
                   </label>
                 ))}
+              </div>
+            )}
+
+            {coreStandards.length > 0 && (
+              <div className="mt-5 border-t border-slate-200 pt-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">심사일수 증감요인</h4>
+                    <p className="mt-1 text-xs text-slate-600">ADJ 검토용 항목입니다. 증빙 확인과 근거를 입력한 항목만 산정값에 반영되며, 항상 담당자 최종 검토가 필요합니다.</p>
+                  </div>
+                  <button type="button" onClick={addDurationAdjustment} className="border border-teal-700 bg-white px-3 py-2 text-xs font-bold text-teal-800 hover:bg-teal-50">
+                    증감요인 추가
+                  </button>
+                </div>
+
+                {durationAdjustments.length === 0 ? (
+                  <p className="mt-3 border border-dashed border-slate-300 bg-white px-3 py-2 text-xs text-slate-500">추가 증감요인이 없으면 MD 기본 일수와 통합심사 감축만 적용합니다.</p>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {durationAdjustments.map((adjustment) => (
+                      <div key={adjustment.id} className="border border-slate-200 bg-white p-3">
+                        <div className="grid gap-3 md:grid-cols-6">
+                          <label className="text-xs font-medium text-slate-600">적용 규격
+                            <select className="mt-1 w-full border border-slate-300 bg-white p-2 text-sm text-slate-900" value={adjustment.standard} onChange={(event) => updateDurationAdjustment(adjustment.id, { standard: event.target.value as CoreIsoStandard | 'all' })}>
+                              <option value="all">모든 선택 규격</option>
+                              {coreStandards.map((standard) => <option key={standard} value={standard}>{standard}</option>)}
+                            </select>
+                          </label>
+                          <label className="text-xs font-medium text-slate-600 md:col-span-2">증감 사유
+                            <select className="mt-1 w-full border border-slate-300 bg-white p-2 text-sm text-slate-900" value={adjustment.factor} onChange={(event) => updateDurationAdjustment(adjustment.id, { factor: event.target.value })}>
+                              {AUDIT_DURATION_ADJUSTMENT_FACTORS.map((factor) => <option key={factor} value={factor}>{factor}</option>)}
+                            </select>
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">방향
+                            <select className="mt-1 w-full border border-slate-300 bg-white p-2 text-sm text-slate-900" value={adjustment.direction} onChange={(event) => updateDurationAdjustment(adjustment.id, { direction: event.target.value as AuditDurationAdjustmentDirection })}>
+                              <option value="increase">증가</option>
+                              <option value="decrease">감소</option>
+                            </select>
+                          </label>
+                          <label className="text-xs font-medium text-slate-600">증감률 (%)
+                            <input type="number" min="0" max="50" step="0.5" className="mt-1 w-full border border-slate-300 p-2 text-sm text-slate-900" value={adjustment.percent} onChange={(event) => updateDurationAdjustment(adjustment.id, { percent: Number(event.target.value) || 0 })} />
+                          </label>
+                          <div className="flex items-end">
+                            <button type="button" onClick={() => setDurationAdjustments(current => current.filter((item) => item.id !== adjustment.id))} className="min-h-10 w-full border border-red-200 bg-white px-3 text-xs font-bold text-red-700 hover:bg-red-50">삭제</button>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
+                          <label className="text-xs font-medium text-slate-600">ADJ 검토 근거
+                            <input className="mt-1 w-full border border-slate-300 p-2 text-sm text-slate-900" value={adjustment.justification} onChange={(event) => updateDurationAdjustment(adjustment.id, { justification: event.target.value })} placeholder="근거 문서, 공정·위험 특성, 적용 이유를 기록하세요." />
+                          </label>
+                          <label className="flex min-h-10 items-center gap-2 self-end border border-slate-200 px-3 text-xs font-medium text-slate-700">
+                            <input type="checkbox" checked={adjustment.evidenceConfirmed} onChange={(event) => updateDurationAdjustment(adjustment.id, { evidenceConfirmed: event.target.checked })} />
+                            증빙 확인
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
