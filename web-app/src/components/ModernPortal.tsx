@@ -13,11 +13,14 @@ interface ModernPortalProps {
 
 const NAV_ITEMS = [
     { label: '업무 대시보드', href: '/', active: true },
-    { label: 'ISO 신청과 견적', href: '/iso' },
-    { label: '세일즈 현황', href: '/iso/sales' },
-    { label: 'D365 생성', href: '/iso/sales?mode=d365' },
-    { label: 'K-ETS 검증', href: '/generator' },
-    { label: '문서함', href: '/iso/documents' },
+    { label: 'ISO 견적·계약', href: '/iso' },
+    { label: '신청서 접수함', href: '/iso/applications' },
+    { label: '생성 문서', href: '/iso/documents' },
+    { label: '세일즈 현황·D365', href: '/iso/sales' },
+    { label: 'K-ETS 견적', href: '/generator' },
+    { label: 'K-ETS 계약', href: '/kets-contract' },
+    { label: 'P827 계약', href: '/system' },
+    { label: 'CBAM 관리', href: '/cbam/admin' },
 ];
 
 const QUICK_ACTIONS = [
@@ -104,6 +107,16 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                                 {item.label}
                             </Link>
                         ))}
+                        {isAdminAccount && (
+                            <Link href="/iso/sam" className={styles.navLink}>
+                                SAM&apos;s Business
+                            </Link>
+                        )}
+                        {isAdminAccount && (
+                            <Link href="/iso/users" className={styles.navLink}>
+                                팀원 관리
+                            </Link>
+                        )}
                     </nav>
 
                     <div className={styles.railFooter}>
@@ -119,12 +132,6 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                             <div className={styles.topMeta}>Commercial operations portal</div>
                         </div>
                         <div className={styles.topActions}>
-                            {isAdminAccount && (
-                                <>
-                                    <Link href="/iso/sam" className={styles.button}>SAM Business</Link>
-                                    <Link href="/iso/users" className={styles.button}>팀원 관리</Link>
-                                </>
-                            )}
                             <button type="button" onClick={() => setFeedbackOpen(true)} className={styles.button}>
                                 팀원 피드백
                             </button>

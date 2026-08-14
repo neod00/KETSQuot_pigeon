@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import FeedbackSidebar from './FeedbackSidebar';
 import styles from './PortalShell.module.css';
 
 type PortalDesign = 'modern' | 'legacy';
@@ -54,6 +55,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [design, setDesign] = useState<PortalDesign>('modern');
   const [session, setSession] = useState<SessionSummary | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const isAuthPage = pathname === '/iso/login' || pathname === '/iso/setup' || pathname === '/iso/request-access';
   const isPublicPage = pathname === '/cbam';
 
@@ -179,6 +181,9 @@ export default function PortalShell({ children }: { children: React.ReactNode })
           </div>
           <div className={styles.topActions}>
             {session && <span className={styles.account}>{session.username} · {session.role === 'admin' ? '관리자' : '팀원'}</span>}
+            <button type="button" className={styles.secondaryButton} onClick={() => setFeedbackOpen(true)}>
+              팀원 피드백
+            </button>
             <button type="button" className={styles.secondaryButton} onClick={() => changeDesign('legacy')}>
               이전 디자인
             </button>
@@ -194,6 +199,20 @@ export default function PortalShell({ children }: { children: React.ReactNode })
           {children}
         </div>
       </div>
+      {feedbackOpen && (
+        <div className={styles.feedbackBackdrop} role="dialog" aria-modal="true" aria-label="팀원 피드백">
+          <section className={styles.feedbackDrawer}>
+            <div className={styles.feedbackHeader}>
+              <div>
+                <span>TEAM VOICE</span>
+                <h2>팀원 피드백</h2>
+              </div>
+              <button type="button" className={styles.feedbackCloseButton} onClick={() => setFeedbackOpen(false)}>닫기</button>
+            </div>
+            <FeedbackSidebar />
+          </section>
+        </div>
+      )}
     </div>
   );
 }
