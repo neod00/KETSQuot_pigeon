@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AuditDurationSummary from '@/components/AuditDurationSummary';
 import ApplicationAdjDownloadButton from './ApplicationAdjDownloadButton';
+import ApplicationAuditAssistant from './ApplicationAuditAssistant';
 import IsoApplicationFormReplica from '@/components/IsoApplicationFormReplica';
 import { calculateAuditDuration } from '@/lib/auditDurationEngine';
+import { getIsoAuditAnalysis } from '@/lib/isoAuditAnalysis';
 import { findIsoApplication, toAuditDurationInput } from '@/lib/isoApplications';
 import { listIsoQuoteDrafts } from '@/lib/isoQuoteDrafts';
 import StartQuoteButton from './StartQuoteButton';
@@ -17,6 +19,7 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
   const drafts = await listIsoQuoteDrafts(id);
   const auditInput = toAuditDurationInput(application);
   const auditDuration = calculateAuditDuration(auditInput);
+  const analysis = await getIsoAuditAnalysis(id);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-5">
@@ -51,6 +54,8 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
         <AuditDurationSummary result={auditDuration} />
         <ApplicationAdjDownloadButton application={application} auditInput={auditInput} auditResult={auditDuration} />
       </section>
+
+      <ApplicationAuditAssistant applicationId={application.id} initialAnalysis={analysis} />
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>

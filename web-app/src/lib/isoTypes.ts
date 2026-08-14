@@ -37,6 +37,36 @@ export interface IsoApplication {
   quoteReady: boolean;
 }
 
+export type IsoAuditAnalysisStatus = 'proposed' | 'approved';
+
+/** Advisory review of a submitted application. It never replaces assessor approval. */
+export interface IsoAuditAnalysis {
+  id: string;
+  applicationId: string;
+  createdAt: string;
+  createdBy: string;
+  status: IsoAuditAnalysisStatus;
+  model: string;
+  summary: string;
+  missingInformation: string[];
+  questionsForClient: string[];
+  riskFlags: string[];
+  clientEmailDraft: string;
+  suggestedInput: {
+    complexity?: Record<string, 'high' | 'medium' | 'low' | 'limited'>;
+    multiSite?: {
+      eligible?: boolean;
+      samplingAllowed?: boolean;
+      effectiveCycle?: boolean;
+    };
+    integration?: {
+      level?: number;
+      teamAbility?: number;
+    };
+    overrideJustification?: string;
+  };
+}
+
 export interface IsoQuoteInput {
   companyName: string;
   contactPerson: string;

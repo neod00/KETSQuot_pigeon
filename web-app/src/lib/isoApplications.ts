@@ -188,12 +188,12 @@ export const toAuditDurationInput = (application: IsoApplication): AuditDuration
   return input;
 };
 
-export const toIsoQuoteInput = (application: IsoApplication): IsoQuoteInput => {
+export const toIsoQuoteInput = (application: IsoApplication, auditInputOverride?: AuditDurationInput): IsoQuoteInput => {
   const supported = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 27001', 'ISO 50001'];
   const standards = application.standards.filter((standard) => supported.includes(standard));
   const distinctOtherStandard = application.otherStandards.trim() !== application.scope.trim() ? application.otherStandards : '';
   const customStandard = application.standards.find((standard) => !supported.includes(standard)) || distinctOtherStandard;
-  const auditInput = toAuditDurationInput(application);
+  const auditInput = auditInputOverride || toAuditDurationInput(application);
   const auditResult = calculateAuditDuration(auditInput);
   return {
     companyName: application.companyName,
