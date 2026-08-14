@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { generateIsoQuoteDocx } from '../../utils/isoQuoteDocxGenerator';
 import { generateIsoContractDocx } from '../../utils/isoContractDocxGenerator';
+import { downloadAdjWorkbook } from '../../utils/adjWorkbookDownload';
 import AuditDurationSummary from '../../components/AuditDurationSummary';
 import ResponsiveDocumentPreview from '../../components/ResponsiveDocumentPreview';
 import {
@@ -727,6 +728,32 @@ export default function ISOQuotePage() {
     window.open('/iso/adj', '_blank', 'noopener,noreferrer');
   };
 
+  const handleDownloadAdjWorkbook = async () => {
+    if (auditDurationResult.perStandard.length === 0) {
+      setDraftMessage('Select a supported ISO standard and enter employee information before creating ADJ.');
+      return;
+    }
+    try {
+      setDraftMessage('Creating an ADJ Excel workbook from the LRQA ADJ v3 template...');
+      await downloadAdjWorkbook({
+        companyName,
+        contactPerson,
+        issueDate,
+        auditType,
+        standards,
+        scope,
+        siteName,
+        siteAddress,
+        siteCount: Math.max(1, Number.parseInt(siteCount.replace(/[^0-9]/g, ''), 10) || 1),
+        auditInput: auditDurationInput,
+        auditResult: auditDurationResult,
+      });
+      setDraftMessage('ADJ Excel workbook downloaded. Review the remaining ADJ evidence and formulas before approval.');
+    } catch (error) {
+      setDraftMessage(error instanceof Error ? error.message : 'ADJ Excel workbook could not be created.');
+    }
+  };
+
   const handlePrint = () => window.print();
   const totalNote = hasExpenses ? `VAT ${vatType}` : `제경비/VAT ${vatType}`;
   const futureAuditColumn = futureAuditHeader(auditType);
@@ -741,8 +768,11 @@ export default function ISOQuotePage() {
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/iso/applications" target="_blank" rel="noopener noreferrer" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">신청서 접수함</Link>
             <Link href="/iso/documents" target="_blank" rel="noopener noreferrer" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">문서함</Link>
-            <button type="button" onClick={handleOpenAdj} className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
-              ADJ 작성
+            <button type="button" onClick={handleDownloadAdjWorkbook} className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-600">
+              ADJ Excel 다운로드
+            </button>
+            <button type="button" onClick={handleOpenAdj} className="rounded-md border border-teal-700 px-3 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50">
+              ADJ 검토 도구
             </button>
             <Link href="/" className="portal-legacy-only rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               포털로 돌아가기
@@ -858,6 +888,14 @@ export default function ISOQuotePage() {
                 className="min-h-10 bg-teal-700 px-4 text-sm font-bold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 산정값 적용
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadAdjWorkbook}
+                disabled={auditDurationResult.status === 'insufficient'}
+                className="min-h-10 border border-teal-700 bg-white px-4 text-sm font-bold text-teal-800 hover:bg-teal-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
+              >
+                ADJ Excel 다운로드
               </button>
             </div>
 

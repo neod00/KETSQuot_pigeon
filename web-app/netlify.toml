@@ -4,6 +4,7 @@
 
 [functions]
   directory = "netlify/functions"
+  included_files = ["templates/ADJ_v3.xlsx"]
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
