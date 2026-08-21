@@ -9,24 +9,24 @@ import {
   serviceTypeLabel,
   type StoredCbamApplication,
 } from '@/lib/cbam';
-
-type AdminView = 'applications' | 'quotes' | 'contracts';
+import CnCodeChecker from './CnCodeChecker';
 
 export default function CbamAdminPage() {
   const [applications, setApplications] = useState<StoredCbamApplication[]>([]);
   const [selected, setSelected] = useState<StoredCbamApplication | null>(null);
+  const [adminKey, setAdminKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState<AdminView>('applications');
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [view, setView] = useState<'applications' | 'cn-checker'>('applications');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (key = adminKey) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/cbam/applications', { cache: 'no-store' });
+      const response = await fetch('/api/cbam/applications', { headers: key ? { 'x-cbam-admin-key': key } : undefined });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || '신청서를 불러오지 못했습니다.');
+      if (key) sessionStorage.setItem('cbamAdminKey', key);
       setApplications(result.applications);
       setSelected(current => current ? result.applications.find((item: StoredCbamApplication) => item.reference === current.reference) || result.applications[0] : result.applications[0]);
     } catch (caught) {
@@ -34,9 +34,9 @@ export default function CbamAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [adminKey]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const savedKey = sessionStorage.getItem('cbamAdminKey') || ''; setAdminKey(savedKey); load(savedKey); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = useMemo(() => ({
     total: applications.length,
@@ -45,25 +45,13 @@ export default function CbamAdminPage() {
     value: applications.reduce((sum, item) => sum + item.estimatedCost, 0),
   }), [applications]);
 
-  const copyApplicationLink = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}/cbam`);
-    setLinkCopied(true);
-    window.setTimeout(() => setLinkCopied(false), 1800);
-  };
-
-  const viewContent = {
-    applications: { title: '신청서 접수현황', description: '접수된 고객 신청서와 자동 산정된 검증일수 및 근거를 확인합니다.' },
-    quotes: { title: '견적서', description: '접수 정보를 기반으로 검증일수, 단가, 제경비와 VAT를 검토하여 견적서를 작성합니다.' },
-    contracts: { title: '계약서', description: '접수 범위와 확정 비용을 바탕으로 CBAM 서비스 계약서를 작성합니다.' },
-  }[activeView];
-
   return (
     <main className="min-h-screen bg-[#f4f6f8] text-slate-950">
       <header className="bg-slate-950 text-white">
         <div className="mx-auto max-w-[1500px] px-5 py-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div><p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">Internal review workspace</p><h1 className="mt-1 text-2xl font-black">CBAM 관리</h1></div>
-            <div className="flex flex-wrap items-center gap-2"><Link href="/cbam" target="_blank" rel="noreferrer" className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold hover:bg-white/10">고객 신청서 열기</Link><button type="button" onClick={copyApplicationLink} className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold hover:bg-white/10">{linkCopied ? '링크 복사됨' : '신청서 링크 복사'}</button><Link href="/" className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-950">메인으로</Link></div>
+            <div><p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">Internal review workspace</p><h1 className="mt-1 text-2xl font-black">CBAM 신청·견적 관리</h1></div>
+            <div className="flex items-center gap-2"><Link href="/cbam" className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold hover:bg-white/10">공개 신청서</Link><Link href="/" className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-950">메인으로</Link></div>
           </div>
           <div className="mt-7 grid gap-px overflow-hidden rounded-2xl bg-white/10 sm:grid-cols-4">
             <Stat label="전체 신청" value={`${stats.total}건`} /><Stat label="신규 접수" value={`${stats.newCount}건`} /><Stat label="예상 검증일" value={`${stats.totalDays.toFixed(1)}일`} /><Stat label="예상 공급가" value={formatKrw(stats.value)} />
@@ -72,39 +60,32 @@ export default function CbamAdminPage() {
       </header>
 
       <div className="mx-auto max-w-[1500px] px-5 py-7">
-        <nav className="mb-6 flex flex-wrap gap-2 border-b border-slate-300" aria-label="CBAM 관리 메뉴">
-          {([
-            ['applications', '신청서 접수현황'],
-            ['quotes', '견적서'],
-            ['contracts', '계약서'],
-          ] as const).map(([view, label]) => (
-            <button key={view} type="button" onClick={() => setActiveView(view)} className={`min-h-11 border-b-4 px-5 py-3 text-sm font-black transition ${activeView === view ? 'border-teal-700 bg-white text-slate-950' : 'border-transparent text-slate-500 hover:text-slate-900'}`}>
-              {label}
-            </button>
-          ))}
+        {error && <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5"><p className="font-bold text-amber-900">{error}</p><div className="mt-3 flex max-w-md gap-2"><input type="password" placeholder="CBAM_ADMIN_KEY" value={adminKey} onChange={e => setAdminKey(e.target.value)} className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm"/><button onClick={() => load()} className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white">인증</button></div></div>}
+        <nav className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="CBAM 내부 관리 메뉴">
+          <button type="button" onClick={() => setView('applications')} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === 'applications' ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>신청서 관리</button>
+          <button type="button" onClick={() => setView('cn-checker')} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === 'cn-checker' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>CN 코드·제품 판정</button>
         </nav>
-        {error && <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5"><p className="font-bold text-amber-900">{error}</p><button onClick={() => load()} className="mt-3 rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white">다시 시도</button></div>}
-        <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_.85fr]">
+        {view === 'applications' ? <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_.85fr]">
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 p-5"><div><h2 className="text-lg font-black">{viewContent.title}</h2><p className="mt-1 text-sm text-slate-500">{viewContent.description}</p></div><button onClick={() => load()} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-50">새로고침</button></div>
+            <div className="flex items-center justify-between border-b border-slate-200 p-5"><div><h2 className="text-lg font-black">접수된 신청서</h2><p className="mt-1 text-sm text-slate-500">행을 선택하면 상세 산정근거와 문서 생성 기능이 표시됩니다.</p></div><button onClick={() => load()} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold hover:bg-slate-50">새로고침</button></div>
             <div className="overflow-x-auto">
               <table className="min-w-[900px] w-full text-left text-sm">
-                <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-500"><tr><Th>접수번호 / 일시</Th><Th>업체</Th><Th>업무</Th><Th>복잡도</Th><Th>심사일수</Th><Th>예상비용</Th><Th>{activeView === 'applications' ? '상태' : '작업'}</Th></tr></thead>
-                <tbody>{loading ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">불러오는 중...</td></tr> : applications.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">접수된 신청서가 없습니다.</td></tr> : applications.map(application => <tr key={application.reference} onClick={() => setSelected(application)} className={`cursor-pointer border-t border-slate-100 transition hover:bg-teal-50 ${selected?.reference === application.reference ? 'bg-teal-50' : ''}`}><Td><strong className="block">{application.reference}</strong><span className="mt-1 block text-xs text-slate-500">{formatDateTime(application.submittedAt)}</span></Td><Td><strong className="block">{application.companyName}</strong><span className="mt-1 block text-xs text-slate-500">{application.contactName} · {application.country}</span></Td><Td>{serviceTypeLabel(application.serviceType)}<span className="mt-1 block text-xs text-slate-500">{clientTypeLabel(application.clientType)}</span></Td><Td><Badge tone={application.complexity === 'very_complex' || application.complexity === 'complex' ? 'amber' : 'teal'}>{complexityLabel(application.complexity)}</Badge></Td><Td><strong>{application.quotedDays.toFixed(1)}일</strong><span className="mt-1 block text-xs text-slate-500">원시 {application.rawDays.toFixed(2)}일</span></Td><Td className="font-bold">{formatKrw(application.estimatedCost)}</Td><Td>{activeView === 'applications' ? <Badge tone="blue">{application.status}</Badge> : <Link href={`/cbam/documents?type=${activeView === 'quotes' ? 'quote' : 'contract'}&ref=${encodeURIComponent(application.reference)}`} onClick={event => event.stopPropagation()} className="inline-flex rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white hover:bg-teal-700">{activeView === 'quotes' ? '견적서 작성' : '계약서 작성'}</Link>}</Td></tr>)}</tbody>
+                <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-500"><tr><Th>접수번호 / 일시</Th><Th>업체</Th><Th>업무</Th><Th>복잡도</Th><Th>심사일수</Th><Th>예상비용</Th><Th>상태</Th></tr></thead>
+                <tbody>{loading ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">불러오는 중...</td></tr> : applications.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">접수된 신청서가 없습니다.</td></tr> : applications.map(application => <tr key={application.reference} onClick={() => setSelected(application)} className={`cursor-pointer border-t border-slate-100 transition hover:bg-teal-50 ${selected?.reference === application.reference ? 'bg-teal-50' : ''}`}><Td><strong className="block">{application.reference}</strong><span className="mt-1 block text-xs text-slate-500">{formatDateTime(application.submittedAt)}</span></Td><Td><strong className="block">{application.companyName}</strong><span className="mt-1 block text-xs text-slate-500">{application.contactName} · {application.country}</span></Td><Td>{serviceTypeLabel(application.serviceType)}<span className="mt-1 block text-xs text-slate-500">{clientTypeLabel(application.clientType)}</span></Td><Td><Badge tone={application.complexity === 'very_complex' || application.complexity === 'complex' ? 'amber' : 'teal'}>{complexityLabel(application.complexity)}</Badge></Td><Td><strong>{application.quotedDays.toFixed(1)}일</strong><span className="mt-1 block text-xs text-slate-500">원시 {application.rawDays.toFixed(2)}일</span></Td><Td className="font-bold">{formatKrw(application.estimatedCost)}</Td><Td><Badge tone="blue">{application.status}</Badge></Td></tr>)}</tbody>
               </table>
             </div>
           </section>
 
           <aside className="xl:sticky xl:top-5">
-            {selected ? <ApplicationDetail application={selected} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">신청서를 선택해 주세요.</div>}
+            {selected ? <ApplicationDetail application={selected} onCheckCnCodes={() => setView('cn-checker')} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">신청서를 선택해 주세요.</div>}
           </aside>
-        </div>
+        </div> : <CnCodeChecker adminKey={adminKey} initialCodes={selected?.cnCodes || ''} applicationReference={selected?.reference} companyName={selected?.companyName} />}
       </div>
     </main>
   );
 }
 
-function ApplicationDetail({ application }: { application: StoredCbamApplication }) {
+function ApplicationDetail({ application, onCheckCnCodes }: { application: StoredCbamApplication; onCheckCnCodes: () => void }) {
   return <div className="space-y-5">
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-teal-700">{application.reference}</p><h2 className="mt-2 text-2xl font-black">{application.companyName}</h2><p className="mt-1 text-sm text-slate-500">{application.contactName} · {application.email} · {application.phone}</p></div><Badge tone="blue">{application.status}</Badge></div></div>
@@ -120,6 +101,7 @@ function ApplicationDetail({ application }: { application: StoredCbamApplication
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-500">업체·범위 정보</h3>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><Detail label="고객 유형" value={clientTypeLabel(application.clientType)} /><Detail label="서비스" value={serviceTypeLabel(application.serviceType)} /><Detail label="대상 연도" value={application.verificationYears.join(', ') || '-'} /><Detail label="CBAM 상품" value={application.cbamGoods.join(', ') || '-'} /><Detail label="CN 코드" value={application.cnCodes || '-'} /><Detail label="사업장" value={application.sites || '-'} /><Detail label="사업자 / 공정 / 상품" value={`${application.operatorCount} / ${application.processCount} / ${application.goodsCount}`} /><Detail label="MMD" value={mmdLabel(application.mmdStatus)} /></dl>
+      <button type="button" onClick={onCheckCnCodes} className="mt-5 w-full rounded-xl border border-teal-700 px-4 py-3 text-sm font-black text-teal-800 transition hover:bg-teal-50">이 신청서의 CN 코드 판정</button>
     </section>
 
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
