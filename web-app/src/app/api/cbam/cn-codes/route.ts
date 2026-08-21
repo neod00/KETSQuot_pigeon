@@ -38,8 +38,8 @@ type AiCandidate = {
 function authenticate(request: NextRequest) {
   const adminKey = process.env.CBAM_ADMIN_KEY;
   const suppliedKey = request.headers.get('x-cbam-admin-key');
-  if (process.env.NETLIFY && !adminKey) return NextResponse.json({ message: 'CBAM_ADMIN_KEY ?댁쁺 ?ㅼ젙???꾩슂?⑸땲??' }, { status: 503 });
-  if (adminKey && suppliedKey !== adminKey) return NextResponse.json({ message: '?대? 愿由??몄쬆???꾩슂?⑸땲??' }, { status: 401 });
+  if (process.env.NETLIFY && !adminKey) return NextResponse.json({ message: 'CBAM_ADMIN_KEY 운영 설정이 필요합니다.' }, { status: 503 });
+  if (adminKey && suppliedKey !== adminKey) return NextResponse.json({ message: '내부 관리 인증이 필요합니다.' }, { status: 401 });
   return null;
 }
 
@@ -132,7 +132,7 @@ async function searchWithAi(input: ProductSearchInput): Promise<{ candidates: Cb
     if (!response.ok) {
       const detail = await response.text();
       console.error('OpenAI CBAM candidate search failed.', response.status, detail.slice(0, 500));
-      throw new Error('AI ?꾨낫 寃?됱쓣 ?꾨즺?섏? 紐삵뻽?듬땲??');
+      throw new Error('AI 후보 검색을 완료하지 못했습니다.');
     }
 
     const raw = await response.json() as Record<string, unknown>;
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
     const input = await request.json() as ProductSearchInput | CodeSearchInput;
     if (input.kind === 'codes') {
       const codes = parseCnCodeInput(input.codes);
-      if (!codes.length) return NextResponse.json({ message: '?뺤씤??CN 肄붾뱶瑜??낅젰??二쇱꽭??' }, { status: 400 });
+      if (!codes.length) return NextResponse.json({ message: '확인할 CN 코드를 입력해 주세요.' }, { status: 400 });
       return NextResponse.json({
         assessments: codes.map(assessCnCode),
         scopeVersion: CBAM_SCOPE_VERSION,
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (input.kind !== 'product' || !input.productName?.trim()) {
-      return NextResponse.json({ message: '?쒗뭹紐낆쓣 ?낅젰??二쇱꽭??' }, { status: 400 });
+      return NextResponse.json({ message: '제품명을 입력해 주세요.' }, { status: 400 });
     }
 
     const fallbackCandidates = searchProductCatalog(input);
@@ -187,8 +187,8 @@ export async function POST(request: NextRequest) {
         aiUsed: false,
         aiStatus: 'not_configured',
         message: fallbackCandidates.length
-          ? '湲곕낯 ?덈ぉ ?ъ쟾?먯꽌 ?꾨낫瑜?李얠븯?듬땲?? OPENAI_API_KEY瑜??ㅼ젙?섎㈃ AI媛 ?ъ쭏쨌?뺥깭쨌?⑸룄瑜??④퍡 遺꾩꽍?⑸땲??'
-          : '湲곕낯 ?덈ぉ ?ъ쟾?먯꽌 ?꾨낫瑜?李얠? 紐삵뻽?듬땲?? ?ъ쭏쨌?뺥깭쨌?⑸룄瑜???援ъ껜?곸쑝濡??낅젰??二쇱꽭??',
+          ? '기본 품목 사전에서 후보를 찾았습니다. OPENAI_API_KEY를 설정하면 AI가 재질·형태·용도를 함께 분석합니다.'
+          : '기본 품목 사전에서 후보를 찾지 못했습니다. 재질·형태·용도를 더 구체적으로 입력해 주세요.',
         scopeVersion: CBAM_SCOPE_VERSION,
         cnVersion: CBAM_CN_VERSION,
       });
@@ -202,8 +202,8 @@ export async function POST(request: NextRequest) {
         aiStatus: ai.candidates.length ? 'completed' : 'empty',
         model: ai.model,
         message: ai.candidates.length
-          ? 'AI媛 ?꾨낫 肄붾뱶瑜??쒖븞?덉쑝硫? 媛?肄붾뱶??CBAM 踰붿쐞??踰뺣졊 洹쒖튃 ?붿쭊??蹂꾨룄濡??먯젙?덉뒿?덈떎.'
-          : 'AI ?꾨낫媛 ?놁뼱 湲곕낯 ?덈ぉ ?ъ쟾 寃곌낵瑜??쒖떆?⑸땲??',
+          ? 'AI가 후보 코드를 제안했으며, 각 코드의 CBAM 범위는 법령 규칙 엔진이 별도로 판정했습니다.'
+          : 'AI 후보가 없어 기본 품목 사전 결과를 표시합니다.',
         scopeVersion: CBAM_SCOPE_VERSION,
         cnVersion: CBAM_CN_VERSION,
       });
@@ -213,13 +213,12 @@ export async function POST(request: NextRequest) {
         candidates: fallbackCandidates,
         aiUsed: false,
         aiStatus: 'fallback',
-        message: 'AI ?곌껐??吏?곕릺??湲곕낯 ?덈ぉ ?ъ쟾 寃곌낵瑜??쒖떆?⑸땲??',
+        message: 'AI 연결이 지연되어 기본 품목 사전 결과를 표시합니다.',
         scopeVersion: CBAM_SCOPE_VERSION,
         cnVersion: CBAM_CN_VERSION,
       });
     }
   } catch {
-    return NextResponse.json({ message: '議고쉶 ?붿껌 ?뺤떇???뺤씤??二쇱꽭??' }, { status: 400 });
+    return NextResponse.json({ message: '조회 요청 형식을 확인해 주세요.' }, { status: 400 });
   }
 }
-
