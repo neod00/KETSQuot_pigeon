@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getIsoRequestSession } from '@/lib/isoAuth';
 import {
   CBAM_CN_VERSION,
   CBAM_SCOPE_RULE_SUMMARY,
@@ -34,14 +35,6 @@ type AiCandidate = {
   confidence: 'high' | 'medium' | 'low';
   missingInformation: string[];
 };
-
-function authenticate(request: NextRequest) {
-  const adminKey = process.env.CBAM_ADMIN_KEY;
-  const suppliedKey = request.headers.get('x-cbam-admin-key');
-  if (process.env.NETLIFY && !adminKey) return NextResponse.json({ message: 'CBAM_ADMIN_KEY 운영 설정이 필요합니다.' }, { status: 503 });
-  if (adminKey && suppliedKey !== adminKey) return NextResponse.json({ message: '내부 관리 인증이 필요합니다.' }, { status: 401 });
-  return null;
-}
 
 function extractOutputText(response: Record<string, unknown>) {
   if (typeof response.output_text === 'string') return response.output_text;
@@ -161,8 +154,7 @@ async function searchWithAi(input: ProductSearchInput): Promise<{ candidates: Cb
 }
 
 export async function POST(request: NextRequest) {
-  const authError = authenticate(request);
-  if (authError) return authError;
+  if (!getIsoRequestSession(request)) return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
 
   try {
     const input = await request.json() as ProductSearchInput | CodeSearchInput;
