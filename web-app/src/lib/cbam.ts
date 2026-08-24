@@ -120,7 +120,9 @@ export function calculateCbamDays(input: CbamApplicationInput): CbamCalculation 
   const adjustedDays = rawDays * (1 + adjustmentPercent / 100);
   const quotedDays = Math.ceil(adjustedDays * 2) / 2;
 
-  if (input.knownClient) basis.push('기존 검증팀이 알고 있는 고객: 원문상 허용된 10% 감액 적용');
+  basis.push(`복잡도 점수 ${score}점 → ${complexityLabel(complexity)} 등급 적용 (0점 단순 · 1~2점 중간 · 3~5점 복잡 · 6점 이상 매우 복잡)`);
+  basis.push(`${clientTypeLabel(input.clientType)} ${complexityLabel(complexity)} 등급 기준: SARA ${saraDays.toFixed(2)}일 + 검증 ${verificationDays.toFixed(2)}일 + 기술검토 ${technicalReviewDays.toFixed(2)}일 = 원시 ${rawDays.toFixed(2)}일`);
+  if (input.knownClient) basis.push('기존 검증팀이 알고 있는 고객: 원시일수의 10% 감액 적용');
   if (input.managementSystems.length) basis.push(`인증 경영시스템 보유: ${input.managementSystems.join(', ')} (자동 감액 없이 담당자 검토)`);
   if (input.remoteAccess !== 'no') basis.push('원격 데이터 접근 가능성 있음 (현장방문 방식은 담당자 별도 판단)');
   if (input.previouslyVerified === 'yes') basis.push('내재배출량의 기존 제3자 검증 결과 있음 (담당자 별도 판단)');

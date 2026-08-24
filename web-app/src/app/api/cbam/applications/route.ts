@@ -32,7 +32,7 @@ async function saveApplication(application: StoredCbamApplication) {
     return;
   }
   const store = getStore({ name: 'cbam-applications', consistency: 'strong' });
-  await store.setJSON(application.reference, application, { onlyIfNew: true });
+  await store.setJSON(application.reference, application);
 }
 
 function isValid(input: Partial<CbamApplicationInput>) {
@@ -68,5 +68,29 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('CBAM application save failed.', error);
     return NextResponse.json({ message: '신청서를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  if (!getIsoRequestSession(request)) return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
+  try {
+    const payload = await request.json() as { reference?: string; application?: CbamApplicationInput };
+    if (!payload.reference || !payload.application || !isValid(payload.application)) return NextResponse.json({ message: '수정할 신청서와 필수 입력값을 확인해 주세요.' }, { status: 400 });
+    const current = (await listApplications()).find(item => item.reference === payload.reference);
+    if (!current) return NextResponse.json({ message: '해당 신청서를 찾을 수 없습니다.' }, { status: 404 });
+    const calculated = calculateCbamDays(payload.application);
+    const application: StoredCbamApplication = {
+      ...payload.application,
+      ...calculated,
+      reference: current.reference,
+      submittedAt: current.submittedAt,
+      status: current.status,
+      estimatedCost: estimateCbamCost(calculated.quotedDays),
+    };
+    await saveApplication(application);
+    return NextResponse.json({ application });
+  } catch (error) {
+    console.error('CBAM application update failed.', error);
+    return NextResponse.json({ message: '신청서를 수정하지 못했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
   }
 }
