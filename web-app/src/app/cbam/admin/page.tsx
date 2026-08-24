@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   clientTypeLabel,
+  calculateCbamDays,
   complexityLabel,
   formatKrw,
   serviceTypeLabel,
@@ -98,6 +99,8 @@ export default function CbamAdminPage() {
 }
 
 function ApplicationDetail({ application, onCheckCnCodes, onEdit }: { application: StoredCbamApplication; onCheckCnCodes: () => void; onEdit: () => void }) {
+  // 기존에 접수된 신청서도 최신 산정 설명을 즉시 보여 주되, 확정 일수는 저장된 값을 유지한다.
+  const explanation = calculateCbamDays(application);
   return <div className="space-y-5">
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-teal-700">{application.reference}</p><h2 className="mt-2 text-2xl font-black">{application.companyName}</h2><p className="mt-1 text-sm text-slate-500">{application.contactName} · {application.email} · {application.phone}</p></div><Badge tone="blue">{application.status}</Badge></div><button type="button" onClick={onEdit} className="mt-4 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">신청서 열람·수정</button></div>
@@ -107,7 +110,7 @@ function ApplicationDetail({ application, onCheckCnCodes, onEdit }: { applicatio
         <div className="mt-4 rounded-xl bg-slate-950 p-5 text-white"><div className="flex items-end justify-between gap-4"><div><p className="text-xs text-slate-400">복잡도 / 원시일수</p><p className="mt-1 text-lg font-black">{complexityLabel(application.complexity)} · {application.rawDays.toFixed(2)}일</p></div><div className="text-right"><p className="text-xs text-slate-400">조정 후 / 0.5일 올림</p><p className="mt-1 text-lg font-black text-teal-300">{application.adjustedDays.toFixed(2)} → {application.quotedDays.toFixed(1)}일</p></div></div></div>
         <h3 className="mt-6 text-sm font-black uppercase tracking-wider text-slate-500">산정근거</h3>
         <p className="mt-2 text-xs leading-5 text-slate-500">아래 순서대로 ‘입력값 → 복잡도 점수 → 적용 기준일수 → 견적일수’가 연결됩니다. 신청서 수정 후 자동으로 다시 산정됩니다.</p>
-        <ol className="mt-3 space-y-2">{application.basis.map((basis, index) => <li key={`${basis}-${index}`} className="flex gap-3 rounded-lg bg-slate-50 p-3 text-sm leading-5"><span className="font-black text-teal-700">{String(index + 1).padStart(2, '0')}</span><span>{basis}</span></li>)}</ol>
+        <ol className="mt-3 space-y-2">{explanation.basis.map((basis, index) => <li key={`${basis}-${index}`} className="flex gap-3 rounded-lg bg-slate-50 p-3 text-sm leading-5"><span className="font-black text-teal-700">{String(index + 1).padStart(2, '0')}</span><span>{basis}</span></li>)}</ol>
       </div>
     </section>
 
