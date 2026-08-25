@@ -21,6 +21,7 @@ export default function CbamAdminPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'applications' | 'cn-checker'>('applications');
   const [editing, setEditing] = useState<StoredCbamApplication | null>(null);
+  const [pricingEditing, setPricingEditing] = useState<StoredCbamApplication | null>(null);
 
   const load = useCallback(async (key = adminKey) => {
     setLoading(true);
@@ -56,6 +57,16 @@ export default function CbamAdminPage() {
     setSelected(result.application);
     setEditing(null);
   };
+  const savePricing = async (reference: string, pricing: { quotedDays: number; dayRate: number; expenses: number; reason: string }) => {
+    const current = applications.find(item => item.reference === reference);
+    if (!current) throw new Error('신청서를 찾을 수 없습니다.');
+    const response = await fetch('/api/cbam/applications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference, application: current, pricing }) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || '조건을 저장하지 못했습니다.');
+    setApplications(items => items.map(item => item.reference === reference ? result.application : item));
+    setSelected(result.application);
+    setPricingEditing(null);
+  };
 
   return (
     <main className="min-h-screen bg-[#f4f6f8] text-slate-950">
@@ -89,16 +100,17 @@ export default function CbamAdminPage() {
           </section>
 
           <aside className="xl:sticky xl:top-5">
-            {selected ? <ApplicationDetail application={selected} onCheckCnCodes={() => setView('cn-checker')} onEdit={() => setEditing(selected)} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">신청서를 선택해 주세요.</div>}
+            {selected ? <ApplicationDetail application={selected} onCheckCnCodes={() => setView('cn-checker')} onEdit={() => setEditing(selected)} onEditPricing={() => setPricingEditing(selected)} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">신청서를 선택해 주세요.</div>}
           </aside>
         </div> : <CnCodeChecker adminKey={adminKey} initialCodes={selected?.cnCodes || ''} applicationReference={selected?.reference} companyName={selected?.companyName} />}
       </div>
       {editing && <ApplicationEditor application={editing} onClose={() => setEditing(null)} onSave={saveApplication} />}
+      {pricingEditing && <PricingEditor application={pricingEditing} onClose={() => setPricingEditing(null)} onSave={savePricing} />}
     </main>
   );
 }
 
-function ApplicationDetail({ application, onCheckCnCodes, onEdit }: { application: StoredCbamApplication; onCheckCnCodes: () => void; onEdit: () => void }) {
+function ApplicationDetail({ application, onCheckCnCodes, onEdit, onEditPricing }: { application: StoredCbamApplication; onCheckCnCodes: () => void; onEdit: () => void; onEditPricing: () => void }) {
   // 기존에 접수된 신청서도 최신 산정 설명을 즉시 보여 주되, 확정 일수는 저장된 값을 유지한다.
   const explanation = calculateCbamDays(application);
   return <div className="space-y-5">
@@ -107,7 +119,7 @@ function ApplicationDetail({ application, onCheckCnCodes, onEdit }: { applicatio
       <div className="p-5">
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-500">예비 검증일수 산정</h3>
         <div className="mt-4 grid grid-cols-4 gap-2 text-center"><Day label="SARA" value={application.saraDays} /><Day label="검증" value={application.verificationDays} /><Day label="기술검토" value={application.technicalReviewDays} /><Day label="견적일수" value={application.quotedDays} accent /></div>
-        <div className="mt-4 rounded-xl bg-slate-950 p-5 text-white"><div className="flex items-end justify-between gap-4"><div><p className="text-xs text-slate-400">복잡도 / 원시일수</p><p className="mt-1 text-lg font-black">{complexityLabel(application.complexity)} · {application.rawDays.toFixed(2)}일</p></div><div className="text-right"><p className="text-xs text-slate-400">조정 후 / 0.5일 올림</p><p className="mt-1 text-lg font-black text-teal-300">{application.adjustedDays.toFixed(2)} → {application.quotedDays.toFixed(1)}일</p></div></div></div>
+        <div className="mt-4 rounded-xl bg-slate-950 p-5 text-white"><div className="flex items-end justify-between gap-4"><div><p className="text-xs text-slate-400">복잡도 / 원시일수</p><p className="mt-1 text-lg font-black">{complexityLabel(application.complexity)} · {application.rawDays.toFixed(2)}일</p></div><div className="text-right"><p className="text-xs text-slate-400">{application.manualQuotedDays ? '내부 조정 최종일수' : '조정 후 / 0.5일 올림'}</p><p className="mt-1 text-lg font-black text-teal-300">{application.manualQuotedDays ? `자동 ${application.automaticQuotedDays ?? explanation.quotedDays}일 → ${application.quotedDays.toFixed(1)}일` : `${application.adjustedDays.toFixed(2)} → ${application.quotedDays.toFixed(1)}일`}</p></div></div></div>
         <h3 className="mt-6 text-sm font-black uppercase tracking-wider text-slate-500">산정근거</h3>
         <p className="mt-2 text-xs leading-5 text-slate-500">아래 순서대로 ‘입력값 → 복잡도 점수 → 적용 기준일수 → 견적일수’가 연결됩니다. 신청서 수정 후 자동으로 다시 산정됩니다.</p>
         <ol className="mt-3 space-y-2">{explanation.basis.map((basis, index) => <li key={`${basis}-${index}`} className="flex gap-3 rounded-lg bg-slate-50 p-3 text-sm leading-5"><span className="font-black text-teal-700">{String(index + 1).padStart(2, '0')}</span><span>{basis}</span></li>)}</ol>
@@ -122,11 +134,25 @@ function ApplicationDetail({ application, onCheckCnCodes, onEdit }: { applicatio
 
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="text-sm font-black uppercase tracking-wider text-slate-500">비용 및 문서 생성</h3>
-      <div className="mt-4 flex items-center justify-between rounded-xl bg-teal-50 p-4"><div><p className="text-xs font-bold text-teal-800">예상 공급가</p><p className="mt-1 text-xs text-teal-700">기본 MD 단가 + 제경비, VAT 별도</p></div><strong className="text-xl text-teal-950">{formatKrw(application.estimatedCost)}</strong></div>
+      <div className="mt-4 flex items-center justify-between rounded-xl bg-teal-50 p-4"><div><p className="text-xs font-bold text-teal-800">예상 공급가</p><p className="mt-1 text-xs text-teal-700">{application.quotedDays.toFixed(1)} MD × {formatKrw(application.dayRate ?? 1_300_000)} + 제경비 {formatKrw(application.expenses ?? 600_000)}, VAT 별도</p></div><strong className="text-xl text-teal-950">{formatKrw(application.estimatedCost)}</strong></div>
+      <button type="button" onClick={onEditPricing} className="mt-3 w-full rounded-xl border border-teal-700 px-4 py-3 text-sm font-black text-teal-800 hover:bg-teal-50">심사일수·MD 단가·제경비 조정</button>
       <p className="mt-4 text-xs leading-5 text-slate-500">견적/계약 화면에서 MD 단가, 제경비, 조정일수와 계약 범위를 내부 담당자가 최종 수정할 수 있습니다.</p>
       <div className="mt-4 grid grid-cols-2 gap-3"><Link href={`/cbam/documents?type=quote&ref=${encodeURIComponent(application.reference)}`} className="rounded-xl bg-teal-700 px-4 py-3 text-center text-sm font-black text-white hover:bg-teal-800">견적서 생성</Link><Link href={`/cbam/documents?type=contract&ref=${encodeURIComponent(application.reference)}`} className="rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white hover:bg-slate-800">계약서 생성</Link></div>
     </section>
   </div>;
+}
+
+function PricingEditor({ application, onClose, onSave }: { application: StoredCbamApplication; onClose: () => void; onSave: (reference: string, pricing: { quotedDays: number; dayRate: number; expenses: number; reason: string }) => Promise<void> }) {
+  const [quotedDays, setQuotedDays] = useState(String(application.quotedDays));
+  const [dayRate, setDayRate] = useState(String(application.dayRate ?? 1_300_000));
+  const [expenses, setExpenses] = useState(String(application.expenses ?? 600_000));
+  const [reason, setReason] = useState(application.pricingAdjustmentReason || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const numeric = (value: string) => Number(value.replace(/,/g, ''));
+  const submit = async (event: FormEvent) => { event.preventDefault(); setSaving(true); setError(''); try { await onSave(application.reference, { quotedDays: numeric(quotedDays), dayRate: numeric(dayRate), expenses: numeric(expenses), reason }); } catch (caught) { setError(caught instanceof Error ? caught.message : '조건을 저장하지 못했습니다.'); } finally { setSaving(false); } };
+  const automatic = application.automaticQuotedDays ?? calculateCbamDays(application).quotedDays;
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 p-4 sm:p-8"><form onSubmit={submit} className="mx-auto max-w-xl rounded-2xl bg-white shadow-2xl"><div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6"><div><p className="text-xs font-black uppercase tracking-widest text-teal-700">{application.reference}</p><h2 className="mt-1 text-2xl font-black">일수·단가 내부 조정</h2><p className="mt-1 text-sm text-slate-500">자동 산정값은 보존되며, 아래 최종 조건이 관리·문서 생성에 사용됩니다.</p></div><button type="button" onClick={onClose} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold">닫기</button></div><div className="space-y-5 p-6"><div className="rounded-xl bg-slate-100 p-4 text-sm"><span className="font-bold text-slate-600">자동 산정 견적일수</span><strong className="ml-3 text-lg">{automatic.toFixed(1)}일</strong></div><EditField label="최종 심사일수 (MD) *"><input required min="0.5" step="0.5" type="number" className={EDIT_FIELD} value={quotedDays} onChange={e => setQuotedDays(e.target.value)} /></EditField><EditField label="MD 단가 (원) *"><input required min="0" type="number" className={EDIT_FIELD} value={dayRate} onChange={e => setDayRate(e.target.value)} /></EditField><EditField label="제경비·출장비 (원)"><input required min="0" type="number" className={EDIT_FIELD} value={expenses} onChange={e => setExpenses(e.target.value)} /></EditField><EditField label="조정 사유"><textarea className={`${EDIT_FIELD} min-h-24`} placeholder="예: 고객 현장 접근 제한, 기존 계약 단가 적용" value={reason} onChange={e => setReason(e.target.value)} /></EditField>{error && <p className="rounded-lg bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}</div><div className="flex justify-end border-t border-slate-200 p-6"><button disabled={saving} className="rounded-xl bg-teal-700 px-5 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? '저장 중...' : '조정 조건 저장'}</button></div></form></div>;
 }
 
 function ApplicationEditor({ application, onClose, onSave }: { application: StoredCbamApplication; onClose: () => void; onSave: (reference: string, input: CbamApplicationInput) => Promise<void> }) {

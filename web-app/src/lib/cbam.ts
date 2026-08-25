@@ -53,6 +53,11 @@ export type StoredCbamApplication = CbamApplicationInput & CbamCalculation & {
   submittedAt: string;
   status: string;
   estimatedCost: number;
+  automaticQuotedDays?: number;
+  manualQuotedDays?: number;
+  dayRate?: number;
+  expenses?: number;
+  pricingAdjustmentReason?: string;
 };
 
 export const DEFAULT_CBAM_DAY_RATE = 1_300_000;

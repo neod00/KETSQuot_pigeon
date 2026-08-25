@@ -38,7 +38,7 @@ export default function CbamDocumentsPage() {
     if (!reference) { setLoadError('신청서 접수번호가 없습니다.'); setLoading(false); return; }
     fetch(`/api/cbam/applications?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
       .then(async response => { const result = await response.json(); if (!response.ok) throw new Error(result.message || '신청서를 불러오지 못했습니다.'); return result.application as StoredCbamApplication; })
-      .then(parsed => { setApplication(parsed); setQuotedDays(String(parsed.quotedDays)); })
+      .then(parsed => { setApplication(parsed); setQuotedDays(String(parsed.quotedDays)); setDayRate((parsed.dayRate || DEFAULT_CBAM_DAY_RATE).toLocaleString()); setExpenses((parsed.expenses || DEFAULT_CBAM_EXPENSES).toLocaleString()); })
       .catch(caught => setLoadError(caught instanceof Error ? caught.message : '신청서를 불러오지 못했습니다.'))
       .finally(() => setLoading(false));
   }, []);

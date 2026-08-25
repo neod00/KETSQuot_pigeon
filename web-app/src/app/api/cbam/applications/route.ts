@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStore } from '@netlify/blobs';
-import { calculateCbamDays, estimateCbamCost, type CbamApplicationInput, type StoredCbamApplication } from '@/lib/cbam';
+import { calculateCbamDays, DEFAULT_CBAM_DAY_RATE, DEFAULT_CBAM_EXPENSES, estimateCbamCost, type CbamApplicationInput, type StoredCbamApplication } from '@/lib/cbam';
 import { getIsoRequestSession } from '@/lib/isoAuth';
 
 export const runtime = 'nodejs';
@@ -74,18 +74,30 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   if (!getIsoRequestSession(request)) return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   try {
-    const payload = await request.json() as { reference?: string; application?: CbamApplicationInput };
+    const payload = await request.json() as { reference?: string; application?: CbamApplicationInput; pricing?: { quotedDays?: number; dayRate?: number; expenses?: number; reason?: string } };
     if (!payload.reference || !payload.application || !isValid(payload.application)) return NextResponse.json({ message: '수정할 신청서와 필수 입력값을 확인해 주세요.' }, { status: 400 });
     const current = (await listApplications()).find(item => item.reference === payload.reference);
     if (!current) return NextResponse.json({ message: '해당 신청서를 찾을 수 없습니다.' }, { status: 404 });
     const calculated = calculateCbamDays(payload.application);
+    const numberOr = (value: number | undefined, fallback: number) => Number.isFinite(value) && value !== undefined && value >= 0 ? value : fallback;
+    const manualDays = payload.pricing?.quotedDays;
+    if (manualDays !== undefined && (!Number.isFinite(manualDays) || manualDays <= 0)) return NextResponse.json({ message: '최종 검증일수는 0보다 큰 숫자로 입력해 주세요.' }, { status: 400 });
+    const finalDays = manualDays ?? current.manualQuotedDays ?? calculated.quotedDays;
+    const dayRate = numberOr(payload.pricing?.dayRate, current.dayRate ?? DEFAULT_CBAM_DAY_RATE);
+    const expenses = numberOr(payload.pricing?.expenses, current.expenses ?? DEFAULT_CBAM_EXPENSES);
     const application: StoredCbamApplication = {
       ...payload.application,
       ...calculated,
       reference: current.reference,
       submittedAt: current.submittedAt,
       status: current.status,
-      estimatedCost: estimateCbamCost(calculated.quotedDays),
+      automaticQuotedDays: calculated.quotedDays,
+      manualQuotedDays: manualDays ?? current.manualQuotedDays,
+      dayRate,
+      expenses,
+      pricingAdjustmentReason: payload.pricing?.reason ?? current.pricingAdjustmentReason,
+      quotedDays: finalDays,
+      estimatedCost: estimateCbamCost(finalDays, dayRate, expenses),
     };
     await saveApplication(application);
     return NextResponse.json({ application });
