@@ -32,6 +32,8 @@ export default function GeneratorPage() {
     const [mpExpenses, setMpExpenses] = useState(EXPENSES_DEFAULT);
     const [mpFinalCost, setMpFinalCost] = useState(0);
     const [vatType, setVatType] = useState('별도'); // '별도' or '포함'
+    const [includeContractLink, setIncludeContractLink] = useState(false);
+    const [contractDownloadUrl, setContractDownloadUrl] = useState('');
 
     useEffect(() => {
         const now = new Date();
@@ -96,6 +98,10 @@ export default function GeneratorPage() {
     };
 
     const handlePrint = () => {
+        if (includeContractLink && !/^https:\/\//i.test(contractDownloadUrl.trim())) {
+            window.alert('로그인 없이 열리는 HTTPS 계약서 PDF 링크를 입력해 주세요.');
+            return;
+        }
         const originalTitle = document.title;
         let fileName = "LRQA_온실가스 ";
         if (showInv && showMp) fileName += "명세서 및 배출량 산정계획서 ";
@@ -112,7 +118,7 @@ export default function GeneratorPage() {
         saveHistoryRecord(
             'generator', 'K-ETS 견적서',
             companyName, totalFinal, vatType,
-            { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType },
+            { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType, includeContractLink, contractDownloadUrl },
             { s1Days: parseFloat(invS1Days) || 0, s2Days: parseFloat(invS2Days) || 0, s3Days: parseFloat(invS3Days) || 0, expenses: invExpenses, auditRate: STANDARD_RATE }
         );
     };
@@ -138,6 +144,8 @@ export default function GeneratorPage() {
         setMpExpenses(savedData.mpExpenses || EXPENSES_DEFAULT);
         setMpFinalCost(savedData.mpFinalCost || 0);
         setVatType(savedData.vatType || '별도');
+        setIncludeContractLink(Boolean(savedData.includeContractLink));
+        setContractDownloadUrl(savedData.contractDownloadUrl || '');
     };
 
     // 이력에서 다시 생성 (폼 채우고 자동 인쇄)
@@ -270,6 +278,18 @@ export default function GeneratorPage() {
                         onChange={e => setVerificationTarget(e.target.value)}
                         placeholder="예: 인천공장(본점)/서울본사/판교연구소/발안공장"
                     />
+                </div>
+
+                <div className="mt-6 border-t pt-6">
+                    <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800">
+                        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-blue-700" checked={includeContractLink} onChange={e => setIncludeContractLink(e.target.checked)} />
+                        <span>견적서에 계약서 PDF 다운로드 문장 포함</span>
+                    </label>
+                    {includeContractLink && <div className="mt-3">
+                        <label className="block text-sm font-medium text-slate-600">고객용 계약서 PDF 공개 링크</label>
+                        <input type="url" className="mt-1 block w-full rounded-md border p-2" placeholder="https://.../계약서.pdf" value={contractDownloadUrl} onChange={e => setContractDownloadUrl(e.target.value)} />
+                        <p className="mt-1 text-xs text-amber-700">로그인 없이 열리는 최종 계약서 PDF 링크를 입력해야 합니다. 링크가 비어 있으면 견적서에 문장이 표시되지 않습니다.</p>
+                    </div>}
                 </div>
 
                 {showInv && (
@@ -627,7 +647,8 @@ export default function GeneratorPage() {
                                             <p style={{ marginLeft: '10px' }}>2) 교통비, 숙박비, 심사원 일비 등의 제경비는 상기 제안금액에 포함되어 있습니다.</p>
                                             <p style={{ marginLeft: '10px' }}>3) 상기 검증비용은 업체의 상황에 따라 상호 협의 하에 조정될 수 있습니다.</p>
                                             <p style={{ marginLeft: '10px' }}>4) 제안서 유효기간은 제안 발행일로부터 30일 이내 입니다.</p>
-                                            <p style={{ marginLeft: '10px' }}>5) 자세한 사항은 권대근 과장(02-3703-7514)에게 문의 바랍니다. 끝.</p>
+                                            {includeContractLink && contractDownloadUrl.trim() && <p style={{ marginLeft: '10px' }}>5) 계약서 PDF는 <a href={contractDownloadUrl.trim()} target="_blank" rel="noreferrer" style={{ color: '#000080', textDecoration: 'underline', fontWeight: 'bold' }}>여기를 클릭하여 다운로드</a>할 수 있습니다(최대 3회).</p>}
+                                            <p style={{ marginLeft: '10px' }}>{includeContractLink && contractDownloadUrl.trim() ? '6)' : '5)'} 자세한 사항은 권대근 과장(02-3703-7514)에게 문의 바랍니다. 끝.</p>
                                         </div>
 
                                         <div className="avoid-break" style={{ marginTop: '20px', textAlign: 'right', marginBottom: '20px' }}>
