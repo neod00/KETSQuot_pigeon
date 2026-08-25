@@ -1,0 +1,25 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["netlify/functions/assets/**"]
+
+[functions.issue]
+  timeout = 30
+
+[[redirects]]
+  from = "/c/:token"
+  to = "/.netlify/functions/download?token=:token"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-store"
+    Content-Security-Policy = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"

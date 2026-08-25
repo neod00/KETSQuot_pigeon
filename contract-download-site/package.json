@@ -1,0 +1,15 @@
+{
+  "name": "lrqa-contract-documents",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^10.6.0",
+    "@sparticuz/chromium": "^143.0.4",
+    "docx-preview": "^0.3.6",
+    "docxtemplater": "^3.67.6",
+    "jszip": "^3.10.1",
+    "pizzip": "^3.2.0",
+    "puppeteer-core": "^24.31.0"
+  }
+}

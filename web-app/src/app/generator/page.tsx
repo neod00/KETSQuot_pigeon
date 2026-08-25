@@ -34,6 +34,12 @@ export default function GeneratorPage() {
     const [vatType, setVatType] = useState('별도'); // '별도' or '포함'
     const [includeContractLink, setIncludeContractLink] = useState(false);
     const [contractDownloadUrl, setContractDownloadUrl] = useState('');
+    const [hqAddress, setHqAddress] = useState('');
+    const [businessRegistration, setBusinessRegistration] = useState('');
+    const [industryType, setIndustryType] = useState('');
+    const [contractContact, setContractContact] = useState('');
+    const [materiality, setMateriality] = useState('5%');
+    const [issuingContract, setIssuingContract] = useState(false);
 
     useEffect(() => {
         const now = new Date();
@@ -97,10 +103,105 @@ export default function GeneratorPage() {
         return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
     };
 
-    const handlePrint = () => {
-        if (includeContractLink && !/^https:\/\//i.test(contractDownloadUrl.trim())) {
-            window.alert('로그인 없이 열리는 HTTPS 계약서 PDF 링크를 입력해 주세요.');
-            return;
+    const handlePrint = async () => {
+        let issuedUrl = contractDownloadUrl;
+        if (includeContractLink) {
+            const requiredFields = [
+                ['본사 주소', hqAddress],
+                ['사업자등록번호', businessRegistration],
+                ['업종', industryType],
+                ['계약 담당자', contractContact],
+                ['중요성 수준', materiality],
+            ];
+            const missing = requiredFields.filter(([, value]) => !value.trim()).map(([label]) => label);
+            if (!companyName.trim() || !docId.trim() || !issueDate || missing.length) {
+                window.alert(`계약서 생성에 필요한 정보를 입력해 주세요: ${[...(!companyName.trim() ? ['회사명'] : []), ...(!docId.trim() ? ['문서 번호'] : []), ...(!issueDate ? ['발행 일자'] : []), ...missing].join(', ')}`);
+                return;
+            }
+
+            const date = new Date(issueDate);
+            const proposalDate = `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
+            const statementYear = (invYear.match(/\d{4}/) || ['2025'])[0];
+            const planYear = (mpYear.match(/\d{4}/) || ['2026'])[0];
+            const contractType = quotType === '1' ? 'statement' : quotType === '2' ? 'plan' : 'combined';
+            const rate = vatType === '포함' ? STANDARD_RATE * 1.1 : STANDARD_RATE;
+            const formatNumber = (value: number) => Math.floor(value).toLocaleString();
+            const statementExpense = vatType === '포함' ? invExpenses * 1.1 : invExpenses;
+            const planExpense = vatType === '포함' ? mpExpenses * 1.1 : mpExpenses;
+            const primaryIsPlan = contractType === 'plan';
+            const primaryDays = primaryIsPlan ? [mpS1Days, mpS2Days, mpS3Days] : [invS1Days, invS2Days, invS3Days];
+            const primaryExpense = primaryIsPlan ? planExpense : statementExpense;
+            const primaryTotalDays = primaryIsPlan ? mpTotalDays : invTotalDays;
+            const primaryCalculatedTotal = primaryIsPlan ? mpCalculatedTotal : invCalculatedTotal;
+            const primaryFinalCost = primaryIsPlan ? mpFinalCost : invFinalCost;
+            setIssuingContract(true);
+            try {
+                const response = await fetch('/api/kets/contracts/issue', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({
+                        contractType,
+                        data: {
+                            company_name: companyName,
+                            proposal_date: proposalDate,
+                            proposal_no: docId,
+                            lrqa_contact_name: '권대근',
+                            lrqa_contact_email: 'daekeun.kwon@lrqa.com',
+                            lrqa_contact_phone: '02-3703-7514',
+                            hq_address: hqAddress,
+                            target_sites: verificationTarget || hqAddress,
+                            ghg_declaration_period: `${statementYear}년 01월 01일~${statementYear}년 12월 31일`,
+                            materiality,
+                            target_year: planYear,
+                            audit_rate: formatNumber(rate),
+                            stage1_days: `${formatStageDays(primaryDays[0])} days`,
+                            stage1_cost: formatNumber((parseFloat(primaryDays[0]) || 0) * rate),
+                            stage2_days: `${formatStageDays(primaryDays[1])} days`,
+                            stage2_cost: formatNumber((parseFloat(primaryDays[1]) || 0) * rate),
+                            stage3_days: `${formatStageDays(primaryDays[2])} days`,
+                            stage3_cost: formatNumber((parseFloat(primaryDays[2]) || 0) * rate),
+                            expenses: formatNumber(primaryExpense),
+                            total_days: `${formatTotalDays(primaryTotalDays)} days`,
+                            total_cost: formatNumber(primaryCalculatedTotal),
+                            final_cost: formatNumber(primaryFinalCost),
+                            statement_stage1_days: formatStageDays(invS1Days),
+                            statement_stage1_cost: formatNumber((parseFloat(invS1Days) || 0) * rate),
+                            statement_stage2_days: formatStageDays(invS2Days),
+                            statement_stage2_cost: formatNumber((parseFloat(invS2Days) || 0) * rate),
+                            statement_stage3_days: formatStageDays(invS3Days),
+                            statement_stage3_cost: formatNumber((parseFloat(invS3Days) || 0) * rate),
+                            statement_expenses: formatNumber(statementExpense),
+                            statement_total_days: formatTotalDays(invTotalDays),
+                            statement_total_cost: formatNumber(invCalculatedTotal),
+                            statement_final_cost: formatNumber(invFinalCost),
+                            plan_stage1_days: formatStageDays(mpS1Days),
+                            plan_stage1_cost: formatNumber((parseFloat(mpS1Days) || 0) * rate),
+                            plan_stage2_days: formatStageDays(mpS2Days),
+                            plan_stage2_cost: formatNumber((parseFloat(mpS2Days) || 0) * rate),
+                            plan_stage3_days: formatStageDays(mpS3Days),
+                            plan_stage3_cost: formatNumber((parseFloat(mpS3Days) || 0) * rate),
+                            plan_expenses: formatNumber(planExpense),
+                            plan_total_days: formatTotalDays(mpTotalDays),
+                            plan_total_cost: formatNumber(mpCalculatedTotal),
+                            plan_final_cost: formatNumber(mpFinalCost),
+                            vat_type: `VAT ${vatType}`,
+                            business_registration: businessRegistration,
+                            client_contact: contractContact,
+                            industry_type: industryType,
+                        },
+                    }),
+                });
+                const result = await response.json();
+                if (!response.ok || !result.url) throw new Error(result.message || '계약서 링크 발급에 실패했습니다.');
+                issuedUrl = result.url;
+                setContractDownloadUrl(issuedUrl);
+                await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+            } catch (error) {
+                window.alert(error instanceof Error ? error.message : '계약서 링크 발급에 실패했습니다.');
+                return;
+            } finally {
+                setIssuingContract(false);
+            }
         }
         const originalTitle = document.title;
         let fileName = "LRQA_온실가스 ";
@@ -118,7 +219,7 @@ export default function GeneratorPage() {
         saveHistoryRecord(
             'generator', 'K-ETS 견적서',
             companyName, totalFinal, vatType,
-            { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType, includeContractLink, contractDownloadUrl },
+            { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType, includeContractLink, contractDownloadUrl: issuedUrl, hqAddress, businessRegistration, industryType, contractContact, materiality },
             { s1Days: parseFloat(invS1Days) || 0, s2Days: parseFloat(invS2Days) || 0, s3Days: parseFloat(invS3Days) || 0, expenses: invExpenses, auditRate: STANDARD_RATE }
         );
     };
@@ -146,6 +247,11 @@ export default function GeneratorPage() {
         setVatType(savedData.vatType || '별도');
         setIncludeContractLink(Boolean(savedData.includeContractLink));
         setContractDownloadUrl(savedData.contractDownloadUrl || '');
+        setHqAddress(savedData.hqAddress || '');
+        setBusinessRegistration(savedData.businessRegistration || '');
+        setIndustryType(savedData.industryType || '');
+        setContractContact(savedData.contractContact || savedData.contactPerson || '');
+        setMateriality(savedData.materiality || '5%');
     };
 
     // 이력에서 다시 생성 (폼 채우고 자동 인쇄)
@@ -282,13 +388,20 @@ export default function GeneratorPage() {
 
                 <div className="mt-6 border-t pt-6">
                     <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-slate-800">
-                        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-blue-700" checked={includeContractLink} onChange={e => setIncludeContractLink(e.target.checked)} />
+                        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-blue-700" checked={includeContractLink} onChange={e => { setIncludeContractLink(e.target.checked); setContractDownloadUrl(''); }} />
                         <span>견적서에 계약서 PDF 다운로드 문장 포함</span>
                     </label>
-                    {includeContractLink && <div className="mt-3">
-                        <label className="block text-sm font-medium text-slate-600">고객용 계약서 PDF 공개 링크</label>
-                        <input type="url" className="mt-1 block w-full rounded-md border p-2" placeholder="https://.../계약서.pdf" value={contractDownloadUrl} onChange={e => setContractDownloadUrl(e.target.value)} />
-                        <p className="mt-1 text-xs text-amber-700">로그인 없이 열리는 최종 계약서 PDF 링크를 입력해야 합니다. 링크가 비어 있으면 견적서에 문장이 표시되지 않습니다.</p>
+                    {includeContractLink && <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 text-sm font-semibold text-slate-700">계약서 자동 생성에 필요한 추가 정보</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="text-sm text-slate-600">본사 주소 <span className="text-red-600">*</span><input className="mt-1 block w-full rounded-md border bg-white p-2" value={hqAddress} onChange={e => { setHqAddress(e.target.value); setContractDownloadUrl(''); }} /></label>
+                            <label className="text-sm text-slate-600">사업자등록번호 <span className="text-red-600">*</span><input className="mt-1 block w-full rounded-md border bg-white p-2" value={businessRegistration} onChange={e => { setBusinessRegistration(e.target.value); setContractDownloadUrl(''); }} /></label>
+                            <label className="text-sm text-slate-600">업종 <span className="text-red-600">*</span><input className="mt-1 block w-full rounded-md border bg-white p-2" value={industryType} onChange={e => { setIndustryType(e.target.value); setContractDownloadUrl(''); }} /></label>
+                            <label className="text-sm text-slate-600">계약 담당자 <span className="text-red-600">*</span><input className="mt-1 block w-full rounded-md border bg-white p-2" value={contractContact} onChange={e => { setContractContact(e.target.value); setContractDownloadUrl(''); }} placeholder="성명 / 부서 / 연락처 / 이메일" /></label>
+                            <label className="text-sm text-slate-600">중요성 수준 <span className="text-red-600">*</span><input className="mt-1 block w-full rounded-md border bg-white p-2" value={materiality} onChange={e => { setMateriality(e.target.value); setContractDownloadUrl(''); }} placeholder="예: 5%" /></label>
+                        </div>
+                        <p className="mt-3 text-xs text-teal-700">PDF 저장을 누르면 견적 유형에 맞는 계약서가 자동 생성되고, 별도 문서 사이트의 10일·최대 3회 다운로드 링크가 견적서에 삽입됩니다.</p>
+                        {issuingContract && <p className="mt-2 text-xs font-semibold text-blue-700">계약서 PDF와 보안 링크를 생성하는 중입니다…</p>}
                     </div>}
                 </div>
 
@@ -398,10 +511,11 @@ export default function GeneratorPage() {
 
                 <button
                     onClick={handlePrint}
-                    className="mt-8 hidden w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-md transition-colors hover:bg-blue-700 md:flex"
+                    disabled={issuingContract}
+                    className="mt-8 hidden w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60 md:flex"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                    견적서 인쇄 / PDF 저장
+                    {issuingContract ? '계약서 PDF 생성 중…' : '견적서 인쇄 / PDF 저장'}
                 </button>
 
                 {/* 생성 이력 */}
@@ -419,8 +533,8 @@ export default function GeneratorPage() {
                         <p className="text-[11px] font-medium text-slate-500">최종 제안 금액</p>
                         <p className="truncate text-base font-extrabold text-slate-900">{formatCurrency(totalFinalCost)}원</p>
                     </div>
-                    <button type="button" onClick={handlePrint} className="min-h-11 rounded-md bg-blue-700 px-5 text-sm font-bold text-white shadow-sm">
-                        PDF 저장
+                    <button type="button" onClick={handlePrint} disabled={issuingContract} className="min-h-11 rounded-md bg-blue-700 px-5 text-sm font-bold text-white shadow-sm disabled:cursor-wait disabled:opacity-60">
+                        {issuingContract ? '생성 중…' : 'PDF 저장'}
                     </button>
                 </div>
             </div>
@@ -647,7 +761,7 @@ export default function GeneratorPage() {
                                             <p style={{ marginLeft: '10px' }}>2) 교통비, 숙박비, 심사원 일비 등의 제경비는 상기 제안금액에 포함되어 있습니다.</p>
                                             <p style={{ marginLeft: '10px' }}>3) 상기 검증비용은 업체의 상황에 따라 상호 협의 하에 조정될 수 있습니다.</p>
                                             <p style={{ marginLeft: '10px' }}>4) 제안서 유효기간은 제안 발행일로부터 30일 이내 입니다.</p>
-                                            {includeContractLink && contractDownloadUrl.trim() && <p style={{ marginLeft: '10px' }}>5) 계약서 PDF는 <a href={contractDownloadUrl.trim()} target="_blank" rel="noreferrer" style={{ color: '#000080', textDecoration: 'underline', fontWeight: 'bold' }}>여기를 클릭하여 다운로드</a>할 수 있습니다(최대 3회).</p>}
+                                            {includeContractLink && contractDownloadUrl.trim() && <p style={{ marginLeft: '10px' }}>5) 계약서 PDF는 <a href={contractDownloadUrl.trim()} target="_blank" rel="noreferrer" style={{ color: '#000080', textDecoration: 'underline', fontWeight: 'bold' }}>여기를 클릭하여 다운로드</a>할 수 있습니다(발급 후 10일, 최대 3회).</p>}
                                             <p style={{ marginLeft: '10px' }}>{includeContractLink && contractDownloadUrl.trim() ? '6)' : '5)'} 자세한 사항은 권대근 과장(02-3703-7514)에게 문의 바랍니다. 끝.</p>
                                         </div>
 
