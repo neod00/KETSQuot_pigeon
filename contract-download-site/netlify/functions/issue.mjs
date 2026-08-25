@@ -84,5 +84,5 @@ export default async (request) => {
   await store.setJSON(`meta/${token}`, { createdAt, expiresAt, downloads: 0, maxDownloads: MAX_DOWNLOADS, revoked: false, fileName }, { onlyIfNew: true });
 
   const origin = new URL(request.url).origin;
-  return json(201, { url: `${origin}/c/${token}`, expiresAt, maxDownloads: MAX_DOWNLOADS });
+  return json(201, { url: `${origin}/.netlify/functions/download?token=${token}`, expiresAt, maxDownloads: MAX_DOWNLOADS });
 };
