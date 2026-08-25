@@ -47,6 +47,7 @@ export async function proxy(request: NextRequest) {
     pathname === '/api/iso/sam/mail' &&
     Boolean(request.headers.get('x-sam-sync-key'));
   const publicPath =
+    pathname.startsWith('/samples/') ||
     pathname === '/cbam' ||
     (pathname === '/api/cbam/applications' && request.method === 'POST') ||
     pathname === '/iso/login' ||
