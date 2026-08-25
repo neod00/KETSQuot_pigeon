@@ -97,6 +97,7 @@ export default function CbamDocumentsPage() {
         productDisplay,
         serviceLabel: 'P1173 CBAM 검증 서비스',
         outputFileName: documentType === 'contract' ? 'LRQA_CBAM_서비스_계약서' : 'LRQA_CBAM_검증_견적서',
+        templatePath: documentType === 'quote' ? '/templates/LRQA_CBAM_Quote_Template.docx' : undefined,
       };
 
       if (documentType === 'contract') {

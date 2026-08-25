@@ -43,6 +43,7 @@ export interface IsoQuoteDocxData {
   productDisplay?: string;
   serviceLabel?: string;
   outputFileName?: string;
+  templatePath?: string;
 }
 
 const TEMPLATE_PATH = '/templates/LRQA_ISO_Audit_Quote_Template.docx';
@@ -268,7 +269,22 @@ const replaceCostRows = (xml: string, costRows: CostRow[], data: IsoQuoteDocxDat
   const firstTemplateRow = rows.find((row) => row.xml.includes('ISO 9001:2015 최초 심사'));
   const secondTemplateRow = rows.find((row) => row.xml.includes('ISO 14001:2015 최초 심사'));
 
-  if (!firstTemplateRow || !secondTemplateRow) return xml;
+  if (!firstTemplateRow || !secondTemplateRow) {
+    const cbamRow = rows.find(row => row.xml.includes('CBAM 제3자 검증 서비스'));
+    const expenseRow = rows.find(row => row.xml.includes('제경비/출장비'));
+    const totalRows = rows.filter(row => row.xml.includes('총 합'));
+    if (!cbamRow) return xml;
+    const auditDays = costRows.reduce((sum, row) => sum + row.activeAuditDays, 0);
+    const auditFee = costRows.reduce((sum, row) => sum + row.activeAuditFee, 0);
+    const subtotal = auditFee + data.expenses;
+    const discounted = Math.max(subtotal - data.discount, 0);
+    const patchRow = (rowXml: string, values: string[]) => values.reduce((result, value, index) => patchCellTextNodes(result, index, [value]), rowXml);
+    let patched = xml.replace(cbamRow.xml, patchRow(cbamRow.xml, [data.serviceLabel || 'CBAM 제3자 검증 서비스', `${formatDays(auditDays)}일`, formatWon(auditFee), '-']));
+    if (expenseRow) patched = patched.replace(expenseRow.xml, patchRow(expenseRow.xml, ['제경비/출장비', '-', formatWon(data.expenses), '-']));
+    if (totalRows[0]) patched = patched.replace(totalRows[0].xml, patchRow(totalRows[0].xml, ['총 합', `${formatDays(auditDays)}일`, formatWon(subtotal), 'VAT 별도']));
+    if (totalRows[1]) patched = patched.replace(totalRows[1].xml, patchRow(totalRows[1].xml, ['총 합(특별 할인적용)', `${formatDays(auditDays)}일`, formatWon(discounted), 'VAT 별도']));
+    return patched;
+  }
 
   const templates = [firstTemplateRow.xml, secondTemplateRow.xml];
   const nextRows = costRows.map((row, index) => buildAuditCostRow(templates[index % templates.length], row));
@@ -343,7 +359,7 @@ export const generateIsoQuoteDocx = async (data: IsoQuoteDocxData) => {
     import('file-saver'),
   ]);
 
-  const content = await getBinaryContent(TEMPLATE_PATH, PizZipUtils);
+  const content = await getBinaryContent(data.templatePath || TEMPLATE_PATH, PizZipUtils);
   const zip = new PizZip(content);
   const documentFile = zip.file('word/document.xml');
   if (!documentFile) throw new Error('word/document.xml not found in ISO quote template');
