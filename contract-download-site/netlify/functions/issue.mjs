@@ -9,37 +9,10 @@ import puppeteer from 'puppeteer-core';
 import { EXPIRY_MS, MAX_DOWNLOADS, STORE_NAME, json, safeFilePart, secretMatches } from './shared.mjs';
 
 const required = ['company_name', 'proposal_date', 'proposal_no', 'hq_address', 'target_sites', 'ghg_declaration_period', 'materiality', 'business_registration', 'client_contact', 'industry_type'];
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const browserExecutable = async () => process.env.LOCAL_CHROME_EXECUTABLE || await chromium.executablePath();
 
-async function renderPdf(data) {
-  const templatePath = fileURLToPath(new URL('./assets/K-ETSemission_template.html', import.meta.url));
-  let html = await readFile(templatePath, 'utf8');
-  const title = `LRQA_온실가스 명세서 검증 제안서 계약서_${safeFilePart(data.company_name)}`;
-  html = html.replace('<head>', `<head><title>${escapeHtml(title)}</title>`);
-  for (const [key, rawValue] of Object.entries(data)) {
-    const value = escapeHtml(rawValue).replace(/\r?\n/g, '<br>');
-    html = html.split(`{${key}}`).join(`<span class="dynamic-value">${value}</span>`);
-  }
-  html = html.replace('</head>', `<style>@page{size:A4 portrait;margin:0}@media print{html,body{margin:0!important;padding:0!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.pf{margin:0 auto!important;box-shadow:none!important;page-break-after:always!important;page-break-inside:avoid!important}.dynamic-value{font-family:"Noto Sans KR",Arial,sans-serif!important;font-weight:500!important;text-decoration:none!important;display:inline!important;white-space:nowrap!important}#sidebar,.pi,.loading-indicator{display:none!important}}</style></head>`);
-
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: { width: 1280, height: 900 },
-    executablePath: await browserExecutable(),
-    headless: chromium.headless,
-  });
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 25000 });
-    await page.emulateMediaType('print');
-    return await page.pdf({ format: 'A4', printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
-  } finally {
-    await browser.close();
-  }
-}
-
 const docxTemplates = {
+  statement: 'K-ETSemission_template.docx',
   plan: 'K-ETS_plan_template.docx',
   combined: 'K-ETS_statement_plan_template.docx',
 };
@@ -104,7 +77,7 @@ export default async (request) => {
   const expiresAt = createdAt + EXPIRY_MS;
   const typeLabel = contractType === 'plan' ? '배출량산정계획서_검증' : contractType === 'combined' ? '명세서_및_배출량산정계획서_검증' : '명세서_검증';
   const fileName = `LRQA_K-ETS_${typeLabel}_계약서_${safeFilePart(data.company_name)}.pdf`;
-  const pdf = contractType === 'statement' ? await renderPdf(data) : await renderDocxPdf(data, contractType);
+  const pdf = await renderDocxPdf(data, contractType);
   const pdfData = pdf.buffer.slice(pdf.byteOffset, pdf.byteOffset + pdf.byteLength);
   const store = getStore(STORE_NAME);
   await store.set(`pdf/${token}`, pdfData, { onlyIfNew: true });
