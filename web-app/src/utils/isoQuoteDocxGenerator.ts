@@ -297,6 +297,10 @@ const replaceCostRows = (xml: string, costRows: CostRow[], data: IsoQuoteDocxDat
 };
 
 export const buildIsoQuoteDocumentXml = (templateXml: string, data: IsoQuoteDocxData) => {
+  // CBAM 기준 서식은 이미 완성된 Word 문서 구조를 가진 전용 템플릿이다.
+  // 범용 ISO 템플릿의 텍스트 노드 번호 치환을 적용하면 OOXML 구조가 달라져
+  // Word에서 파일 복구 오류가 발생할 수 있으므로, 원본 XML을 그대로 보존한다.
+  if (data.templatePath === '/templates/LRQA_CBAM_Quote_Template.docx') return templateXml;
   const costRows = toCostRows(data);
   const selectedStandards = costRows.map((row) => row.standard);
   const standardDisplay = data.productDisplay || selectedStandards
