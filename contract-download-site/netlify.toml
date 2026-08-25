@@ -11,8 +11,8 @@
   timeout = 30
 
 [[redirects]]
-  from = "/c/:token"
-  to = "/.netlify/functions/download?token=:token"
+  from = "/c/*"
+  to = "/.netlify/functions/download?token=:splat"
   status = 200
 
 [[headers]]
