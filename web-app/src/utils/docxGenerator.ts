@@ -54,6 +54,7 @@ export const generateDocx = async (data: any, templatePath: string = "/templates
 };
 
 export type KetsContractType = 'statement' | 'plan' | 'combined';
+export type KetsQuoteType = 'statement' | 'plan' | 'combined';
 
 const KETS_TEMPLATE_CONFIG: Record<KetsContractType, { templatePath: string; fileLabel: string }> = {
     statement: {
@@ -67,6 +68,21 @@ const KETS_TEMPLATE_CONFIG: Record<KetsContractType, { templatePath: string; fil
     combined: {
         templatePath: '/templates/K-ETS_statement_plan_template.docx',
         fileLabel: '온실가스 명세서 및 배출량산정계획서 검증',
+    },
+};
+
+const KETS_QUOTE_TEMPLATE_CONFIG: Record<KetsQuoteType, { templatePath: string; fileLabel: string }> = {
+    statement: {
+        templatePath: '/templates/LRQA_KETS_Statement_Quote_Template.docx',
+        fileLabel: '온실가스 명세서 검증 비용 제안서',
+    },
+    plan: {
+        templatePath: '/templates/LRQA_KETS_Plan_Quote_Template.docx',
+        fileLabel: '온실가스 배출량산정계획서 검증 비용 제안서',
+    },
+    combined: {
+        templatePath: '/templates/LRQA_KETS_Combined_Quote_Template.docx',
+        fileLabel: '온실가스 명세서 및 배출량산정계획서 검증 비용 제안서',
     },
 };
 
@@ -129,5 +145,61 @@ export const generateKetsDocx = async (
         });
     } catch (e) {
         console.error("Failed to load required libraries for K-ETS", e);
+    }
+};
+
+// K-ETS 검증 견적서용 DOCX 생성
+// 인쇄 미리보기와 같은 유형별 견적 내역을 공식 Word 서식에 채워 내려받습니다.
+export const generateKetsQuoteDocx = async (
+    data: Record<string, string>,
+    companyName: string = '기업명',
+    quoteType: KetsQuoteType = 'combined',
+) => {
+    if (typeof window === 'undefined') {
+        console.warn('generateKetsQuoteDocx called on server side');
+        return;
+    }
+
+    try {
+        const [
+            { default: Docxtemplater },
+            { default: PizZip },
+            { default: PizZipUtils },
+            { saveAs },
+        ] = await Promise.all([
+            import('docxtemplater'),
+            import('pizzip'),
+            import('pizzip/utils/index.js'),
+            import('file-saver'),
+        ]);
+
+        const template = KETS_QUOTE_TEMPLATE_CONFIG[quoteType] || KETS_QUOTE_TEMPLATE_CONFIG.combined;
+        const content = await new Promise<string>((resolve, reject) => {
+            PizZipUtils.getBinaryContent(template.templatePath, (error: Error | null, binary: string) => {
+                if (error) reject(error);
+                else resolve(binary);
+            });
+        });
+
+        const zip = new PizZip(content);
+        const doc = new Docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+            nullGetter: () => '',
+        });
+        doc.render(data);
+
+        const output = doc.getZip().generate({
+            type: 'blob',
+            compression: 'DEFLATE',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+        const safeCompanyName = (companyName || '기업명').replace(/[/\\?%*:|"<>]/g, '-');
+        const issueDate = (data.issue_date || '').replace(/[^0-9]/g, '');
+        const fileName = `LRQA_${template.fileLabel}_${safeCompanyName}${issueDate ? `_${issueDate}` : ''}.docx`;
+        saveAs(output, fileName);
+    } catch (error) {
+        console.error('Failed to generate K-ETS quote Word document', error);
+        throw error;
     }
 };

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
 import ResponsiveDocumentPreview from '../../components/ResponsiveDocumentPreview';
+import { generateKetsQuoteDocx, type KetsQuoteType } from '../../utils/docxGenerator';
 
 const STANDARD_RATE = 1050000;
 const EXPENSES_DEFAULT = 600000;
@@ -40,6 +41,7 @@ export default function GeneratorPage() {
     const [contractContact, setContractContact] = useState('');
     const [materiality, setMateriality] = useState('5%');
     const [issuingContract, setIssuingContract] = useState(false);
+    const [generatingWord, setGeneratingWord] = useState(false);
 
     useEffect(() => {
         const now = new Date();
@@ -287,6 +289,66 @@ export default function GeneratorPage() {
     else title += "배출량산정계획서 ";
     title += "검증비용 제안서";
 
+    const handleDownloadWord = async () => {
+        const quoteType: KetsQuoteType = quotType === '1' ? 'statement' : quotType === '2' ? 'plan' : 'combined';
+        const vatMultiplier = vatType === '포함' ? 1.1 : 1;
+        const formatCost = (value: number) => formatCurrency(Math.floor(value * vatMultiplier));
+        const contractNote = includeContractLink && contractDownloadUrl.trim()
+            ? `5) 계약서 PDF는 ${contractDownloadUrl.trim()}에서 다운로드할 수 있습니다(발급 후 10일, 최대 3회).`
+            : '';
+        const contactNumber = contractNote ? '6' : '5';
+
+        setGeneratingWord(true);
+        try {
+            await generateKetsQuoteDocx({
+                document_title: title,
+                company_name: companyName || '귀하',
+                contact_person: contactPerson || '귀하',
+                proposal_no: docId,
+                proposal_date: formatDateKorean(issueDate),
+                issue_date: issueDate,
+                scope_text: scopeText,
+                vat_type: vatType,
+                vat_description: vatType === '포함' ? '포함된' : '제외된',
+                audit_rate: vatType === '포함' ? '1,155,000' : '1,050,000',
+                statement_s1_days: formatStageDays(invS1Days),
+                statement_s1_cost: formatCost((parseFloat(invS1Days) || 0) * STANDARD_RATE),
+                statement_s2_days: formatStageDays(invS2Days),
+                statement_s2_cost: formatCost((parseFloat(invS2Days) || 0) * STANDARD_RATE),
+                statement_s3_days: formatStageDays(invS3Days),
+                statement_s3_cost: formatCost((parseFloat(invS3Days) || 0) * STANDARD_RATE),
+                statement_expenses: formatCost(invExpenses),
+                statement_total_days: formatTotalDays(invTotalDays),
+                statement_total_cost: formatCost(invCalculatedTotal),
+                statement_final_cost: formatCost(invFinalCost),
+                plan_s1_days: formatStageDays(mpS1Days),
+                plan_s1_cost: formatCost((parseFloat(mpS1Days) || 0) * STANDARD_RATE),
+                plan_s2_days: formatStageDays(mpS2Days),
+                plan_s2_cost: formatCost((parseFloat(mpS2Days) || 0) * STANDARD_RATE),
+                plan_s3_days: formatStageDays(mpS3Days),
+                plan_s3_cost: formatCost((parseFloat(mpS3Days) || 0) * STANDARD_RATE),
+                plan_expenses: formatCost(mpExpenses),
+                plan_total_days: formatTotalDays(mpTotalDays),
+                plan_total_cost: formatCost(mpCalculatedTotal),
+                plan_final_cost: formatCost(mpFinalCost),
+                combined_final_cost: formatCost(invFinalCost + mpFinalCost),
+                contract_note: contractNote,
+                contact_note: `${contactNumber}) 자세한 사항은 권대근 과장(02-3703-7514)에게 문의 바랍니다. 끝.`,
+            }, companyName, quoteType);
+
+            saveHistoryRecord(
+                'generator', 'K-ETS 견적서', companyName,
+                totalFinalCost, vatType,
+                { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType, includeContractLink, contractDownloadUrl, hqAddress, businessRegistration, industryType, contractContact, materiality },
+                { s1Days: parseFloat(invS1Days) || 0, s2Days: parseFloat(invS2Days) || 0, s3Days: parseFloat(invS3Days) || 0, expenses: invExpenses, auditRate: STANDARD_RATE },
+            );
+        } catch {
+            window.alert('Word 견적서 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+            setGeneratingWord(false);
+        }
+    };
+
     return (
         <div className="min-h-screen overflow-x-hidden bg-gray-50 pb-24 flex flex-col items-center md:pb-0">
             {/* Input Section */}
@@ -509,14 +571,25 @@ export default function GeneratorPage() {
                     </div>
                 )}
 
-                <button
-                    onClick={handlePrint}
-                    disabled={issuingContract}
-                    className="mt-8 hidden w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60 md:flex"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                    {issuingContract ? '계약서 PDF 생성 중…' : '견적서 인쇄 / PDF 저장'}
-                </button>
+                <div className="mt-8 hidden grid-cols-2 gap-3 md:grid">
+                    <button
+                        type="button"
+                        onClick={handleDownloadWord}
+                        disabled={generatingWord || issuingContract}
+                        className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 font-bold text-white shadow-md transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
+                    >
+                        {generatingWord ? 'Word 견적서 생성 중…' : 'Word 견적서 다운로드 (.docx)'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handlePrint}
+                        disabled={issuingContract || generatingWord}
+                        className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-bold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        {issuingContract ? '계약서 PDF 생성 중…' : '견적서 인쇄 / PDF 저장'}
+                    </button>
+                </div>
 
                 {/* 생성 이력 */}
                 <GenerationHistory
@@ -528,13 +601,16 @@ export default function GeneratorPage() {
             </div>
 
             <div className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden">
-                <div className="mx-auto flex max-w-md items-center gap-3">
+                <div className="mx-auto flex max-w-md items-center gap-2">
                     <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-medium text-slate-500">최종 제안 금액</p>
                         <p className="truncate text-base font-extrabold text-slate-900">{formatCurrency(totalFinalCost)}원</p>
                     </div>
-                    <button type="button" onClick={handlePrint} disabled={issuingContract} className="min-h-11 rounded-md bg-blue-700 px-5 text-sm font-bold text-white shadow-sm disabled:cursor-wait disabled:opacity-60">
-                        {issuingContract ? '생성 중…' : 'PDF 저장'}
+                    <button type="button" onClick={handleDownloadWord} disabled={generatingWord || issuingContract} className="min-h-11 rounded-md bg-emerald-600 px-3 text-sm font-bold text-white shadow-sm disabled:cursor-wait disabled:opacity-60">
+                        {generatingWord ? '생성 중…' : 'Word'}
+                    </button>
+                    <button type="button" onClick={handlePrint} disabled={issuingContract || generatingWord} className="min-h-11 rounded-md bg-blue-700 px-4 text-sm font-bold text-white shadow-sm disabled:cursor-wait disabled:opacity-60">
+                        {issuingContract ? '생성 중…' : 'PDF'}
                     </button>
                 </div>
             </div>
