@@ -5,7 +5,12 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["netlify/functions/assets/**"]
+  included_files = [
+    "netlify/functions/assets/*-master.pdf",
+    "netlify/functions/assets/placements.json",
+    "netlify/functions/assets/NanumGothic-Regular.ttf",
+    "netlify/functions/assets/NanumGothic-Bold.ttf"
+  ]
 
 [functions.issue]
   timeout = 30

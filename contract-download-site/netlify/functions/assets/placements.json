@@ -1,0 +1,2162 @@
+{
+  "statement": {
+    "pages": 21,
+    "placements": [
+      {
+        "field": "company_name",
+        "page": 0,
+        "x": 42.6,
+        "y": 572.542,
+        "width": 51.4,
+        "height": 14.04,
+        "fontSize": 14.04,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 0,
+        "x": 65.664,
+        "y": 500.47,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_no",
+        "page": 0,
+        "x": 42.6,
+        "y": 469.39,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_name",
+        "page": 0,
+        "x": 42.6,
+        "y": 454.15,
+        "width": 32.967,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_email",
+        "page": 0,
+        "x": 50.4,
+        "y": 426.17,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_phone",
+        "page": 0,
+        "x": 50.52,
+        "y": 440.09,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 2,
+        "x": 246.41,
+        "y": 669.048,
+        "width": 36.543,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 2,
+        "x": 241.01,
+        "y": 723.844,
+        "width": 34.943,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 2,
+        "x": 246.41,
+        "y": 540.618,
+        "width": 36.543,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_sites",
+        "page": 2,
+        "x": 246.41,
+        "y": 526.098,
+        "width": 36.543,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "ghg_declaration_period",
+        "page": 2,
+        "x": 246.41,
+        "y": 504.718,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "materiality",
+        "page": 2,
+        "x": 334.75,
+        "y": 443.258,
+        "width": 34.691,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 3,
+        "x": 95.784,
+        "y": 732.508,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_sites",
+        "page": 3,
+        "x": 202.13,
+        "y": 568.558,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "ghg_declaration_period",
+        "page": 3,
+        "x": 176.3,
+        "y": 585.838,
+        "width": 36.932,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage1_days",
+        "page": 3,
+        "x": 264.17,
+        "y": 464.11,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage1_cost",
+        "page": 3,
+        "x": 388.39,
+        "y": 464.11,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage2_days",
+        "page": 3,
+        "x": 264.17,
+        "y": 447.31,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage2_cost",
+        "page": 3,
+        "x": 388.39,
+        "y": 447.31,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage3_days",
+        "page": 3,
+        "x": 264.17,
+        "y": 430.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage3_cost",
+        "page": 3,
+        "x": 388.39,
+        "y": 430.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "expenses",
+        "page": 3,
+        "x": 388.39,
+        "y": 413.81,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "total_days",
+        "page": 3,
+        "x": 264.65,
+        "y": 397.01,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "total_days",
+        "page": 3,
+        "x": 272.09,
+        "y": 378.818,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "total_cost",
+        "page": 3,
+        "x": 387.43,
+        "y": 397.01,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "final_cost",
+        "page": 3,
+        "x": 385.63,
+        "y": 378.818,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "vat_type",
+        "page": 3,
+        "x": 491.26,
+        "y": 361.538,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 7,
+        "x": 190.61,
+        "y": 681.388,
+        "width": 36.932,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 7,
+        "x": 150.14,
+        "y": 663.628,
+        "width": 34.691,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 12,
+        "x": 229.37,
+        "y": 737.572,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 12,
+        "x": 470.86,
+        "y": 684.292,
+        "width": 38.198,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 12,
+        "x": 434.14,
+        "y": 172.652,
+        "width": 38.198,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 12,
+        "x": 229.37,
+        "y": 712.732,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "business_registration",
+        "page": 12,
+        "x": 472.42,
+        "y": 738.82,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "client_contact",
+        "page": 12,
+        "x": 470.74,
+        "y": 713.548,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "industry_type",
+        "page": 12,
+        "x": 232.85,
+        "y": 685.54,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 15,
+        "x": 103.1,
+        "y": 707.164,
+        "width": 34.82,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 15,
+        "x": 90.624,
+        "y": 784.944,
+        "width": 33.095,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 15,
+        "x": 78.144,
+        "y": 690.724,
+        "width": 35.048,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 20,
+        "x": 104.06,
+        "y": 689.884,
+        "width": 33.095,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": false,
+        "color": [
+          0.0314,
+          0.549,
+          0.541
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 20,
+        "x": 103.58,
+        "y": 655.708,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 20,
+        "x": 445.18,
+        "y": 518.518,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "plan": {
+    "pages": 21,
+    "placements": [
+      {
+        "field": "company_name",
+        "page": 0,
+        "x": 42.6,
+        "y": 572.542,
+        "width": 51.4,
+        "height": 14.04,
+        "fontSize": 14.04,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 0,
+        "x": 65.664,
+        "y": 500.178,
+        "width": 36.653,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "proposal_no",
+        "page": 0,
+        "x": 42.6,
+        "y": 469.39,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_name",
+        "page": 0,
+        "x": 42.6,
+        "y": 454.15,
+        "width": 32.967,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_email",
+        "page": 0,
+        "x": 50.4,
+        "y": 426.17,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_phone",
+        "page": 0,
+        "x": 50.52,
+        "y": 440.09,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 2,
+        "x": 246.41,
+        "y": 669.048,
+        "width": 36.543,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 2,
+        "x": 241.01,
+        "y": 723.844,
+        "width": 32.753,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 2,
+        "x": 246.41,
+        "y": 540.618,
+        "width": 36.543,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_sites",
+        "page": 2,
+        "x": 285.742,
+        "y": 540.618,
+        "width": 36.653,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_year",
+        "page": 2,
+        "x": 246.41,
+        "y": 513.358,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "materiality",
+        "page": 2,
+        "x": 334.75,
+        "y": 452.038,
+        "width": 34.691,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 3,
+        "x": 95.784,
+        "y": 732.508,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_sites",
+        "page": 3,
+        "x": 176.407,
+        "y": 568.558,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_year",
+        "page": 3,
+        "x": 176.3,
+        "y": 585.838,
+        "width": 36.932,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "audit_rate",
+        "page": 3,
+        "x": 165.98,
+        "y": 317.57,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage1_days",
+        "page": 3,
+        "x": 242.69,
+        "y": 456.43,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage1_cost",
+        "page": 3,
+        "x": 362.95,
+        "y": 456.43,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage2_days",
+        "page": 3,
+        "x": 242.69,
+        "y": 439.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage2_cost",
+        "page": 3,
+        "x": 362.95,
+        "y": 439.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage3_days",
+        "page": 3,
+        "x": 242.69,
+        "y": 422.81,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "stage3_cost",
+        "page": 3,
+        "x": 362.95,
+        "y": 422.81,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "expenses",
+        "page": 3,
+        "x": 362.95,
+        "y": 391.25,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "total_days",
+        "page": 3,
+        "x": 241.13,
+        "y": 374.45,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "total_days",
+        "page": 3,
+        "x": 241.13,
+        "y": 357.65,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "total_cost",
+        "page": 3,
+        "x": 361.87,
+        "y": 374.45,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "final_cost",
+        "page": 3,
+        "x": 361.87,
+        "y": 357.65,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "vat_type",
+        "page": 3,
+        "x": 488.638,
+        "y": 356.258,
+        "width": 36.902,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 7,
+        "x": 190.61,
+        "y": 681.388,
+        "width": 36.932,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 7,
+        "x": 150.14,
+        "y": 663.628,
+        "width": 34.691,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 12,
+        "x": 229.37,
+        "y": 779.832,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 12,
+        "x": 467.86,
+        "y": 727.022,
+        "width": 40.351,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 12,
+        "x": 431.98,
+        "y": 218.622,
+        "width": 40.351,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 12,
+        "x": 229.37,
+        "y": 754.972,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "business_registration",
+        "page": 12,
+        "x": 468.94,
+        "y": 779.832,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "client_contact",
+        "page": 12,
+        "x": 468.94,
+        "y": 754.972,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "industry_type",
+        "page": 12,
+        "x": 229.37,
+        "y": 726.412,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 15,
+        "x": 103.1,
+        "y": 723.604,
+        "width": 34.82,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 15,
+        "x": 87.264,
+        "y": 784.522,
+        "width": 40.351,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 15,
+        "x": 78.144,
+        "y": 707.164,
+        "width": 35.048,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 20,
+        "x": 104.06,
+        "y": 689.884,
+        "width": 33.095,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": false,
+        "color": [
+          0.0314,
+          0.549,
+          0.541
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 20,
+        "x": 103.58,
+        "y": 655.708,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 20,
+        "x": 445.3,
+        "y": 528.46,
+        "width": 30.896,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      }
+    ]
+  },
+  "combined": {
+    "pages": 22,
+    "placements": [
+      {
+        "field": "company_name",
+        "page": 0,
+        "x": 42.6,
+        "y": 572.542,
+        "width": 51.4,
+        "height": 14.04,
+        "fontSize": 14.04,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 0,
+        "x": 65.664,
+        "y": 500.178,
+        "width": 36.653,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "proposal_no",
+        "page": 0,
+        "x": 42.6,
+        "y": 469.39,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_name",
+        "page": 0,
+        "x": 42.6,
+        "y": 454.15,
+        "width": 32.967,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_email",
+        "page": 0,
+        "x": 50.4,
+        "y": 426.17,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "lrqa_contact_phone",
+        "page": 0,
+        "x": 50.52,
+        "y": 440.09,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 2,
+        "x": 246.41,
+        "y": 669.048,
+        "width": 36.543,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 2,
+        "x": 241.01,
+        "y": 723.844,
+        "width": 32.753,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 2,
+        "x": 246.41,
+        "y": 540.618,
+        "width": 36.543,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_sites",
+        "page": 2,
+        "x": 285.742,
+        "y": 540.618,
+        "width": 36.653,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_year",
+        "page": 2,
+        "x": 246.41,
+        "y": 513.358,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "materiality",
+        "page": 2,
+        "x": 334.75,
+        "y": 452.038,
+        "width": 34.691,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 4,
+        "x": 95.784,
+        "y": 732.508,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_sites",
+        "page": 4,
+        "x": 176.407,
+        "y": 568.558,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_year",
+        "page": 4,
+        "x": 176.3,
+        "y": 585.838,
+        "width": 36.932,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "audit_rate",
+        "page": 4,
+        "x": 165.98,
+        "y": 317.57,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_stage1_days",
+        "page": 4,
+        "x": 242.69,
+        "y": 456.43,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_stage1_cost",
+        "page": 4,
+        "x": 362.95,
+        "y": 456.43,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_stage2_days",
+        "page": 4,
+        "x": 242.69,
+        "y": 439.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_stage2_cost",
+        "page": 4,
+        "x": 362.95,
+        "y": 439.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_stage3_days",
+        "page": 4,
+        "x": 242.69,
+        "y": 422.81,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_stage3_cost",
+        "page": 4,
+        "x": 362.95,
+        "y": 422.81,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_expenses",
+        "page": 4,
+        "x": 362.95,
+        "y": 391.25,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_total_days",
+        "page": 4,
+        "x": 241.13,
+        "y": 374.45,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_total_days",
+        "page": 4,
+        "x": 241.13,
+        "y": 357.65,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_total_cost",
+        "page": 4,
+        "x": 361.87,
+        "y": 374.45,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "plan_final_cost",
+        "page": 4,
+        "x": 361.87,
+        "y": 357.65,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "vat_type",
+        "page": 4,
+        "x": 488.638,
+        "y": 356.258,
+        "width": 36.902,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 8,
+        "x": 190.61,
+        "y": 681.388,
+        "width": 36.932,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 8,
+        "x": 150.14,
+        "y": 663.628,
+        "width": 34.691,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 13,
+        "x": 229.37,
+        "y": 779.832,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 13,
+        "x": 467.86,
+        "y": 727.022,
+        "width": 40.351,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 13,
+        "x": 431.98,
+        "y": 218.622,
+        "width": 40.351,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 13,
+        "x": 229.37,
+        "y": 754.972,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "business_registration",
+        "page": 13,
+        "x": 468.94,
+        "y": 779.832,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "client_contact",
+        "page": 13,
+        "x": 468.94,
+        "y": 754.972,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "industry_type",
+        "page": 13,
+        "x": 229.37,
+        "y": 726.412,
+        "width": 38.209,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 16,
+        "x": 103.1,
+        "y": 723.604,
+        "width": 34.82,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 16,
+        "x": 87.264,
+        "y": 784.522,
+        "width": 40.351,
+        "height": 11.04,
+        "fontSize": 11.04,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "hq_address",
+        "page": 16,
+        "x": 78.144,
+        "y": 707.164,
+        "width": 35.048,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 21,
+        "x": 104.06,
+        "y": 689.884,
+        "width": 33.095,
+        "height": 9.48,
+        "fontSize": 9.48,
+        "bold": false,
+        "color": [
+          0.0314,
+          0.549,
+          0.541
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 21,
+        "x": 103.58,
+        "y": 655.708,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "proposal_date",
+        "page": 21,
+        "x": 445.3,
+        "y": 528.46,
+        "width": 30.896,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0.4,
+          0.4,
+          0.4
+        ]
+      },
+      {
+        "field": "company_name",
+        "page": 3,
+        "x": 95.784,
+        "y": 732.508,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "target_sites",
+        "page": 3,
+        "x": 202.13,
+        "y": 568.558,
+        "width": 34.571,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "ghg_declaration_period",
+        "page": 3,
+        "x": 176.3,
+        "y": 585.838,
+        "width": 36.932,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_stage1_days",
+        "page": 3,
+        "x": 264.17,
+        "y": 464.11,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_stage1_cost",
+        "page": 3,
+        "x": 388.39,
+        "y": 464.11,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_stage2_days",
+        "page": 3,
+        "x": 264.17,
+        "y": 447.31,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_stage2_cost",
+        "page": 3,
+        "x": 388.39,
+        "y": 447.31,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_stage3_days",
+        "page": 3,
+        "x": 264.17,
+        "y": 430.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_stage3_cost",
+        "page": 3,
+        "x": 388.39,
+        "y": 430.61,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_expenses",
+        "page": 3,
+        "x": 388.39,
+        "y": 413.81,
+        "width": 31.176,
+        "height": 9,
+        "fontSize": 9,
+        "bold": false,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_total_days",
+        "page": 3,
+        "x": 264.65,
+        "y": 397.01,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_total_days",
+        "page": 3,
+        "x": 272.09,
+        "y": 378.818,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_total_cost",
+        "page": 3,
+        "x": 387.43,
+        "y": 397.01,
+        "width": 33.318,
+        "height": 9,
+        "fontSize": 9,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "statement_final_cost",
+        "page": 3,
+        "x": 385.63,
+        "y": 378.818,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "field": "vat_type",
+        "page": 3,
+        "x": 491.26,
+        "y": 361.538,
+        "width": 36.673,
+        "height": 9.96,
+        "fontSize": 9.96,
+        "bold": true,
+        "color": [
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  }
+}
