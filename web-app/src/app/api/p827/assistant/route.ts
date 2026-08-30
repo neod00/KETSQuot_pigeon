@@ -68,7 +68,7 @@ const responseSchema = {
   additionalProperties: false,
   properties: {
     reply: { type: 'string' },
-    fields: { type: 'array', maxItems: 15, items: fieldSchema },
+    fields: { type: 'array', maxItems: 8, items: fieldSchema },
     scope3Updated: { type: 'boolean' },
     scope3Selected: { type: 'array', maxItems: 15, items: { type: 'integer', minimum: 1, maximum: 15 } },
     daySuggestion: {
@@ -85,8 +85,8 @@ const responseSchema = {
       },
       required: ['recommended', 'stage1', 'stage2', 'stage3', 'expenses', 'auditRate', 'justification'],
     },
-    missingFields: { type: 'array', maxItems: 12, items: { type: 'string' } },
-    warnings: { type: 'array', maxItems: 8, items: { type: 'string' } },
+    missingFields: { type: 'array', maxItems: 5, items: { type: 'string' } },
+    warnings: { type: 'array', maxItems: 4, items: { type: 'string' } },
     readyToGenerate: { type: 'boolean' },
   },
   required: ['reply', 'fields', 'scope3Updated', 'scope3Selected', 'daySuggestion', 'missingFields', 'warnings', 'readyToGenerate'],
@@ -183,7 +183,7 @@ Use this P827 procedure summary:
 - For one annual reporting period, limited assurance examples are: single site 3 days total, country with several facilities 4.5 days, regional one business stream 6-8 days, global/complex 10-19 days. Reasonable examples are: single site 4 days, country several facilities 5-7 days, regional 7-11 days, global/complex 15-35 days. Do not treat these ranges as automatic pricing.
 - The user is authorised to issue the quotation and contract. Do not add an approval workflow. Still call all values a draft until the user applies them to the form and generates the document.
 
-Only return the requested JSON. A field entry must only be included when its value is evidenced or clearly supplied by the user. For exact field values use: assuranceLevel = "제한적 보증수준 (Limited level of assurance)" or "합리적 보증수준 (Reasonable level of assurance)"; materialityLevel = "전문적 판단", "5%", or "10%"; verificationStandard = "isae" or "iso14064"; vatType = "별도" or "포함". Scope 3 category index is 1-based: ${P827_SCOPE3_CATEGORIES.map((item, index) => `${index + 1}. ${item}`).join(' | ')}.`;
+Only return the requested JSON. Keep reply to at most two concise Korean sentences. Keep every field reason as one short phrase and daySuggestion.justification to at most two short sentences. Return only the most useful evidenced fields; do not repeat the user's supplied facts in prose. A field entry must only be included when its value is evidenced or clearly supplied by the user. For exact field values use: assuranceLevel = "제한적 보증수준 (Limited level of assurance)" or "합리적 보증수준 (Reasonable level of assurance)"; materialityLevel = "전문적 판단", "5%", or "10%"; verificationStandard = "isae" or "iso14064"; vatType = "별도" or "포함". Scope 3 category index is 1-based: ${P827_SCOPE3_CATEGORIES.map((item, index) => `${index + 1}. ${item}`).join(' | ')}.`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 40_000);
@@ -199,7 +199,7 @@ Only return the requested JSON. A field entry must only be included when its val
         model: process.env.OPENAI_P827_MODEL || 'gpt-5.6-luna',
         store: false,
         reasoning: { effort: 'low' },
-        max_output_tokens: 2_500,
+        max_output_tokens: 1_200,
         instructions,
         input: [{ role: 'user', content }],
         text: {

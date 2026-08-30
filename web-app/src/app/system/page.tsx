@@ -599,12 +599,24 @@ export default function GeneratorPage() {
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
                                     <div className="flex items-center justify-between gap-3">
-                                        <label className="text-xs font-bold text-slate-600">Scope 3 배출원 해당 항목</label>
+                                        <label className="text-xs font-bold text-slate-600">Scope 3 검증 범위</label>
                                         <span className="text-xs font-bold text-blue-700">
-                                            {formData.scope3Categories.filter(Boolean).length}개 선택
+                                            {formData.scope3Categories.some(Boolean) ? `${formData.scope3Categories.filter(Boolean).length}개 선택` : '미포함'}
                                         </span>
                                     </div>
-                                    <div className="overflow-hidden rounded-xl border border-slate-200">
+                                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 accent-blue-600"
+                                            checked={formData.scope3Categories.some(Boolean)}
+                                            onChange={(e) => {
+                                                if (!e.target.checked) handleChange('scope3Categories', Array(P827_SCOPE3_CATEGORIES.length).fill(false));
+                                                else handleChange('scope3Categories', [true, ...Array(P827_SCOPE3_CATEGORIES.length - 1).fill(false)]);
+                                            }}
+                                        />
+                                        Scope 3 검증을 포함합니다
+                                    </label>
+                                    {formData.scope3Categories.some(Boolean) && <div className="overflow-hidden rounded-xl border border-slate-200">
                                         <div className="grid grid-cols-[1fr_64px] border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
                                             <span>Scope 3 배출원</span>
                                             <span className="text-center">해당</span>
@@ -629,8 +641,8 @@ export default function GeneratorPage() {
                                                 </span>
                                             </label>
                                         ))}
-                                    </div>
-                                    <p className="text-[11px] text-slate-500">선택 여부는 체크표시로만 출력되며 행 배경색은 변경되지 않습니다.</p>
+                                    </div>}
+                                    <p className="text-[11px] leading-5 text-slate-500">Scope 3 미검증 업체는 선택하지 않아도 됩니다. 포함 시에만 세부 카테고리를 선택해 주세요.</p>
                                 </div>
                             </div>
                         </section>

@@ -104,6 +104,8 @@ export default function P827Assistant({ formData, onApply }: Props) {
   const [draft, setDraft] = useState('');
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [result, setResult] = useState<AssistantResult | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -245,21 +247,19 @@ export default function P827Assistant({ formData, onApply }: Props) {
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
-      <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 via-white to-cyan-50 px-5 py-5 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-violet-700">AI quote assistant</p>
-            <h2 className="mt-1 text-xl font-black text-slate-950">대화로 P827 견적·계약 정보 작성</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">AI가 사실관계와 누락 정보를 정리하고, 제안 심사일수와 비용 산정근거를 제시합니다. 제안 적용 후에는 기존 양식의 견적서·계약서를 바로 생성할 수 있습니다.</p>
-          </div>
-          <span className="rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-black text-violet-800">P827 · GPT-5.6 Luna</span>
-        </div>
+    <section className="overflow-hidden rounded-xl border border-violet-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-violet-50 via-white to-cyan-50 px-4 py-3 sm:px-5">
+        <button type="button" onClick={() => setIsOpen((current) => !current)} aria-expanded={isOpen} className="flex items-center gap-3 text-left">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-700 text-sm text-white">✦</span>
+          <span><span className="block text-sm font-black text-slate-950">AI로 P827 정보 입력</span><span className="block text-[11px] text-slate-600">텍스트 · 파일 · 음성으로 초안 정리</span></span>
+          <span className="text-sm font-black text-violet-700">{isOpen ? '⌃' : '⌄'}</span>
+        </button>
+        <span className="rounded-full border border-violet-200 bg-white px-2.5 py-1 text-[10px] font-black text-violet-800">GPT-5.6 Luna</span>
       </div>
 
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_300px]">
+      {isOpen && <div className="grid gap-0 border-t border-violet-100 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="border-b border-slate-200 p-5 sm:p-6 lg:border-b-0 lg:border-r">
-          <div className="max-h-[340px] space-y-3 overflow-y-auto pr-1" aria-live="polite">
+          <div className="max-h-[210px] space-y-3 overflow-y-auto pr-1" aria-live="polite">
             {messages.map((message) => (
               <div key={message.id} className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-6 ${message.role === 'assistant' ? 'bg-slate-100 text-slate-800' : 'ml-auto bg-violet-700 text-white'}`}>
                 <p className={`mb-1 text-[10px] font-black uppercase tracking-wider ${message.role === 'assistant' ? 'text-violet-700' : 'text-violet-100'}`}>{message.role === 'assistant' ? 'LRQA AI' : '나'}</p>
@@ -276,7 +276,7 @@ export default function P827Assistant({ formData, onApply }: Props) {
           )}
 
           <div className="mt-4 rounded-xl border border-slate-200 p-2 focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-100">
-            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} placeholder="예: 태광후지킨의 2025년 Scope 1·2·3 제3자 검증 견적을 만들고 싶습니다. 부산 2개 공장, Scope 3는 10개 카테고리입니다." className="w-full resize-none border-0 bg-transparent px-2 py-1 text-sm leading-6 outline-none" onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); submit(); } }} />
+            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={2} placeholder="예: 2025년 온실가스 배출량 제3자 검증 견적을 준비하고 싶습니다. 대상 사업장은 2곳이며 Scope 1·2만 해당합니다." className="w-full resize-none border-0 bg-transparent px-2 py-1 text-sm leading-6 outline-none" onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); submit(); } }} />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
               <div className="flex items-center gap-1">
                 <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.eml,.txt,.md" className="hidden" onChange={handleFiles} />
@@ -290,20 +290,21 @@ export default function P827Assistant({ formData, onApply }: Props) {
           {error && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800">{error}</p>}
         </div>
 
-        <aside className="bg-slate-50 p-5 sm:p-6">
+        <aside className="bg-slate-50 p-4 sm:p-5">
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">AI 정리 결과</p>
-          {!result ? <p className="mt-3 text-sm leading-6 text-slate-500">대화를 시작하면 반영 가능한 폼 값, 심사일수 근거, 누락 정보와 주의사항을 이곳에 표시합니다.</p> : (
-            <div className="mt-3 space-y-4">
-              {result.fields.length > 0 && <div><p className="text-xs font-black text-slate-700">반영 제안</p><div className="mt-2 space-y-2">{result.fields.map((field, index) => <div key={`${field.field}-${index}`} className="rounded-lg border border-slate-200 bg-white p-2.5"><div className="flex items-center justify-between gap-2"><span className="text-xs font-black text-slate-800">{FIELD_LABELS[field.field] || field.field}</span><span className="text-[10px] font-bold text-violet-700">신뢰도 {confidenceLabel(field.confidence)}</span></div><p className="mt-1 break-words text-xs font-medium text-slate-700">{field.value}</p>{field.reason && <p className="mt-1 text-[10px] leading-4 text-slate-500">{field.reason}</p>}</div>)}</div></div>}
-              {result.daySuggestion.recommended && <div className="rounded-xl border border-teal-200 bg-teal-50 p-3"><p className="text-xs font-black text-teal-900">예비 심사일수</p><p className="mt-1 text-lg font-black text-teal-950">{(result.daySuggestion.stage1 + result.daySuggestion.stage2 + result.daySuggestion.stage3).toFixed(1)} MD</p><p className="mt-1 text-[11px] font-bold text-teal-800">S1 {result.daySuggestion.stage1} · S2 {result.daySuggestion.stage2} · S3 {result.daySuggestion.stage3}</p><p className="mt-2 text-[11px] leading-5 text-teal-900">{result.daySuggestion.justification}</p></div>}
-              {result.missingFields.length > 0 && <div><p className="text-xs font-black text-amber-800">추가 확인</p><ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] leading-5 text-amber-900">{result.missingFields.map((item) => <li key={item}>{item}</li>)}</ul></div>}
-              {result.warnings.length > 0 && <div><p className="text-xs font-black text-rose-800">주의</p><ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] leading-5 text-rose-900">{result.warnings.map((item) => <li key={item}>{item}</li>)}</ul></div>}
+          {!result ? <p className="mt-2 text-xs leading-5 text-slate-500">대화 후 핵심 제안과 추가 확인 항목만 표시합니다.</p> : (
+            <div className="mt-3 space-y-3">
+              {result.fields.length > 0 && <div><p className="text-xs font-black text-slate-700">반영 제안</p><div className="mt-2 space-y-1.5">{result.fields.slice(0, showDetails ? undefined : 4).map((field, index) => <div key={`${field.field}-${index}`} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2"><div className="flex items-center justify-between gap-2"><span className="text-[11px] font-black text-slate-800">{FIELD_LABELS[field.field] || field.field}</span><span className="text-[10px] font-bold text-violet-700">{confidenceLabel(field.confidence)}</span></div><p className="mt-0.5 break-words text-xs font-medium text-slate-700">{field.value}</p>{showDetails && field.reason && <p className="mt-1 text-[10px] leading-4 text-slate-500">{field.reason}</p>}</div>)}</div></div>}
+              {result.daySuggestion.recommended && <div className="rounded-xl border border-teal-200 bg-teal-50 p-3"><div className="flex items-baseline justify-between gap-2"><p className="text-xs font-black text-teal-900">예비 심사일수</p><p className="text-base font-black text-teal-950">{(result.daySuggestion.stage1 + result.daySuggestion.stage2 + result.daySuggestion.stage3).toFixed(1)} MD</p></div><p className="mt-1 text-[11px] font-bold text-teal-800">S1 {result.daySuggestion.stage1} · S2 {result.daySuggestion.stage2} · S3 {result.daySuggestion.stage3}</p>{showDetails && <p className="mt-2 text-[11px] leading-5 text-teal-900">{result.daySuggestion.justification}</p>}</div>}
+              {result.missingFields.length > 0 && <div><p className="text-xs font-black text-amber-800">추가 확인</p><ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] leading-5 text-amber-900">{result.missingFields.slice(0, showDetails ? undefined : 2).map((item) => <li key={item}>{item}</li>)}</ul></div>}
+              {result.warnings.length > 0 && <div><p className="text-xs font-black text-rose-800">주의</p><ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] leading-5 text-rose-900">{result.warnings.slice(0, showDetails ? undefined : 1).map((item) => <li key={item}>{item}</li>)}</ul></div>}
+              {(result.fields.length > 4 || result.missingFields.length > 2 || result.warnings.length > 1 || result.daySuggestion.recommended) && <button type="button" onClick={() => setShowDetails((current) => !current)} className="text-xs font-black text-violet-700 hover:text-violet-900">{showDetails ? '핵심만 보기' : '상세 보기'}</button>}
               {(result.fields.length > 0 || result.daySuggestion.recommended || result.scope3Updated) && <button type="button" onClick={applyResult} className="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800">제안을 현재 폼에 반영</button>}
               {result.readyToGenerate && <p className="rounded-lg bg-emerald-100 px-3 py-2 text-xs font-black text-emerald-900">필수 정보가 갖춰졌습니다. 폼 반영 후 견적서·계약서를 생성할 수 있습니다.</p>}
             </div>
           )}
         </aside>
-      </div>
+      </div>}
     </section>
   );
 }
