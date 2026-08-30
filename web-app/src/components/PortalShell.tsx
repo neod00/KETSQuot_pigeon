@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   { label: '세일즈 현황·D365', href: '/iso/sales' },
   { label: 'K-ETS 견적', href: '/generator' },
   { label: 'K-ETS 계약', href: '/kets-contract' },
-  { label: 'P827 계약', href: '/system' },
+  { label: 'P827 견적·계약', href: '/system' },
   { label: 'CBAM 관리', href: '/cbam/admin' },
 ];
 
@@ -38,7 +38,7 @@ const pageTitle = (pathname: string) => {
   if (pathname === '/iso/adj') return 'ADJ 작성';
   if (pathname === '/generator') return 'K-ETS 검증 견적서 생성기';
   if (pathname === '/kets-contract') return 'K-ETS 검증 계약서 생성기';
-  if (pathname === '/system') return 'P827 계약서 생성기';
+  if (pathname === '/system') return 'P827 견적·계약서 생성기';
   if (pathname === '/cbam/admin') return 'CBAM 관리';
   if (pathname === '/cbam/documents') return 'CBAM 견적·계약 문서 생성';
   if (pathname === '/cbam') return 'CBAM 서비스 신청';

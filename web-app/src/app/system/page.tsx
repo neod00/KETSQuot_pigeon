@@ -4,6 +4,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { CONTRACT_TEMPLATE } from '../../constants/template';
 import { generateDocx } from '../../utils/docxGenerator';
+import {
+    generateP827QuoteDocx,
+    P827_SCOPE3_CATEGORIES,
+    P827QuoteOutputData,
+    printP827Quote,
+} from '../../utils/p827QuoteGenerator';
 import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
 
 // --- Types ---
@@ -45,9 +51,9 @@ interface QuotationData {
 
 const DEFAULT_AUDIT_RATE = 1350000;
 
-const ADM_DATA: Record<string, { email: string, phone: string }> = {
-    '권대근': { email: 'daekeun.kwon@lrqa.com', phone: '02-3703-7514' },
-    '김달': { email: 'dal.kim@lrqa.com', phone: '02-3703-7527' },
+const ADM_DATA: Record<string, { email: string; phone: string; mobile: string; title: string }> = {
+    '권대근': { email: 'daekeun.kwon@lrqa.com', phone: '+82 2 3703 7514', mobile: '-', title: '과장' },
+    '김달': { email: 'dal.kim@lrqa.com', phone: '+82 2 3703 7527', mobile: '+82 10 3776 0837', title: '실장' },
 };
 
 export default function GeneratorPage() {
@@ -63,6 +69,8 @@ export default function GeneratorPage() {
         ghgDeclarationPeriod: '2025년 01월 01일~2025년 12월 31일',
         assuranceLevel: '제한적 보증수준 (Limited level of assurance)',
         materialityLevel: '5%',
+        verificationStandard: 'isae' as 'isae' | 'iso14064',
+        scope3Categories: Array(P827_SCOPE3_CATEGORIES.length).fill(false) as boolean[],
         auditRate: DEFAULT_AUDIT_RATE,
         s1Days: 1.0,
         s2Days: 3.0,
@@ -129,9 +137,23 @@ export default function GeneratorPage() {
             const { action, formData: savedData, pageType } = JSON.parse(raw);
             if (pageType !== 'system') return;
             if (action === 'restore') {
-                setFormData(savedData);
+                setFormData(prev => ({
+                    ...prev,
+                    ...savedData,
+                    verificationStandard: savedData.verificationStandard || 'isae',
+                    scope3Categories: Array.isArray(savedData.scope3Categories)
+                        ? savedData.scope3Categories
+                        : Array(P827_SCOPE3_CATEGORIES.length).fill(false),
+                }));
             } else if (action === 'regenerate') {
-                setFormData(savedData);
+                setFormData(prev => ({
+                    ...prev,
+                    ...savedData,
+                    verificationStandard: savedData.verificationStandard || 'isae',
+                    scope3Categories: Array.isArray(savedData.scope3Categories)
+                        ? savedData.scope3Categories
+                        : Array(P827_SCOPE3_CATEGORIES.length).fill(false),
+                }));
                 setTimeout(() => handleDownloadDocx(savedData), 300);
             }
         } catch { /* ignore */ }
@@ -268,7 +290,7 @@ export default function GeneratorPage() {
     // 이력 저장 헬퍼
     const saveToHistory = () => {
         saveHistoryRecord(
-            'system', 'P827 계약서',
+            'system', 'P827 견적·계약서',
             formData.companyName, formData.manualFinalCost, formData.vatType,
             formData,
             { s1Days: formData.s1Days, s2Days: formData.s2Days, s3Days: formData.s3Days, expenses: formData.expenses, auditRate: formData.auditRate }
@@ -341,9 +363,78 @@ export default function GeneratorPage() {
         if (!sourceData) saveToHistory();
     };
 
+    const buildQuoteOutputData = (sourceData?: any): P827QuoteOutputData => {
+        const fd = sourceData || formData;
+        const adm = ADM_DATA[fd.adminName] || ADM_DATA['권대근'];
+        const rate = fd.vatType === '포함' ? fd.auditRate * 1.1 : fd.auditRate;
+        const s1Cost = fd.s1Days * rate;
+        const s2Cost = fd.s2Days * rate;
+        const s3Cost = fd.s3Days * rate;
+        const expCost = fd.vatType === '포함' ? fd.expenses * 1.1 : fd.expenses;
+        const totalDays = fd.s1Days + fd.s2Days + fd.s3Days;
+        const calculatedTotal = Math.floor(s1Cost + s2Cost + s3Cost + expCost);
+        return {
+            companyName: (fd.companyName || '').trim(),
+            serviceDescription: (fd.serviceDesc || '').trim(),
+            proposalDateLong: formatDateLong(fd.proposalDate),
+            proposalNo: fd.proposalNo,
+            contactName: fd.adminName,
+            contactTitle: adm.title,
+            contactPhone: adm.phone,
+            contactMobile: adm.mobile,
+            contactEmail: adm.email,
+            verificationYear: fd.vYear,
+            verificationStandard: fd.verificationStandard || 'isae',
+            assuranceLevel: fd.assuranceLevel,
+            materialityLevel: fd.materialityLevel,
+            targetSites: fd.targetSites,
+            scope3Categories: Array.isArray(fd.scope3Categories)
+                ? fd.scope3Categories
+                : Array(P827_SCOPE3_CATEGORIES.length).fill(false),
+            applicationFeeText: fd.appFeeType === 'exempt'
+                ? `면제 (${formatNum(fd.appFeeAmount)})`
+                : formatNum(fd.appFeeAmount),
+            stage1Days: fd.s1Days.toFixed(1),
+            stage1Cost: formatNum(Math.floor(s1Cost)),
+            stage2Days: fd.s2Days.toFixed(1),
+            stage2Cost: formatNum(Math.floor(s2Cost)),
+            stage3Days: fd.s3Days.toFixed(1),
+            stage3Cost: formatNum(Math.floor(s3Cost)),
+            expenses: formatNum(Math.floor(expCost)),
+            totalDays: formatTotalDays(totalDays),
+            totalCost: formatNum(calculatedTotal),
+            finalCost: formatNum(fd.manualFinalCost),
+            vatType: fd.vatType,
+            auditRate: formatNum(Math.floor(rate)),
+            quoteValidityDays: String(fd.validity),
+        };
+    };
+
+    const handleQuotePdf = () => {
+        printP827Quote(buildQuoteOutputData());
+        saveToHistory();
+    };
+
+    const handleQuoteWord = async () => {
+        try {
+            await generateP827QuoteDocx(buildQuoteOutputData());
+            saveToHistory();
+        } catch (error) {
+            console.error('P827 quote Word generation failed', error);
+            alert('견적서 Word 파일 생성 중 오류가 발생했습니다.');
+        }
+    };
+
     // 이력에서 불러오기 (폼 채움)
     const handleHistoryRestore = (savedFormData: any) => {
-        setFormData(savedFormData);
+        setFormData(prev => ({
+            ...prev,
+            ...savedFormData,
+            verificationStandard: savedFormData.verificationStandard || 'isae',
+            scope3Categories: Array.isArray(savedFormData.scope3Categories)
+                ? savedFormData.scope3Categories
+                : Array(P827_SCOPE3_CATEGORIES.length).fill(false),
+        }));
     };
 
     // 이력에서 다시 생성 (바로 Word)
@@ -364,7 +455,7 @@ export default function GeneratorPage() {
                     </div>
                     <div className="text-center">
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                            P827 Data & Information <span className="text-blue-600">계약서 생성기</span>
+                            P827 Data & Information <span className="text-blue-600">견적·계약서 생성기</span>
                         </h1>
                     </div>
                 </div>
@@ -457,6 +548,17 @@ export default function GeneratorPage() {
                                         <option value="합리적 보증수준 (Reasonable level of assurance)">합리적 (Reasonable)</option>
                                     </select>
                                 </div>
+                                <div className="space-y-1 md:col-span-2">
+                                    <label className="text-xs font-bold text-slate-600">검증기준</label>
+                                    <select
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium"
+                                        value={formData.verificationStandard}
+                                        onChange={(e) => handleChange('verificationStandard', e.target.value)}
+                                    >
+                                        <option value="isae">ISAE 3000 + ISAE 3410</option>
+                                        <option value="iso14064">ISO 14064-3:2019 (온실가스선언 타당성 평가·검증 지침)</option>
+                                    </select>
+                                </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">보고 마감기한</label>
                                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium" value={formData.reportingDeadline} onChange={(e) => handleChange('reportingDeadline', e.target.value)} placeholder="2026년 12월 31일" />
@@ -464,6 +566,41 @@ export default function GeneratorPage() {
                                 <div className="space-y-1 md:col-span-2">
                                     <label className="text-xs font-bold text-slate-600">온실가스 선언이 적용되는 기간</label>
                                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={formData.ghgDeclarationPeriod} onChange={(e) => handleChange('ghgDeclarationPeriod', e.target.value)} placeholder="2025년 01월 01일~2025년 12월 31일" />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <label className="text-xs font-bold text-slate-600">Scope 3 배출원 해당 항목</label>
+                                        <span className="text-xs font-bold text-blue-700">
+                                            {formData.scope3Categories.filter(Boolean).length}개 선택
+                                        </span>
+                                    </div>
+                                    <div className="overflow-hidden rounded-xl border border-slate-200">
+                                        <div className="grid grid-cols-[1fr_64px] border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+                                            <span>Scope 3 배출원</span>
+                                            <span className="text-center">해당</span>
+                                        </div>
+                                        {P827_SCOPE3_CATEGORIES.map((category, index) => (
+                                            <label
+                                                key={category}
+                                                className="grid cursor-pointer grid-cols-[1fr_64px] items-center border-b border-slate-200 px-3 py-2 text-xs last:border-b-0 hover:bg-slate-50"
+                                            >
+                                                <span className="pr-3 leading-relaxed text-slate-700">{category}</span>
+                                                <span className="flex justify-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4 accent-blue-600"
+                                                        checked={Boolean(formData.scope3Categories[index])}
+                                                        onChange={(e) => {
+                                                            const next = [...formData.scope3Categories];
+                                                            next[index] = e.target.checked;
+                                                            handleChange('scope3Categories', next);
+                                                        }}
+                                                    />
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <p className="text-[11px] text-slate-500">선택 여부는 체크표시로만 출력되며 행 배경색은 변경되지 않습니다.</p>
                                 </div>
                             </div>
                         </section>
@@ -533,27 +670,49 @@ export default function GeneratorPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-4 mt-8">
+                                <div className="mt-8 border-t border-slate-700 pt-6">
+                                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">견적서 · 9 pages</p>
+                                    <div className="flex flex-col gap-3">
+                                        <button
+                                            onClick={handleQuotePdf}
+                                            className="w-full rounded-xl bg-emerald-500 py-4 font-bold text-slate-950 shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 active:scale-95"
+                                        >
+                                            견적서 PDF 인쇄
+                                        </button>
+                                        <button
+                                            onClick={handleQuoteWord}
+                                            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-400/60 py-4 font-bold text-emerald-100 transition-all hover:bg-emerald-400/10 active:scale-95"
+                                        >
+                                            <span>Word 견적서 다운로드</span>
+                                            <span className="text-xs opacity-60">(.docx)</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 border-t border-slate-700 pt-6">
+                                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-blue-300">계약서</p>
+                                    <div className="flex flex-col gap-3">
                                     <button
                                         onClick={() => handleGenerate()}
                                         className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-95"
                                     >
-                                        제안서 PDF 인쇄
+                                        계약서 PDF 인쇄
                                     </button>
                                     <button
                                         onClick={() => handleDownloadDocx()}
                                         className="w-full border-2 border-blue-500/50 hover:bg-blue-500/10 py-4 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
                                     >
-                                        <span>Word 제안서 다운로드</span>
+                                        <span>Word 계약서 다운로드</span>
                                         <span className="text-xs opacity-60">(.docx)</span>
                                     </button>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* 생성 이력 */}
                             <GenerationHistory
                                 pageType="system"
-                                pageLabel="P827 계약서"
+                        pageLabel="P827 견적·계약서"
                                 onRestore={handleHistoryRestore}
                                 onRegenerate={handleHistoryRegenerate}
                             />
@@ -575,8 +734,8 @@ export default function GeneratorPage() {
                         <p className="text-[11px] font-medium text-slate-500">최종 제안 금액</p>
                         <p className="truncate text-base font-extrabold text-slate-900">₩{formatNum(formData.manualFinalCost)}</p>
                     </div>
-                    <button type="button" onClick={() => handleGenerate()} className="min-h-11 rounded-md bg-blue-700 px-4 text-sm font-bold text-white">PDF</button>
-                    <button type="button" onClick={() => handleDownloadDocx()} className="min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800">Word</button>
+                    <button type="button" onClick={handleQuotePdf} className="min-h-11 rounded-md bg-emerald-500 px-3 text-xs font-bold text-slate-950">견적 PDF</button>
+                    <button type="button" onClick={handleQuoteWord} className="min-h-11 rounded-md border border-emerald-500 bg-white px-3 text-xs font-bold text-emerald-700">견적 Word</button>
                 </div>
             </div>
         </div>

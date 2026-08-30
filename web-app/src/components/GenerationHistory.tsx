@@ -30,7 +30,7 @@ interface GenerationHistoryProps {
 
 const PAGE_LABELS: Record<string, string> = {
     'generator': 'K-ETS 견적서',
-    'system': 'P827 계약서',
+    'system': 'P827 견적·계약서',
     'kets-contract': 'K-ETS 계약서',
 };
 
