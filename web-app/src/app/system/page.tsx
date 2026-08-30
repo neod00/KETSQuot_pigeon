@@ -11,6 +11,7 @@ import {
     printP827Quote,
 } from '../../utils/p827QuoteGenerator';
 import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
+import P827Assistant from '../../components/P827Assistant';
 
 // --- Types ---
 interface QuotationData {
@@ -68,7 +69,7 @@ export default function GeneratorPage() {
         vYear: '2025',
         ghgDeclarationPeriod: '2025년 01월 01일~2025년 12월 31일',
         assuranceLevel: '제한적 보증수준 (Limited level of assurance)',
-        materialityLevel: '5%',
+        materialityLevel: '전문적 판단',
         verificationStandard: 'isae' as 'isae' | 'iso14064',
         scope3Categories: Array(P827_SCOPE3_CATEGORIES.length).fill(false) as boolean[],
         auditRate: DEFAULT_AUDIT_RATE,
@@ -161,6 +162,17 @@ export default function GeneratorPage() {
 
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const applyAssistantChanges = (changes: Record<string, unknown>) => {
+        setFormData(prev => {
+            const next = { ...prev, ...changes } as typeof prev;
+            // P827 절차상 제한적 보증에는 정량 중요성을 적용하지 않습니다.
+            if (String(next.assuranceLevel).startsWith('제한적') && next.materialityLevel !== '전문적 판단') {
+                next.materialityLevel = '전문적 판단';
+            }
+            return next;
+        });
     };
 
     const handleGenerate = (sourceData?: any) => {
@@ -460,6 +472,10 @@ export default function GeneratorPage() {
                     </div>
                 </div>
 
+                <div className="mb-6">
+                    <P827Assistant formData={formData} onApply={applyAssistantChanges} />
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <div className="lg:col-span-8 space-y-4">
 
@@ -537,17 +553,31 @@ export default function GeneratorPage() {
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">중요성 기준 (Materiality)</label>
                                     <select className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.materialityLevel} onChange={(e) => handleChange('materialityLevel', e.target.value)}>
+                                        <option value="전문적 판단">전문적 판단 (검증심사원)</option>
                                         <option value="5%">5%</option>
-                                        <option value="10%">10%</option>
+                                        <option value="10%">10% (예외·근거 필요)</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-600">보증 수준 (Assurance)</label>
-                                    <select className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.assuranceLevel} onChange={(e) => handleChange('assuranceLevel', e.target.value)}>
+                                    <select className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-medium" value={formData.assuranceLevel} onChange={(e) => {
+                                        const assuranceLevel = e.target.value;
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            assuranceLevel,
+                                            materialityLevel: assuranceLevel.startsWith('제한적') ? '전문적 판단' : prev.materialityLevel,
+                                        }));
+                                    }}>
                                         <option value="제한적 보증수준 (Limited level of assurance)">제한적 (Limited)</option>
                                         <option value="합리적 보증수준 (Reasonable level of assurance)">합리적 (Reasonable)</option>
                                     </select>
                                 </div>
+                                {formData.assuranceLevel.startsWith('제한적') && (
+                                    <p className="-mt-1 text-[11px] leading-5 text-amber-700 md:col-span-2">P827 절차상 제한적 보증은 정량 중요성(예: 5%) 대신 검증심사원의 전문적 판단을 적용합니다.</p>
+                                )}
+                                {formData.assuranceLevel.startsWith('합리적') && formData.materialityLevel === '10%' && (
+                                    <p className="-mt-1 text-[11px] leading-5 text-amber-700 md:col-span-2">10% 중요성은 예외적인 값입니다. 견적서 발행 전 적용 근거를 확인해 주세요.</p>
+                                )}
                                 <div className="space-y-1 md:col-span-2">
                                     <label className="text-xs font-bold text-slate-600">검증기준</label>
                                     <select
