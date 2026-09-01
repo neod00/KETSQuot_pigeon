@@ -129,6 +129,21 @@ export default function GeneratorPage() {
         setFormData(prev => ({ ...prev, proposalDate: dateStr, proposalNo: `QR.GHG-${yyyy}${mm}${dd}-01` }));
     }, []);
 
+    useEffect(() => {
+        const raw = sessionStorage.getItem('p827_application_draft');
+        if (!raw) return;
+        sessionStorage.removeItem('p827_application_draft');
+        try {
+            const draft = JSON.parse(raw);
+            setFormData(prev => ({
+                ...prev,
+                ...draft,
+                verificationStandard: draft.verificationStandard || prev.verificationStandard,
+                scope3Categories: Array.isArray(draft.scope3Categories) ? draft.scope3Categories : prev.scope3Categories,
+            }));
+        } catch { /* ignore malformed draft */ }
+    }, []);
+
     // 메인페이지 이력에서 넘어온 경우 데이터 복원
     useEffect(() => {
         const raw = localStorage.getItem('history_action');

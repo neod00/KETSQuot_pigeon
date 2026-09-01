@@ -19,7 +19,8 @@ const NAV_ITEMS = [
     { label: '세일즈 현황·D365', href: '/iso/sales' },
     { label: 'K-ETS 견적', href: '/generator' },
     { label: 'K-ETS 계약', href: '/kets-contract' },
-    { label: 'P827 계약', href: '/system' },
+    { label: 'P827 견적·계약', href: '/system' },
+    { label: 'P827 신청관리', href: '/p827/admin' },
     { label: 'CBAM 관리', href: '/cbam/admin' },
 ];
 

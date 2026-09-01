@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { label: 'K-ETS 견적', href: '/generator' },
   { label: 'K-ETS 계약', href: '/kets-contract' },
   { label: 'P827 견적·계약', href: '/system' },
+  { label: 'P827 신청관리', href: '/p827/admin' },
   { label: 'CBAM 관리', href: '/cbam/admin' },
 ];
 
@@ -39,6 +40,8 @@ const pageTitle = (pathname: string) => {
   if (pathname === '/generator') return 'K-ETS 검증 견적서 생성기';
   if (pathname === '/kets-contract') return 'K-ETS 검증 계약서 생성기';
   if (pathname === '/system') return 'P827 견적·계약서 생성기';
+  if (pathname === '/p827/admin') return 'P827 신청·견적 관리';
+  if (pathname === '/p827') return 'P827 검증 신청';
   if (pathname === '/cbam/admin') return 'CBAM 관리';
   if (pathname === '/cbam/documents') return 'CBAM 견적·계약 문서 생성';
   if (pathname === '/cbam') return 'CBAM 서비스 신청';
@@ -57,7 +60,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const [session, setSession] = useState<SessionSummary | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const isAuthPage = pathname === '/iso/login' || pathname === '/iso/setup' || pathname === '/iso/request-access';
-  const isPublicPage = pathname === '/cbam';
+  const isPublicPage = pathname === '/cbam' || pathname === '/p827';
 
   useEffect(() => {
     const syncDesign = () => {

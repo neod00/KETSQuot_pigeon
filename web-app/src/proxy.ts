@@ -50,6 +50,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/samples/') ||
     pathname === '/cbam' ||
     (pathname === '/api/cbam/applications' && request.method === 'POST') ||
+    pathname === '/p827' ||
+    (pathname === '/api/p827/applications' && request.method === 'POST') ||
     pathname === '/iso/login' ||
     pathname === '/iso/setup' ||
     pathname === '/iso/request-access' ||
