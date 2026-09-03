@@ -142,7 +142,30 @@ const messageMeta = async (row) => row.evaluate((element) => ({
   text: element.innerText || element.textContent || '',
   label: element.getAttribute('aria-label') || '',
   datetime: element.querySelector('time')?.getAttribute('datetime') || '',
+  pinned: Array.from(element.querySelectorAll('[aria-label], [title], [data-icon-name]')).some((child) => {
+    const marker = [child.getAttribute('aria-label'), child.getAttribute('title'), child.getAttribute('data-icon-name')]
+      .filter(Boolean)
+      .join(' ');
+    return /고정|pinned/i.test(marker);
+  }),
 }));
+
+const isToday = (meta, now = new Date()) => {
+  const source = `${meta.label}\n${meta.text}\n${meta.datetime}`;
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const dateMarkers = [
+    `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    `${year}.${month}.${day}`,
+    `${month}/${day}`,
+    `${month}월 ${day}일`,
+  ];
+  return /(?:오전|오후)\s*\d{1,2}:\d{2}/.test(source) ||
+    /\b\d{1,2}:\d{2}\s*(?:AM|PM)\b/i.test(source) ||
+    /오늘|today/i.test(source) ||
+    dateMarkers.some((marker) => source.includes(marker));
+};
 
 const findMessageBody = async (page) => {
   const selectors = [
@@ -200,12 +223,14 @@ const tabLocator = async (page, names) => {
   return null;
 };
 
-const collectVisibleRows = async ({ page, processed, maximum, seen }) => {
+const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly }) => {
   const rows = await findConversationRows(page);
-  const total = Math.min(await rows.count(), maximum);
+  const total = Math.min(await rows.count(), Math.max(maximum * 5, 50));
   const messages = [];
+  const skipped = { pinned: 0, notToday: 0, processed: 0, noBody: 0 };
 
   for (let index = 0; index < total; index += 1) {
+    if (messages.length >= maximum) break;
     const currentRows = await findConversationRows(page);
     if (index >= await currentRows.count()) break;
     const row = currentRows.nth(index);
@@ -213,13 +238,15 @@ const collectVisibleRows = async ({ page, processed, maximum, seen }) => {
     const sourceText = compact(`${meta.label}\n${meta.text}`, 5000);
     const fallbackId = `row:${normalise(sourceText).slice(0, 500)}`;
     const rowKey = compact(meta.itemId || meta.id || fallbackId, 1000);
-    if (!rowKey || processed.has(rowKey) || seen.has(rowKey)) continue;
+    if (meta.pinned) { skipped.pinned += 1; continue; }
+    if (todayOnly && !isToday(meta)) { skipped.notToday += 1; continue; }
+    if (!rowKey || processed.has(rowKey) || seen.has(rowKey)) { skipped.processed += 1; continue; }
 
     await row.scrollIntoViewIfNeeded().catch(() => undefined);
     await row.click();
     await page.waitForTimeout(650);
     const body = await findMessageBody(page);
-    if (!body) continue;
+    if (!body) { skipped.noBody += 1; continue; }
     const lines = String(meta.text || meta.label).split('\n').map((line) => compact(line, 1000)).filter(Boolean);
     const currentUrl = page.url();
     messages.push({
@@ -233,7 +260,7 @@ const collectVisibleRows = async ({ page, processed, maximum, seen }) => {
     });
     seen.add(rowKey);
   }
-  return messages;
+  return { messages, skipped };
 };
 
 async function main() {
@@ -280,8 +307,10 @@ async function main() {
     }
 
     const maximum = Math.max(1, Math.min(Number(config.maxMessagesPerTab || 20), 40));
+    const todayOnly = config.todayOnly !== false;
     const messages = [];
     const seen = new Set();
+    const skipped = { pinned: 0, notToday: 0, processed: 0, noBody: 0 };
     const tabs = [
       ['중요', 'Focused'],
       ['기타', 'Other'],
@@ -293,9 +322,15 @@ async function main() {
       tabFound = true;
       await tab.click();
       await page.waitForTimeout(900);
-      messages.push(...await collectVisibleRows({ page, processed, maximum, seen }));
+      const result = await collectVisibleRows({ page, processed, maximum, seen, todayOnly });
+      messages.push(...result.messages);
+      Object.keys(skipped).forEach((key) => { skipped[key] += result.skipped[key]; });
     }
-    if (!tabFound) messages.push(...await collectVisibleRows({ page, processed, maximum, seen }));
+    if (!tabFound) {
+      const result = await collectVisibleRows({ page, processed, maximum, seen, todayOnly });
+      messages.push(...result.messages);
+      Object.keys(skipped).forEach((key) => { skipped[key] += result.skipped[key]; });
+    }
 
     let created = 0;
     if (!messages.length) {
@@ -320,7 +355,7 @@ async function main() {
       processed: [...processed].slice(-2000),
       updatedAt: new Date().toISOString(),
     }, null, 2), 'utf8');
-    console.log(`Outlook 전체 받은편지함 동기화 완료: 확인 ${messages.length}건, 신규 조정 업무 ${created}건`);
+    console.log(`Outlook 전체 받은편지함 동기화 완료: 확인 ${messages.length}건, 신규 조정 업무 ${created}건, 고정 제외 ${skipped.pinned}건, 오늘 아님 제외 ${skipped.notToday}건`);
   } finally {
     await context.close();
   }
