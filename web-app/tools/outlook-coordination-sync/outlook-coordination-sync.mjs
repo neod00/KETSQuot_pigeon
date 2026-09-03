@@ -274,12 +274,21 @@ const scrollConversationList = async (row, toStart = false) => row.evaluate((ele
 }, toStart);
 
 const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly }) => {
-  const messages = [];
+  const candidates = [];
   const skipped = { pinned: 0, notToday: 0, processed: 0, noBody: 0, todayFound: 0 };
   const visited = new Set();
   const legacyClaims = new Set();
   let sawToday = false;
   let activeGroup = 'unknown';
+
+  const describeRow = async (row) => {
+    const meta = await messageMeta(row).catch(() => null);
+    if (!meta) return null;
+    const sourceText = compact(`${meta.label}\n${meta.text}`, 5000);
+    const rowSignature = normalise(`${meta.text}\n${meta.datetime}`).slice(0, 350);
+    const rowKey = compact(`${meta.itemId || meta.id || 'row'}::${rowSignature}`, 500);
+    return { meta, sourceText, rowKey };
+  };
 
   const initialRows = await findConversationRows(page);
   if (await initialRows.count()) {
@@ -287,22 +296,19 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
     await page.waitForTimeout(500);
   }
 
-  for (let pageIndex = 0; pageIndex < 30 && messages.length < maximum; pageIndex += 1) {
+  // Pass 1: discover the whole Today section without clicking messages. Outlook
+  // virtualises this list, and clicking while scrolling can remove row locators.
+  for (let pageIndex = 0; pageIndex < 30 && candidates.length < maximum; pageIndex += 1) {
     const currentRows = await findConversationRows(page);
     const rowCount = await currentRows.count();
     if (!rowCount) break;
     let pageHasToday = false;
     let pageHasOlder = false;
 
-    for (let index = 0; index < rowCount && messages.length < maximum; index += 1) {
-      const liveRows = await findConversationRows(page);
-      if (index >= await liveRows.count()) break;
-      const row = liveRows.nth(index);
-      const meta = await messageMeta(row).catch(() => null);
-      if (!meta) continue;
-      const sourceText = compact(`${meta.label}\n${meta.text}`, 5000);
-      const rowSignature = normalise(`${meta.text}\n${meta.datetime}`).slice(0, 350);
-      const rowKey = compact(`${meta.itemId || meta.id || 'row'}::${rowSignature}`, 500);
+    for (let index = 0; index < rowCount && candidates.length < maximum; index += 1) {
+      const description = await describeRow(currentRows.nth(index));
+      if (!description) continue;
+      const { meta, sourceText, rowKey } = description;
       if (!rowKey || visited.has(rowKey)) continue;
       visited.add(rowKey);
 
@@ -319,27 +325,7 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
       const legacyProcessed = Boolean(meta.id && processed.has(meta.id) && !legacyClaims.has(meta.id));
       if (legacyProcessed) legacyClaims.add(meta.id);
       if (legacyProcessed || processed.has(rowKey) || seen.has(rowKey)) { skipped.processed += 1; continue; }
-
-      await row.scrollIntoViewIfNeeded().catch(() => undefined);
-      const clicked = await row.click().then(() => true).catch(() => false);
-      if (!clicked) {
-        visited.delete(rowKey);
-        continue;
-      }
-      await page.waitForTimeout(650);
-      const body = await findMessageBody(page);
-      if (!body) { skipped.noBody += 1; continue; }
-      const lines = String(meta.text || meta.label).split('\n').map((line) => compact(line, 1000)).filter(Boolean);
-      const currentUrl = page.url();
-      messages.push({
-        id: rowKey,
-        conversationId: compact(meta.id, 1000) || undefined,
-        subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
-        from: compact(lines[0] || '발신자 확인 필요', 500),
-        receivedAt: compact(meta.datetime, 100),
-        webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\/mail\//i.test(currentUrl) ? currentUrl : undefined,
-        content: compact(`${sourceText}\n${body}`, 16000),
-      });
+      candidates.push({ rowKey, meta, sourceText });
       seen.add(rowKey);
     }
 
@@ -350,6 +336,67 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
     if (!scroll || scroll.after <= scroll.before) break;
     await page.waitForTimeout(700);
   }
+
+  // Pass 2: walk the list again and open only the rows discovered above. A fresh
+  // locator is resolved before every click so Outlook can safely rerender rows.
+  const messages = [];
+  const pending = new Map(candidates.map((candidate) => [candidate.rowKey, candidate]));
+  const rowsAtEnd = await findConversationRows(page);
+  if (await rowsAtEnd.count()) {
+    await scrollConversationList(rowsAtEnd.first(), true).catch(() => undefined);
+    await page.waitForTimeout(500);
+  }
+
+  for (let pageIndex = 0; pageIndex < 60 && pending.size; pageIndex += 1) {
+    const currentRows = await findConversationRows(page);
+    const rowCount = await currentRows.count();
+    if (!rowCount) break;
+    let handled = false;
+
+    for (let index = 0; index < rowCount; index += 1) {
+      const liveRows = await findConversationRows(page);
+      if (index >= await liveRows.count()) break;
+      const row = liveRows.nth(index);
+      const description = await describeRow(row);
+      const candidate = description ? pending.get(description.rowKey) : null;
+      if (!candidate) continue;
+
+      await row.scrollIntoViewIfNeeded().catch(() => undefined);
+      const clicked = await row.click().then(() => true).catch(() => false);
+      if (!clicked) continue;
+      await page.waitForTimeout(650);
+      const body = await findMessageBody(page);
+      pending.delete(candidate.rowKey);
+      handled = true;
+      if (!body) {
+        skipped.noBody += 1;
+        break;
+      }
+
+      const lines = String(candidate.meta.text || candidate.meta.label)
+        .split('\n').map((line) => compact(line, 1000)).filter(Boolean);
+      const currentUrl = page.url();
+      messages.push({
+        id: candidate.rowKey,
+        conversationId: compact(candidate.meta.id, 1000) || undefined,
+        subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
+        from: compact(lines[0] || '발신자 확인 필요', 500),
+        receivedAt: compact(candidate.meta.datetime, 100),
+        webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\/mail\//i.test(currentUrl) ? currentUrl : undefined,
+        content: compact(`${candidate.sourceText}\n${body}`, 16000),
+      });
+      break;
+    }
+
+    if (handled) continue;
+    const latestRows = await findConversationRows(page);
+    if (!await latestRows.count()) break;
+    const scroll = await scrollConversationList(latestRows.first()).catch(() => null);
+    if (!scroll || scroll.after <= scroll.before) break;
+    await page.waitForTimeout(700);
+  }
+
+  skipped.noBody += pending.size;
   return { messages, skipped };
 };
 
