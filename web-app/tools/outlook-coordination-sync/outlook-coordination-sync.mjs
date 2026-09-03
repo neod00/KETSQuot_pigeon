@@ -150,6 +150,9 @@ const findMessageBody = async (page) => {
     '[role="document"]',
     '[aria-label="Message body"]',
     '[aria-label="메시지 본문"]',
+    '[role="main"] [dir="ltr"]',
+    '[role="main"] [aria-label*="message" i]',
+    '[role="main"] [aria-label*="메시지"]',
   ];
   for (const selector of selectors) {
     const targets = page.locator(selector);
