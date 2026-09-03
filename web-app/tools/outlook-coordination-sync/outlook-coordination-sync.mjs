@@ -341,60 +341,78 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
   // locator is resolved before every click so Outlook can safely rerender rows.
   const messages = [];
   const pending = new Map(candidates.map((candidate) => [candidate.rowKey, candidate]));
-  const rowsAtEnd = await findConversationRows(page);
-  if (await rowsAtEnd.count()) {
-    await scrollConversationList(rowsAtEnd.first(), true).catch(() => undefined);
-    await page.waitForTimeout(500);
-  }
+  const bodyAttempts = new Map();
 
-  for (let pageIndex = 0; pageIndex < 60 && pending.size; pageIndex += 1) {
-    const currentRows = await findConversationRows(page);
-    const rowCount = await currentRows.count();
-    if (!rowCount) break;
-    let handled = false;
+  const processPending = async () => {
+    const rowsAtEnd = await findConversationRows(page);
+    if (await rowsAtEnd.count()) {
+      await scrollConversationList(rowsAtEnd.first(), true).catch(() => undefined);
+      await page.waitForTimeout(500);
+    }
 
-    for (let index = 0; index < rowCount; index += 1) {
-      const liveRows = await findConversationRows(page);
-      if (index >= await liveRows.count()) break;
-      const row = liveRows.nth(index);
-      const description = await describeRow(row);
-      const candidate = description ? pending.get(description.rowKey) : null;
-      if (!candidate) continue;
+    for (let pageIndex = 0; pageIndex < 60 && pending.size; pageIndex += 1) {
+      const currentRows = await findConversationRows(page);
+      const rowCount = await currentRows.count();
+      if (!rowCount) break;
+      let handled = false;
 
-      await row.scrollIntoViewIfNeeded().catch(() => undefined);
-      const clicked = await row.click().then(() => true).catch(() => false);
-      if (!clicked) continue;
-      await page.waitForTimeout(650);
-      const body = await findMessageBody(page);
-      pending.delete(candidate.rowKey);
-      handled = true;
-      if (!body) {
-        skipped.noBody += 1;
+      for (let index = 0; index < rowCount; index += 1) {
+        const liveRows = await findConversationRows(page);
+        if (index >= await liveRows.count()) break;
+        const row = liveRows.nth(index);
+        const description = await describeRow(row);
+        if (!description) continue;
+        let candidate = pending.get(description.rowKey);
+        if (!candidate && description.meta.id) {
+          const conversationMatches = [...pending.values()]
+            .filter((value) => value.meta.id === description.meta.id);
+          if (conversationMatches.length === 1) candidate = conversationMatches[0];
+        }
+        if (!candidate) continue;
+
+        await row.scrollIntoViewIfNeeded().catch(() => undefined);
+        const clicked = await row.click().then(() => true).catch(() => false);
+        if (!clicked) continue;
+        await page.waitForTimeout(650);
+        const body = await findMessageBody(page);
+        handled = true;
+        if (!body) {
+          const attempts = (bodyAttempts.get(candidate.rowKey) || 0) + 1;
+          bodyAttempts.set(candidate.rowKey, attempts);
+          if (attempts >= 2) {
+            pending.delete(candidate.rowKey);
+            skipped.noBody += 1;
+          }
+          break;
+        }
+
+        pending.delete(candidate.rowKey);
+        const lines = String(candidate.meta.text || candidate.meta.label)
+          .split('\n').map((line) => compact(line, 1000)).filter(Boolean);
+        const currentUrl = page.url();
+        messages.push({
+          id: candidate.rowKey,
+          conversationId: compact(candidate.meta.id, 1000) || undefined,
+          subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
+          from: compact(lines[0] || '발신자 확인 필요', 500),
+          receivedAt: compact(candidate.meta.datetime, 100),
+          webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\/mail\//i.test(currentUrl) ? currentUrl : undefined,
+          content: compact(`${candidate.sourceText}\n${body}`, 16000),
+        });
         break;
       }
 
-      const lines = String(candidate.meta.text || candidate.meta.label)
-        .split('\n').map((line) => compact(line, 1000)).filter(Boolean);
-      const currentUrl = page.url();
-      messages.push({
-        id: candidate.rowKey,
-        conversationId: compact(candidate.meta.id, 1000) || undefined,
-        subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
-        from: compact(lines[0] || '발신자 확인 필요', 500),
-        receivedAt: compact(candidate.meta.datetime, 100),
-        webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\/mail\//i.test(currentUrl) ? currentUrl : undefined,
-        content: compact(`${candidate.sourceText}\n${body}`, 16000),
-      });
-      break;
+      if (handled) continue;
+      const latestRows = await findConversationRows(page);
+      if (!await latestRows.count()) break;
+      const scroll = await scrollConversationList(latestRows.first()).catch(() => null);
+      if (!scroll || scroll.after <= scroll.before) break;
+      await page.waitForTimeout(700);
     }
+  };
 
-    if (handled) continue;
-    const latestRows = await findConversationRows(page);
-    if (!await latestRows.count()) break;
-    const scroll = await scrollConversationList(latestRows.first()).catch(() => null);
-    if (!scroll || scroll.after <= scroll.before) break;
-    await page.waitForTimeout(700);
-  }
+  await processPending();
+  if (pending.size) await processPending();
 
   skipped.noBody += pending.size;
   return { messages, skipped };
@@ -495,7 +513,7 @@ async function main() {
       processed: [...processed].slice(-2000),
       updatedAt: new Date().toISOString(),
     }, null, 2), 'utf8');
-    console.log(`Outlook 전체 받은편지함 동기화 완료: 오늘 인식 ${skipped.todayFound}건, 분석 대상 ${messages.length}건, 신규 조정 업무 ${created}건, 기존 처리 ${skipped.processed}건, 고정 제외 ${skipped.pinned}건`);
+    console.log(`Outlook 전체 받은편지함 동기화 완료: 오늘 인식 ${skipped.todayFound}건, 분석 대상 ${messages.length}건, 신규 조정 업무 ${created}건, 기존 처리 ${skipped.processed}건, 본문 미확인 ${skipped.noBody}건, 고정 제외 ${skipped.pinned}건`);
   } finally {
     await context.close();
   }
