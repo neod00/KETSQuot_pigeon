@@ -168,8 +168,22 @@ const folderLocator = async (page, preferred) => {
   const names = [...new Set([preferred, '전체 받은편지함', '전체 받은 편지함', '받은 편지함', 'Inbox'].filter(Boolean))];
   for (const name of names) {
     const exact = page.getByText(name, { exact: true });
-    if (await exact.count()) return exact.first();
+    if (await exact.count() && await exact.first().isVisible().catch(() => false)) return exact.first();
   }
+
+  const expected = new Set(names.map((name) => normalise(name)));
+  const candidates = page.locator('[role="treeitem"], [role="link"], [role="button"]');
+  const values = await candidates.evaluateAll((elements) => elements.map((element, index) => ({
+    index,
+    label: element.getAttribute('aria-label') || element.getAttribute('title') || '',
+    text: element.textContent || '',
+  })));
+  const match = values.find((candidate) => {
+    const labels = [candidate.label, ...candidate.text.split('\n')]
+      .map((value) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').replace(/\d+$/u, ''));
+    return labels.some((label) => expected.has(label));
+  });
+  if (match && await candidates.nth(match.index).isVisible().catch(() => false)) return candidates.nth(match.index);
   return null;
 };
 
@@ -248,16 +262,19 @@ async function main() {
 
   try {
     const page = context.pages()[0] || await context.newPage();
-    await page.goto('https://outlook.office.com/mail/', { waitUntil: 'domcontentloaded' });
+    await page.goto('https://outlook.office.com/mail/inbox', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(3000);
     if (/login\.microsoftonline\.com|login\.live\.com/i.test(page.url())) {
       throw new Error('Outlook 로그인이 필요합니다. --visible 옵션으로 실행해 전용 Edge 프로필에 로그인한 뒤 다시 실행해 주세요.');
     }
 
     const folder = await folderLocator(page, config.folderName || '전체 받은편지함');
-    if (!folder) throw new Error("Outlook에서 '전체 받은편지함/받은 편지함(Inbox)'을 찾지 못했습니다.");
-    await folder.click();
-    await page.waitForTimeout(1500);
+    if (folder) {
+      await folder.click();
+      await page.waitForTimeout(1500);
+    } else {
+      console.log('받은편지함 메뉴를 찾지 못해 /mail/inbox으로 열린 현재 화면을 그대로 사용합니다.');
+    }
 
     const maximum = Math.max(1, Math.min(Number(config.maxMessagesPerTab || 20), 40));
     const messages = [];
