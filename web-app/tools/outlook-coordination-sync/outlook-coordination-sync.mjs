@@ -136,6 +136,12 @@ const findConversationRows = async (page) => {
   return page.locator('[role="option"], [role="listitem"]');
 };
 
+const waitForConversationRows = async (page) => {
+  await page.locator('[data-convid], [data-itemid]').first()
+    .waitFor({ state: 'visible', timeout: 6000 })
+    .catch(() => undefined);
+};
+
 const messageMeta = async (row) => row.evaluate((element) => ({
   id: element.getAttribute('data-convid') || element.getAttribute('data-itemid') || element.getAttribute('data-automationid') || '',
   itemId: element.getAttribute('data-itemid') || '',
@@ -305,6 +311,7 @@ async function main() {
     } else {
       console.log('받은편지함 메뉴를 찾지 못해 /mail/inbox으로 열린 현재 화면을 그대로 사용합니다.');
     }
+    await waitForConversationRows(page);
 
     const maximum = Math.max(1, Math.min(Number(config.maxMessagesPerTab || 20), 40));
     const todayOnly = config.todayOnly !== false;
@@ -322,6 +329,7 @@ async function main() {
       tabFound = true;
       await tab.click();
       await page.waitForTimeout(900);
+      await waitForConversationRows(page);
       const result = await collectVisibleRows({ page, processed, maximum, seen, todayOnly });
       messages.push(...result.messages);
       Object.keys(skipped).forEach((key) => { skipped[key] += result.skipped[key]; });
