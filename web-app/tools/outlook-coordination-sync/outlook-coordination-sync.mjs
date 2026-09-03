@@ -295,8 +295,11 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
     let pageHasOlder = false;
 
     for (let index = 0; index < rowCount && messages.length < maximum; index += 1) {
-      const row = currentRows.nth(index);
-      const meta = await messageMeta(row);
+      const liveRows = await findConversationRows(page);
+      if (index >= await liveRows.count()) break;
+      const row = liveRows.nth(index);
+      const meta = await messageMeta(row).catch(() => null);
+      if (!meta) continue;
       const sourceText = compact(`${meta.label}\n${meta.text}`, 5000);
       const rowSignature = normalise(`${meta.text}\n${meta.datetime}`).slice(0, 350);
       const rowKey = compact(`${meta.itemId || meta.id || 'row'}::${rowSignature}`, 500);
@@ -318,7 +321,11 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
       if (legacyProcessed || processed.has(rowKey) || seen.has(rowKey)) { skipped.processed += 1; continue; }
 
       await row.scrollIntoViewIfNeeded().catch(() => undefined);
-      await row.click();
+      const clicked = await row.click().then(() => true).catch(() => false);
+      if (!clicked) {
+        visited.delete(rowKey);
+        continue;
+      }
       await page.waitForTimeout(650);
       const body = await findMessageBody(page);
       if (!body) { skipped.noBody += 1; continue; }
@@ -375,6 +382,7 @@ async function main() {
 
   try {
     const page = context.pages()[0] || await context.newPage();
+    page.setDefaultTimeout(5000);
     await page.goto('https://outlook.office.com/mail/inbox', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(3000);
     if (/login\.microsoftonline\.com|login\.live\.com/i.test(page.url())) {
