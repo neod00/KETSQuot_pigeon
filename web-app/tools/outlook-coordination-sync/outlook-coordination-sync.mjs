@@ -343,6 +343,24 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
   const pending = new Map(candidates.map((candidate) => [candidate.rowKey, candidate]));
   const bodyAttempts = new Map();
 
+  const createMessage = (candidate, body = '', previewOnly = false) => {
+    const lines = String(candidate.meta.text || candidate.meta.label)
+      .split('\n').map((line) => compact(line, 1000)).filter(Boolean);
+    const currentUrl = page.url();
+    const material = previewOnly
+      ? `[[OUTLOOK_PREVIEW_ONLY]]\nOutlook이 이 메일의 본문을 제공하지 않아 목록의 발신자, 제목, 미리보기만 수집했습니다. 반드시 Outlook 원문을 확인해야 합니다.\n${candidate.sourceText}`
+      : `${candidate.sourceText}\n${body}`;
+    return {
+      id: candidate.rowKey,
+      conversationId: compact(candidate.meta.id, 1000) || undefined,
+      subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
+      from: compact(lines[0] || '발신자 확인 필요', 500),
+      receivedAt: compact(candidate.meta.datetime, 100),
+      webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\/mail\//i.test(currentUrl) ? currentUrl : undefined,
+      content: compact(material, 16000),
+    };
+  };
+
   const processPending = async () => {
     const rowsAtEnd = await findConversationRows(page);
     if (await rowsAtEnd.count()) {
@@ -382,23 +400,13 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
           if (attempts >= 2) {
             pending.delete(candidate.rowKey);
             skipped.noBody += 1;
+            messages.push(createMessage(candidate, '', true));
           }
           break;
         }
 
         pending.delete(candidate.rowKey);
-        const lines = String(candidate.meta.text || candidate.meta.label)
-          .split('\n').map((line) => compact(line, 1000)).filter(Boolean);
-        const currentUrl = page.url();
-        messages.push({
-          id: candidate.rowKey,
-          conversationId: compact(candidate.meta.id, 1000) || undefined,
-          subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
-          from: compact(lines[0] || '발신자 확인 필요', 500),
-          receivedAt: compact(candidate.meta.datetime, 100),
-          webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\/mail\//i.test(currentUrl) ? currentUrl : undefined,
-          content: compact(`${candidate.sourceText}\n${body}`, 16000),
-        });
+        messages.push(createMessage(candidate, body));
         break;
       }
 
@@ -414,7 +422,11 @@ const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly })
   await processPending();
   if (pending.size) await processPending();
 
-  skipped.noBody += pending.size;
+  for (const candidate of pending.values()) {
+    skipped.noBody += 1;
+    messages.push(createMessage(candidate, '', true));
+  }
+  pending.clear();
   return { messages, skipped };
 };
 
@@ -513,7 +525,7 @@ async function main() {
       processed: [...processed].slice(-2000),
       updatedAt: new Date().toISOString(),
     }, null, 2), 'utf8');
-    console.log(`Outlook 전체 받은편지함 동기화 완료: 오늘 인식 ${skipped.todayFound}건, 분석 대상 ${messages.length}건, 신규 조정 업무 ${created}건, 기존 처리 ${skipped.processed}건, 본문 미확인 ${skipped.noBody}건, 고정 제외 ${skipped.pinned}건`);
+    console.log(`Outlook 전체 받은편지함 동기화 완료: 오늘 인식 ${skipped.todayFound}건, 분석 대상 ${messages.length}건, 신규 조정 업무 ${created}건, 기존 처리 ${skipped.processed}건, 목록 미리보기 대체 ${skipped.noBody}건, 고정 제외 ${skipped.pinned}건`);
   } finally {
     await context.close();
   }

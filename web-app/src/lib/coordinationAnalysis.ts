@@ -22,6 +22,7 @@ export class CoordinationAnalysisError extends Error {
 
 const parseAnalysis = (value: unknown, source: CoordinationMessageInput): CoordinationAnalysis => {
   const record = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const previewOnly = source.content.includes('[[OUTLOOK_PREVIEW_ONLY]]');
   const priority = ['P0', 'P1', 'P2'].includes(String(record.priority))
     ? String(record.priority) as CoordinationPriority
     : 'P2';
@@ -36,10 +37,14 @@ const parseAnalysis = (value: unknown, source: CoordinationMessageInput): Coordi
     receivedAt: text(record.receivedAt || source.receivedAt, 100),
     priority,
     category,
-    summary: text(record.summary, 1200) || '내용을 확인해 주세요.',
+    summary: previewOnly
+      ? `본문 미확인(목록 미리보기 기반): ${text(record.summary, 1150) || 'Outlook 원문을 확인해 주세요.'}`
+      : text(record.summary, 1200) || '내용을 확인해 주세요.',
     dueDate,
-    recommendedAction: text(record.recommendedAction, 1200),
-    draftReply: text(record.draftReply, 4000),
+    recommendedAction: previewOnly
+      ? 'Outlook 원문을 열어 본문과 실제 요청 사항을 직접 확인하세요.'
+      : text(record.recommendedAction, 1200),
+    draftReply: previewOnly ? '' : text(record.draftReply, 4000),
   };
 };
 
@@ -63,6 +68,7 @@ Classify each message independently:
 - category urgent, reply, deadline, waiting, reference, newsletter or personal.
 Use dueDate only when an unambiguous date can be expressed as YYYY-MM-DD.
 recommendedAction must be short and practical. draftReply must be empty unless a reply is genuinely useful; when useful, draft concise professional Korean without promising facts not provided.
+When material starts with [[OUTLOOK_PREVIEW_ONLY]], explicitly state that the body is unavailable and the summary is based only on the Outlook list preview. Recommend opening the original message and do not draft a reply.
 Newsletters and advertisements should normally be P2/newsletter. Notices with an actionable deadline may be deadline.
 Return only JSON in this shape: {"items":[{"sourceId":"","subject":"","sender":"","receivedAt":"","priority":"P2","category":"reference","summary":"","dueDate":"","recommendedAction":"","draftReply":""}]}.
 Return exactly one item for every supplied sourceId and preserve each sourceId exactly.`,
