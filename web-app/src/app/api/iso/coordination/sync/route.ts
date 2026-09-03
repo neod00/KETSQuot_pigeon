@@ -36,7 +36,7 @@ const messageInput = (value: unknown): CoordinationMessageInput | null => {
     subject: compact(record.subject, 1000),
     from: compact(record.from, 500),
     receivedAt: compact(record.receivedAt, 100),
-    webLink: /^https:\/\/outlook\.office\.com\//i.test(webLink) ? webLink : undefined,
+    webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\//i.test(webLink) ? webLink : undefined,
     content,
   };
 };

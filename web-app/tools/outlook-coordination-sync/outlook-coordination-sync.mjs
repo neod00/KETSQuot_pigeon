@@ -142,19 +142,46 @@ const waitForConversationRows = async (page) => {
     .catch(() => undefined);
 };
 
-const messageMeta = async (row) => row.evaluate((element) => ({
-  id: element.getAttribute('data-convid') || element.getAttribute('data-itemid') || element.getAttribute('data-automationid') || '',
-  itemId: element.getAttribute('data-itemid') || '',
-  text: element.innerText || element.textContent || '',
-  label: element.getAttribute('aria-label') || '',
-  datetime: element.querySelector('time')?.getAttribute('datetime') || '',
-  pinned: Array.from(element.querySelectorAll('[aria-label], [title], [data-icon-name]')).some((child) => {
-    const marker = [child.getAttribute('aria-label'), child.getAttribute('title'), child.getAttribute('data-icon-name')]
-      .filter(Boolean)
-      .join(' ');
-    return /고정|pinned/i.test(marker);
-  }),
-}));
+const messageMeta = async (row) => row.evaluate((element) => {
+  const findGroup = () => {
+    let wrapper = element;
+    while (wrapper.parentElement) {
+      const parent = wrapper.parentElement;
+      const messageChildren = Array.from(parent.children)
+        .filter((child) => child.querySelector('[data-convid], [data-itemid]')).length;
+      if (messageChildren >= 2) {
+        let current = wrapper;
+        while (current) {
+          const marker = Array.from(current.querySelectorAll('[role="button"]'))
+            .map((button) => button.textContent || '')
+            .join(' ');
+          if (/고정됨|Pinned/i.test(marker)) return 'pinned';
+          if (/오늘|Today/i.test(marker)) return 'today';
+          if (/어제|Yesterday/i.test(marker)) return 'older';
+          current = current.previousElementSibling;
+        }
+        return 'unknown';
+      }
+      wrapper = parent;
+    }
+    return 'unknown';
+  };
+
+  return {
+    id: element.getAttribute('data-convid') || element.getAttribute('data-itemid') || element.getAttribute('data-automationid') || '',
+    itemId: element.getAttribute('data-itemid') || '',
+    text: element.innerText || element.textContent || '',
+    label: element.getAttribute('aria-label') || '',
+    datetime: element.querySelector('time')?.getAttribute('datetime') || '',
+    group: findGroup(),
+    pinned: Array.from(element.querySelectorAll('[aria-label], [title], [data-icon-name]')).some((child) => {
+      const marker = [child.getAttribute('aria-label'), child.getAttribute('title'), child.getAttribute('data-icon-name')]
+        .filter(Boolean)
+        .join(' ');
+      return /고정|pinned/i.test(marker);
+    }),
+  };
+});
 
 const isToday = (meta, now = new Date()) => {
   const source = `${meta.label}\n${meta.text}\n${meta.datetime}`;
@@ -229,42 +256,92 @@ const tabLocator = async (page, names) => {
   return null;
 };
 
+const scrollConversationList = async (row, toStart = false) => row.evaluate((element, reset) => {
+  let current = element.parentElement;
+  while (current) {
+    const style = getComputedStyle(current);
+    const scrollable = current.scrollHeight > current.clientHeight + 20 && ['auto', 'scroll'].includes(style.overflowY);
+    if (scrollable) {
+      const before = current.scrollTop;
+      current.scrollTop = reset
+        ? 0
+        : Math.min(current.scrollTop + Math.max(Math.floor(current.clientHeight * 0.75), 350), current.scrollHeight - current.clientHeight);
+      return { before, after: current.scrollTop, maximum: current.scrollHeight - current.clientHeight };
+    }
+    current = current.parentElement;
+  }
+  return null;
+}, toStart);
+
 const collectVisibleRows = async ({ page, processed, maximum, seen, todayOnly }) => {
-  const rows = await findConversationRows(page);
-  const total = Math.min(await rows.count(), Math.max(maximum * 5, 50));
   const messages = [];
-  const skipped = { pinned: 0, notToday: 0, processed: 0, noBody: 0 };
+  const skipped = { pinned: 0, notToday: 0, processed: 0, noBody: 0, todayFound: 0 };
+  const visited = new Set();
+  const legacyClaims = new Set();
+  let sawToday = false;
+  let activeGroup = 'unknown';
 
-  for (let index = 0; index < total; index += 1) {
-    if (messages.length >= maximum) break;
+  const initialRows = await findConversationRows(page);
+  if (await initialRows.count()) {
+    await scrollConversationList(initialRows.first(), true).catch(() => undefined);
+    await page.waitForTimeout(500);
+  }
+
+  for (let pageIndex = 0; pageIndex < 30 && messages.length < maximum; pageIndex += 1) {
     const currentRows = await findConversationRows(page);
-    if (index >= await currentRows.count()) break;
-    const row = currentRows.nth(index);
-    const meta = await messageMeta(row);
-    const sourceText = compact(`${meta.label}\n${meta.text}`, 5000);
-    const fallbackId = `row:${normalise(sourceText).slice(0, 500)}`;
-    const rowKey = compact(meta.itemId || meta.id || fallbackId, 1000);
-    if (meta.pinned) { skipped.pinned += 1; continue; }
-    if (todayOnly && !isToday(meta)) { skipped.notToday += 1; continue; }
-    if (!rowKey || processed.has(rowKey) || seen.has(rowKey)) { skipped.processed += 1; continue; }
+    const rowCount = await currentRows.count();
+    if (!rowCount) break;
+    let pageHasToday = false;
+    let pageHasOlder = false;
 
-    await row.scrollIntoViewIfNeeded().catch(() => undefined);
-    await row.click();
-    await page.waitForTimeout(650);
-    const body = await findMessageBody(page);
-    if (!body) { skipped.noBody += 1; continue; }
-    const lines = String(meta.text || meta.label).split('\n').map((line) => compact(line, 1000)).filter(Boolean);
-    const currentUrl = page.url();
-    messages.push({
-      id: rowKey,
-      conversationId: compact(meta.id, 1000) || undefined,
-      subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
-      from: compact(lines[0] || '발신자 확인 필요', 500),
-      receivedAt: compact(meta.datetime, 100),
-      webLink: /^https:\/\/outlook\.office\.com\/mail\//i.test(currentUrl) ? currentUrl : undefined,
-      content: compact(`${sourceText}\n${body}`, 16000),
-    });
-    seen.add(rowKey);
+    for (let index = 0; index < rowCount && messages.length < maximum; index += 1) {
+      const row = currentRows.nth(index);
+      const meta = await messageMeta(row);
+      const sourceText = compact(`${meta.label}\n${meta.text}`, 5000);
+      const rowSignature = normalise(`${meta.text}\n${meta.datetime}`).slice(0, 350);
+      const rowKey = compact(`${meta.itemId || meta.id || 'row'}::${rowSignature}`, 500);
+      if (!rowKey || visited.has(rowKey)) continue;
+      visited.add(rowKey);
+
+      if (meta.group !== 'unknown') activeGroup = meta.group;
+      const pinned = meta.pinned || activeGroup === 'pinned';
+      const today = activeGroup === 'today' || (activeGroup === 'unknown' && isToday(meta));
+      const unpinnedToday = today && !pinned;
+      if (unpinnedToday) skipped.todayFound += 1;
+      pageHasToday ||= unpinnedToday;
+      pageHasOlder ||= activeGroup === 'older' || (!today && !pinned);
+      sawToday ||= unpinnedToday;
+      if (pinned) { skipped.pinned += 1; continue; }
+      if (todayOnly && !today) { skipped.notToday += 1; continue; }
+      const legacyProcessed = Boolean(meta.id && processed.has(meta.id) && !legacyClaims.has(meta.id));
+      if (legacyProcessed) legacyClaims.add(meta.id);
+      if (legacyProcessed || processed.has(rowKey) || seen.has(rowKey)) { skipped.processed += 1; continue; }
+
+      await row.scrollIntoViewIfNeeded().catch(() => undefined);
+      await row.click();
+      await page.waitForTimeout(650);
+      const body = await findMessageBody(page);
+      if (!body) { skipped.noBody += 1; continue; }
+      const lines = String(meta.text || meta.label).split('\n').map((line) => compact(line, 1000)).filter(Boolean);
+      const currentUrl = page.url();
+      messages.push({
+        id: rowKey,
+        conversationId: compact(meta.id, 1000) || undefined,
+        subject: compact(lines[1] || lines[0] || '(제목 없음)', 1000),
+        from: compact(lines[0] || '발신자 확인 필요', 500),
+        receivedAt: compact(meta.datetime, 100),
+        webLink: /^https:\/\/(?:outlook\.office\.com|outlook\.cloud\.microsoft)\/mail\//i.test(currentUrl) ? currentUrl : undefined,
+        content: compact(`${sourceText}\n${body}`, 16000),
+      });
+      seen.add(rowKey);
+    }
+
+    if (todayOnly && sawToday && !pageHasToday && pageHasOlder) break;
+    const latestRows = await findConversationRows(page);
+    if (!await latestRows.count()) break;
+    const scroll = await scrollConversationList(latestRows.first()).catch(() => null);
+    if (!scroll || scroll.after <= scroll.before) break;
+    await page.waitForTimeout(700);
   }
   return { messages, skipped };
 };
@@ -317,7 +394,7 @@ async function main() {
     const todayOnly = config.todayOnly !== false;
     const messages = [];
     const seen = new Set();
-    const skipped = { pinned: 0, notToday: 0, processed: 0, noBody: 0 };
+    const skipped = { pinned: 0, notToday: 0, processed: 0, noBody: 0, todayFound: 0 };
     const tabs = [
       ['중요', 'Focused'],
       ['기타', 'Other'],
@@ -363,7 +440,7 @@ async function main() {
       processed: [...processed].slice(-2000),
       updatedAt: new Date().toISOString(),
     }, null, 2), 'utf8');
-    console.log(`Outlook 전체 받은편지함 동기화 완료: 확인 ${messages.length}건, 신규 조정 업무 ${created}건, 고정 제외 ${skipped.pinned}건, 오늘 아님 제외 ${skipped.notToday}건`);
+    console.log(`Outlook 전체 받은편지함 동기화 완료: 오늘 인식 ${skipped.todayFound}건, 분석 대상 ${messages.length}건, 신규 조정 업무 ${created}건, 기존 처리 ${skipped.processed}건, 고정 제외 ${skipped.pinned}건`);
   } finally {
     await context.close();
   }
