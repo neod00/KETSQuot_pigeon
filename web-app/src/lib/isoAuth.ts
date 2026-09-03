@@ -63,10 +63,31 @@ export const getIsoRequestSession = (request: Request) => {
   return readIsoSession(cookieValue ? decodeURIComponent(cookieValue) : null);
 };
 
+const coordinationOwnerUsername = () => (
+  process.env.COORDINATOR_OWNER_USERNAME || process.env.ISO_ADMIN_USERNAME || ''
+).trim().toLowerCase();
+
+export const isCoordinationOwner = (session?: IsoSession | null) => {
+  const owner = coordinationOwnerUsername();
+  return Boolean(
+    session?.role === 'admin' &&
+    owner &&
+    safeEqual(session.username.trim().toLowerCase(), owner),
+  );
+};
+
 export async function requireIsoAdmin(returnTo: string) {
   const cookieStore = await cookies();
   const session = readIsoSession(cookieStore.get(ISO_ADMIN_COOKIE)?.value);
   if (!session) redirect(`/iso/login?returnTo=${encodeURIComponent(returnTo)}`);
+  return session;
+}
+
+export async function requireCoordinationOwner(returnTo = '/iso/coordination') {
+  const cookieStore = await cookies();
+  const session = readIsoSession(cookieStore.get(ISO_ADMIN_COOKIE)?.value);
+  if (!session) redirect(`/iso/login?returnTo=${encodeURIComponent(returnTo)}`);
+  if (!isCoordinationOwner(session)) redirect('/iso/applications');
   return session;
 }
 

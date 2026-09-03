@@ -11,6 +11,7 @@ type PortalDesign = 'modern' | 'legacy';
 interface SessionSummary {
   username: string;
   role: 'admin' | 'member';
+  coordinationOwner?: boolean;
 }
 
 const DESIGN_STORAGE_KEY = 'lrqa_portal_design';
@@ -34,6 +35,7 @@ const pageTitle = (pathname: string) => {
   if (pathname.startsWith('/iso/applications/')) return '신청서 검토';
   if (pathname === '/iso/documents') return '생성 문서';
   if (pathname === '/iso/sales') return '세일즈 현황 및 D365 생성';
+  if (pathname === '/iso/coordination') return '개인 조정 에이전트';
   if (pathname === '/iso/sam') return "SAM's Business";
   if (pathname === '/iso/users') return '팀원 계정 관리';
   if (pathname === '/iso/adj') return 'ADJ 작성';
@@ -158,6 +160,15 @@ export default function PortalShell({ children }: { children: React.ReactNode })
           ))}
           {session?.role === 'admin' && (
             <Link href="/iso/sam" aria-current={pathname === '/iso/sam' ? 'page' : undefined} className={`${styles.navLink} ${pathname === '/iso/sam' ? styles.navLinkActive : ''}`}>SAM&apos;s Business</Link>
+          )}
+          {session?.coordinationOwner && (
+            <Link
+              href="/iso/coordination"
+              aria-current={pathname === '/iso/coordination' ? 'page' : undefined}
+              className={`${styles.navLink} ${pathname === '/iso/coordination' ? styles.navLinkActive : ''}`}
+            >
+              조정 에이전트
+            </Link>
           )}
           {session?.role === 'admin' && (
             <Link

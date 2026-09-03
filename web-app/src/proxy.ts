@@ -46,6 +46,9 @@ export async function proxy(request: NextRequest) {
   const samMailSyncRequest =
     pathname === '/api/iso/sam/mail' &&
     Boolean(request.headers.get('x-sam-sync-key'));
+  const coordinationSyncRequest =
+    pathname === '/api/iso/coordination/sync' &&
+    Boolean(request.headers.get('x-coordination-sync-key'));
   const publicPath =
     pathname.startsWith('/samples/') ||
     pathname === '/cbam' ||
@@ -56,7 +59,8 @@ export async function proxy(request: NextRequest) {
     pathname === '/iso/setup' ||
     pathname === '/iso/request-access' ||
     pathname.startsWith('/api/iso/auth/') ||
-    samMailSyncRequest;
+    samMailSyncRequest ||
+    coordinationSyncRequest;
   if (publicPath) return NextResponse.next();
 
   const validSession = await hasValidSession(request.cookies.get(SESSION_COOKIE)?.value);

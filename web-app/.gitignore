@@ -35,6 +35,9 @@ yarn-error.log*
 tools/outlook-sam-sync/outlook-sam-sync.config.json
 tools/outlook-sam-sync/outlook-sam-sync.state.json
 tools/outlook-sam-sync/edge-profile/
+tools/outlook-coordination-sync/outlook-coordination-sync.config.json
+tools/outlook-coordination-sync/outlook-coordination-sync.state.json
+tools/outlook-coordination-sync/edge-profile/
 
 # vercel
 .vercel
