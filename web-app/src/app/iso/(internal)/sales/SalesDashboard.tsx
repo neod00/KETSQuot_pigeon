@@ -305,6 +305,9 @@ export default function SalesDashboard() {
   const [editor, setEditor] = useState<Partial<SalesRecordInput> | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAllConfirmation, setDeleteAllConfirmation] = useState('');
+  const [deletingAll, setDeletingAll] = useState(false);
   const [bridge, setBridge] = useState<BridgeState>('checking');
   const [bridgeError, setBridgeError] = useState('');
   const [running, setRunning] = useState(false);
@@ -418,6 +421,30 @@ export default function SalesDashboard() {
     if (response.ok) {
       setSelected((current) => new Set([...current].filter((id) => id !== record.id)));
       await loadRecords();
+    }
+  };
+
+  const deleteAllRecords = async () => {
+    if (viewer?.role !== 'admin' || deleteAllConfirmation !== '전체 삭제') return;
+    setDeletingAll(true);
+    try {
+      const response = await fetch('/api/iso/sales', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmation: deleteAllConfirmation }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || '전체 데이터를 삭제하지 못했습니다.');
+      setDeleteAllOpen(false);
+      setDeleteAllConfirmation('');
+      setSelected(new Set());
+      setPage(1);
+      setMessage(`${payload.deleted || 0}건의 세일즈 데이터를 모두 삭제했습니다.`);
+      await loadRecords();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '전체 데이터를 삭제하지 못했습니다.');
+    } finally {
+      setDeletingAll(false);
     }
   };
 
@@ -541,6 +568,7 @@ export default function SalesDashboard() {
               </div>
               <input ref={fileInput} type="file" accept=".xlsx" className="hidden" onChange={(event) => void importWorkbook(event.target.files?.[0])}/>
               <button type="button" onClick={() => fileInput.current?.click()} className="inline-flex h-10 items-center gap-2 border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Icon name="upload"/>Excel 가져오기</button>
+              {viewer?.role === 'admin' && <button type="button" disabled={records.length === 0} onClick={() => { setDeleteAllConfirmation(''); setDeleteAllOpen(true); }} className="inline-flex h-10 items-center gap-2 border border-rose-300 bg-white px-3 text-sm font-bold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"><Icon name="trash"/>전체 삭제</button>}
               <button type="button" onClick={() => openEditor()} className="inline-flex h-10 items-center gap-2 bg-blue-700 px-4 text-sm font-bold text-white hover:bg-blue-800"><Icon name="plus"/>신규 세일즈</button>
             </div>
           </section>
@@ -626,6 +654,24 @@ export default function SalesDashboard() {
       )}
 
       {editor && <EditorModal value={editor} onChange={setEditor} onClose={() => setEditor(null)} onSave={() => void saveEditor()} saving={saving}/>} 
+      {deleteAllOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingAll) setDeleteAllOpen(false); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="delete-all-title" className="w-full max-w-md bg-white shadow-2xl">
+          <header className="border-b border-rose-200 bg-rose-50 px-5 py-4">
+            <h3 id="delete-all-title" className="text-lg font-bold text-rose-950">전체 세일즈 데이터 삭제</h3>
+            <p className="mt-1 text-sm text-rose-800">현재 저장된 {records.length.toLocaleString('ko-KR')}건이 영구 삭제됩니다.</p>
+          </header>
+          <div className="space-y-4 p-5">
+            <p className="text-sm leading-6 text-slate-700">Excel로 가져온 데이터와 화면에서 직접 등록한 데이터를 포함해 모두 삭제합니다. 이 작업은 되돌릴 수 없습니다.</p>
+            <label className="block text-sm font-bold text-slate-800">계속하려면 <span className="text-rose-700">전체 삭제</span>를 입력하세요.
+              <input autoFocus value={deleteAllConfirmation} onChange={(event) => setDeleteAllConfirmation(event.target.value)} disabled={deletingAll} className="mt-2 h-11 w-full border border-slate-300 px-3 font-semibold outline-none focus:border-rose-600" placeholder="전체 삭제"/>
+            </label>
+          </div>
+          <footer className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4">
+            <button type="button" disabled={deletingAll} onClick={() => setDeleteAllOpen(false)} className="h-10 border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 disabled:text-slate-300">취소</button>
+            <button type="button" disabled={deletingAll || deleteAllConfirmation !== '전체 삭제'} onClick={() => void deleteAllRecords()} className="h-10 bg-rose-700 px-4 text-sm font-bold text-white hover:bg-rose-800 disabled:cursor-not-allowed disabled:bg-slate-300">{deletingAll ? '삭제 중' : `${records.length.toLocaleString('ko-KR')}건 전체 삭제`}</button>
+          </footer>
+        </section>
+      </div>}
     </main>
   );
 }

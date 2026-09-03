@@ -205,5 +205,15 @@ export async function deleteSalesRecord(id: string, identity: SalesAccessIdentit
   return deleted;
 }
 
+export async function deleteAllSalesRecords(identity: SalesAccessIdentity) {
+  if (identity.role !== 'admin') return null;
+  let deletedCount = 0;
+  await updateIsoJson<SalesRecord[]>(STORE, COLLECTION_KEY, (records) => {
+    deletedCount = (records || []).length;
+    return [];
+  });
+  return deletedCount;
+}
+
 export const salesSignature = (record: Pick<SalesRecordInput, 'quoteNumber' | 'companyName' | 'product' | 'quotedAt'>) =>
   [record.quoteNumber, record.companyName, record.product, record.quotedAt].map((value) => text(value).toLowerCase()).join('|');
