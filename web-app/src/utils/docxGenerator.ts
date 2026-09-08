@@ -94,7 +94,7 @@ const CONTRACT_LINK_MARKER = '[[CONTRACT_LINK]]';
 const findAncestorByLocalName = (node: Node | null, localName: string): Element | null => {
     let current = node;
     while (current) {
-        if (current.nodeType === Node.ELEMENT_NODE && (current as Element).localName === localName) return current as Element;
+        if (current.nodeType === 1 && (current as Element).localName === localName) return current as Element;
         current = current.parentNode;
     }
     return null;
@@ -107,7 +107,7 @@ export const applyContractHyperlink = (zip: any, url: string) => {
     const parser = new DOMParser();
     const documentXml = parser.parseFromString(documentPart.asText(), 'application/xml');
     const markerText = Array.from(documentXml.getElementsByTagNameNS(WORD_NAMESPACE, 't'))
-        .find((node) => node.textContent === CONTRACT_LINK_MARKER);
+        .find((node) => node.textContent?.includes(CONTRACT_LINK_MARKER));
     if (!markerText) return;
 
     const paragraph = findAncestorByLocalName(markerText, 'p');
@@ -135,6 +135,12 @@ export const applyContractHyperlink = (zip: any, url: string) => {
 
     const markerRun = findAncestorByLocalName(markerText, 'r');
     if (!markerRun?.parentNode) throw new Error('계약서 링크 위치를 찾을 수 없습니다.');
+    const markerValue = markerText.textContent || '';
+    const markerIndex = markerValue.indexOf(CONTRACT_LINK_MARKER);
+    const beforeMarker = markerValue.slice(0, markerIndex);
+    const afterMarker = markerValue.slice(markerIndex + CONTRACT_LINK_MARKER.length);
+    const runParent = markerRun.parentNode;
+    const originalNextSibling = markerRun.nextSibling;
     const hyperlink = documentXml.createElementNS(WORD_NAMESPACE, 'w:hyperlink');
     hyperlink.setAttributeNS(OFFICE_REL_NAMESPACE, 'r:id', relationshipId);
     const linkRun = documentXml.createElementNS(WORD_NAMESPACE, 'w:r');
@@ -150,7 +156,22 @@ export const applyContractHyperlink = (zip: any, url: string) => {
     linkRun.appendChild(runProperties);
     linkRun.appendChild(linkText);
     hyperlink.appendChild(linkRun);
-    markerRun.parentNode.replaceChild(hyperlink, markerRun);
+
+    if (beforeMarker) {
+        markerText.textContent = beforeMarker;
+        runParent.insertBefore(hyperlink, originalNextSibling);
+    } else {
+        runParent.insertBefore(hyperlink, markerRun);
+        runParent.removeChild(markerRun);
+    }
+
+    if (afterMarker) {
+        const suffixRun = markerRun.cloneNode(true) as Element;
+        const suffixText = suffixRun.getElementsByTagNameNS(WORD_NAMESPACE, 't')[0];
+        if (!suffixText) throw new Error('계약서 링크 뒤 문장을 복원할 수 없습니다.');
+        suffixText.textContent = afterMarker;
+        runParent.insertBefore(suffixRun, hyperlink.nextSibling);
+    }
 
     const serializer = new XMLSerializer();
     zip.file('word/document.xml', serializer.serializeToString(documentXml));

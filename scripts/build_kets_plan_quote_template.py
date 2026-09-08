@@ -104,7 +104,46 @@ def add_contract_paragraph(contact_paragraph: etree._Element) -> None:
     contact_paragraph.addprevious(paragraph)
 
 
-def build(source: str, destination: str) -> None:
+def populate_cost_table(table: etree._Element, prefix: str) -> None:
+    rows = table.xpath("./w:tr", namespaces=NS)
+    values_by_row = {
+        2: ["1단계(개요파악, 계획수립)", f"{{{prefix}_s1_days}} Manday", f"{{{prefix}_s1_cost}}원", ""],
+        3: ["2단계(문서검토, 현장검증)", f"{{{prefix}_s2_days}} Manday", f"{{{prefix}_s2_cost}}원", ""],
+        4: ["3단계(검증결과 정리/평가 등)", f"{{{prefix}_s3_days}} Manday", f"{{{prefix}_s3_cost}}원", ""],
+        5: ["제경비", "-", f"{{{prefix}_expenses}}원", ""],
+        6: ["합 계", f"{{{prefix}_total_days}} Manday", f"{{{prefix}_total_cost}}원", "VAT {vat_type}"],
+    }
+    for row_index, values in values_by_row.items():
+        cells = rows[row_index].xpath("./w:tc", namespaces=NS)
+        for cell, value in zip(cells, values):
+            set_cell_text(cell, value)
+
+    final_row = copy.deepcopy(rows[6])
+    final_cells = final_row.xpath("./w:tc", namespaces=NS)
+    final_values = ["최종 제안금액", f"{{{prefix}_total_days}} Manday", f"{{{prefix}_final_cost}}원", "VAT {vat_type}"]
+    for cell, value in zip(final_cells, final_values):
+        set_cell_text(cell, value)
+    set_row_fill(final_row, "000080")
+    set_row_font(final_row, "FFFFFF", True)
+    rows[6].addnext(final_row)
+
+
+def add_page_break(paragraph: etree._Element) -> None:
+    run = etree.SubElement(paragraph, qn("w:r"))
+    page_break = etree.SubElement(run, qn("w:br"))
+    page_break.set(qn("w:type"), "page")
+
+
+def set_page_break_before(paragraph: etree._Element) -> None:
+    p_pr = paragraph.find(qn("w:pPr"))
+    if p_pr is None:
+        p_pr = etree.Element(qn("w:pPr"))
+        paragraph.insert(0, p_pr)
+    if p_pr.find(qn("w:pageBreakBefore")) is None:
+        etree.SubElement(p_pr, qn("w:pageBreakBefore"))
+
+
+def build(source: str, destination: str, quote_type: str) -> None:
     with zipfile.ZipFile(source, "r") as archive:
         parts = {name: archive.read(name) for name in archive.namelist()}
 
@@ -128,26 +167,36 @@ def build(source: str, destination: str) -> None:
     set_cell_text(metadata[1][1], "{contact_person}")
     set_cell_text(metadata[2][2], "{proposal_date}")
 
-    cost_rows = tables[1].xpath("./w:tr", namespaces=NS)
-    cost_values = {
-        2: ["1단계(개요파악, 계획수립)", "{plan_s1_days} Manday", "{plan_s1_cost}원", ""],
-        3: ["2단계(문서검토, 현장검증)", "{plan_s2_days} Manday", "{plan_s2_cost}원", ""],
-        4: ["3단계(검증결과 정리/평가 등)", "{plan_s3_days} Manday", "{plan_s3_cost}원", ""],
-        5: ["제경비", "-", "{plan_expenses}원", ""],
-        6: ["합 계", "{plan_total_days} Manday", "{plan_total_cost}원", "VAT {vat_type}"],
-    }
-    for row_index, values in cost_values.items():
-        cells = cost_rows[row_index].xpath("./w:tc", namespaces=NS)
-        for cell, value in zip(cells, values):
-            set_cell_text(cell, value)
+    cost_table = tables[1]
+    if quote_type == "combined":
+        cost_heading = find_paragraph(root, "검증 비용")
+        replace_paragraph_text(cost_heading, "1) 온실가스 명세서")
+        plan_table = copy.deepcopy(cost_table)
+        populate_cost_table(cost_table, "statement")
 
-    final_row = copy.deepcopy(cost_rows[6])
-    final_cells = final_row.xpath("./w:tc", namespaces=NS)
-    for cell, value in zip(final_cells, ["최종 제안금액", "{plan_total_days} Manday", "{plan_final_cost}원", "VAT {vat_type}"]):
-        set_cell_text(cell, value)
-    set_row_fill(final_row, "000080")
-    set_row_font(final_row, "FFFFFF", True)
-    cost_rows[6].addnext(final_row)
+        plan_heading = copy.deepcopy(cost_heading)
+        replace_paragraph_text(plan_heading, "2) 배출량산정계획서")
+        for child in list(plan_heading):
+            if child.tag == qn("w:r"):
+                plan_heading.remove(child)
+        add_page_break(plan_heading)
+        plan_heading_run = etree.SubElement(plan_heading, qn("w:r"))
+        plan_heading_text = etree.SubElement(plan_heading_run, qn("w:t"))
+        plan_heading_text.text = "2) 배출량산정계획서"
+        populate_cost_table(plan_table, "plan")
+        cost_table.addnext(plan_heading)
+        plan_heading.addnext(plan_table)
+
+        overall_row = copy.deepcopy(plan_table.xpath("./w:tr", namespaces=NS)[-1])
+        overall_cells = overall_row.xpath("./w:tc", namespaces=NS)
+        overall_values = ["전체 최종 제안금액", "", "{combined_final_cost}원", "VAT {vat_type}"]
+        for cell, value in zip(overall_cells, overall_values):
+            set_cell_text(cell, value)
+        set_row_fill(overall_row, "00857F")
+        set_row_font(overall_row, "FFFFFF", True)
+        plan_table.append(overall_row)
+    else:
+        populate_cost_table(cost_table, "statement" if quote_type == "statement" else "plan")
 
     criteria = find_paragraph(root, "심사 기준: 온실가스 배출권거래제의 배출량 보고 및 인증에 관한 지침")
     target = copy.deepcopy(criteria)
@@ -161,6 +210,7 @@ def build(source: str, destination: str) -> None:
     # three lines to page 1. Remove the same number of source spacer paragraphs
     # immediately before the retained page-2 heading to keep its vertical start.
     advantages = find_paragraph(root, "■ 로이드인증원(LRQA) 장점")
+    set_page_break_before(advantages)
     removed = 0
     sibling = advantages.getprevious()
     while sibling is not None and removed < 3:
@@ -194,8 +244,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("source")
     parser.add_argument("destination")
+    parser.add_argument("--type", choices=("statement", "plan", "combined"), default="plan")
     args = parser.parse_args()
-    build(args.source, args.destination)
+    build(args.source, args.destination, args.type)
 
 
 if __name__ == "__main__":
