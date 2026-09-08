@@ -86,6 +86,77 @@ const KETS_QUOTE_TEMPLATE_CONFIG: Record<KetsQuoteType, { templatePath: string; 
     },
 };
 
+const WORD_NAMESPACE = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const OFFICE_REL_NAMESPACE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const PACKAGE_REL_NAMESPACE = 'http://schemas.openxmlformats.org/package/2006/relationships';
+const CONTRACT_LINK_MARKER = '[[CONTRACT_LINK]]';
+
+const findAncestorByLocalName = (node: Node | null, localName: string): Element | null => {
+    let current = node;
+    while (current) {
+        if (current.nodeType === Node.ELEMENT_NODE && (current as Element).localName === localName) return current as Element;
+        current = current.parentNode;
+    }
+    return null;
+};
+
+export const applyContractHyperlink = (zip: any, url: string) => {
+    const documentPart = zip.file('word/document.xml');
+    if (!documentPart) return;
+
+    const parser = new DOMParser();
+    const documentXml = parser.parseFromString(documentPart.asText(), 'application/xml');
+    const markerText = Array.from(documentXml.getElementsByTagNameNS(WORD_NAMESPACE, 't'))
+        .find((node) => node.textContent === CONTRACT_LINK_MARKER);
+    if (!markerText) return;
+
+    const paragraph = findAncestorByLocalName(markerText, 'p');
+    if (!url.trim()) {
+        paragraph?.parentNode?.removeChild(paragraph);
+        zip.file('word/document.xml', new XMLSerializer().serializeToString(documentXml));
+        return;
+    }
+
+    const relationshipsPart = zip.file('word/_rels/document.xml.rels');
+    if (!relationshipsPart) throw new Error('Word 문서 관계 정보를 찾을 수 없습니다.');
+    const relationshipsXml = parser.parseFromString(relationshipsPart.asText(), 'application/xml');
+    const relationships = Array.from(relationshipsXml.getElementsByTagNameNS(PACKAGE_REL_NAMESPACE, 'Relationship'));
+    const maxRelationshipId = relationships.reduce((max, relationship) => {
+        const match = relationship.getAttribute('Id')?.match(/^rId(\d+)$/);
+        return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+    const relationshipId = `rId${maxRelationshipId + 1}`;
+    const relationship = relationshipsXml.createElementNS(PACKAGE_REL_NAMESPACE, 'Relationship');
+    relationship.setAttribute('Id', relationshipId);
+    relationship.setAttribute('Type', `${OFFICE_REL_NAMESPACE}/hyperlink`);
+    relationship.setAttribute('Target', url.trim());
+    relationship.setAttribute('TargetMode', 'External');
+    relationshipsXml.documentElement.appendChild(relationship);
+
+    const markerRun = findAncestorByLocalName(markerText, 'r');
+    if (!markerRun?.parentNode) throw new Error('계약서 링크 위치를 찾을 수 없습니다.');
+    const hyperlink = documentXml.createElementNS(WORD_NAMESPACE, 'w:hyperlink');
+    hyperlink.setAttributeNS(OFFICE_REL_NAMESPACE, 'r:id', relationshipId);
+    const linkRun = documentXml.createElementNS(WORD_NAMESPACE, 'w:r');
+    const runProperties = documentXml.createElementNS(WORD_NAMESPACE, 'w:rPr');
+    const color = documentXml.createElementNS(WORD_NAMESPACE, 'w:color');
+    color.setAttributeNS(WORD_NAMESPACE, 'w:val', '000080');
+    const underline = documentXml.createElementNS(WORD_NAMESPACE, 'w:u');
+    underline.setAttributeNS(WORD_NAMESPACE, 'w:val', 'single');
+    runProperties.appendChild(color);
+    runProperties.appendChild(underline);
+    const linkText = documentXml.createElementNS(WORD_NAMESPACE, 'w:t');
+    linkText.textContent = '여기를 클릭하여 다운로드';
+    linkRun.appendChild(runProperties);
+    linkRun.appendChild(linkText);
+    hyperlink.appendChild(linkRun);
+    markerRun.parentNode.replaceChild(hyperlink, markerRun);
+
+    const serializer = new XMLSerializer();
+    zip.file('word/document.xml', serializer.serializeToString(documentXml));
+    zip.file('word/_rels/document.xml.rels', serializer.serializeToString(relationshipsXml));
+};
+
 // K-ETS 검증 계약서용 DOCX 생성
 export const generateKetsDocx = async (
     data: any,
@@ -188,6 +259,7 @@ export const generateKetsQuoteDocx = async (
             nullGetter: () => '',
         });
         doc.render(data);
+        applyContractHyperlink(doc.getZip(), data.contract_download_url || '');
 
         const output = doc.getZip().generate({
             type: 'blob',

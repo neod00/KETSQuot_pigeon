@@ -105,21 +105,21 @@ export default function GeneratorPage() {
         return `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
     };
 
-    const handlePrint = async () => {
-        let issuedUrl = contractDownloadUrl;
-        if (includeContractLink) {
-            const requiredFields = [
-                ['본사 주소', hqAddress],
-                ['사업자등록번호', businessRegistration],
-                ['업종', industryType],
-                ['계약 담당자', contractContact],
-                ['중요성 수준', materiality],
-            ];
-            const missing = requiredFields.filter(([, value]) => !value.trim()).map(([label]) => label);
-            if (!companyName.trim() || !docId.trim() || !issueDate || missing.length) {
-                window.alert(`계약서 생성에 필요한 정보를 입력해 주세요: ${[...(!companyName.trim() ? ['회사명'] : []), ...(!docId.trim() ? ['문서 번호'] : []), ...(!issueDate ? ['발행 일자'] : []), ...missing].join(', ')}`);
-                return;
-            }
+    const issueContractDownloadLink = async () => {
+        if (!includeContractLink) return '';
+        if (contractDownloadUrl.trim()) return contractDownloadUrl.trim();
+
+        const requiredFields = [
+            ['본사 주소', hqAddress],
+            ['사업자등록번호', businessRegistration],
+            ['업종', industryType],
+            ['계약 담당자', contractContact],
+            ['중요성 수준', materiality],
+        ];
+        const missing = requiredFields.filter(([, value]) => !value.trim()).map(([label]) => label);
+        if (!companyName.trim() || !docId.trim() || !issueDate || missing.length) {
+            throw new Error(`계약서 생성에 필요한 정보를 입력해 주세요: ${[...(!companyName.trim() ? ['회사명'] : []), ...(!docId.trim() ? ['문서 번호'] : []), ...(!issueDate ? ['발행 일자'] : []), ...missing].join(', ')}`);
+        }
 
             const date = new Date(issueDate);
             const proposalDate = `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
@@ -195,15 +195,21 @@ export default function GeneratorPage() {
                 });
                 const result = await response.json();
                 if (!response.ok || !result.url) throw new Error(result.message || '계약서 링크 발급에 실패했습니다.');
-                issuedUrl = result.url;
-                setContractDownloadUrl(issuedUrl);
-                await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-            } catch (error) {
-                window.alert(error instanceof Error ? error.message : '계약서 링크 발급에 실패했습니다.');
-                return;
+                setContractDownloadUrl(result.url);
+                return result.url as string;
             } finally {
                 setIssuingContract(false);
             }
+    };
+
+    const handlePrint = async () => {
+        let issuedUrl = '';
+        try {
+            issuedUrl = await issueContractDownloadLink();
+            if (issuedUrl) await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        } catch (error) {
+            window.alert(error instanceof Error ? error.message : '계약서 링크 발급에 실패했습니다.');
+            return;
         }
         const originalTitle = document.title;
         let fileName = "LRQA_온실가스 ";
@@ -293,13 +299,11 @@ export default function GeneratorPage() {
         const quoteType: KetsQuoteType = quotType === '1' ? 'statement' : quotType === '2' ? 'plan' : 'combined';
         const vatMultiplier = vatType === '포함' ? 1.1 : 1;
         const formatCost = (value: number) => formatCurrency(Math.floor(value * vatMultiplier));
-        const contractNote = includeContractLink && contractDownloadUrl.trim()
-            ? `5) 계약서 PDF는 ${contractDownloadUrl.trim()}에서 다운로드할 수 있습니다(발급 후 10일, 최대 3회).`
-            : '';
-        const contactNumber = contractNote ? '6' : '5';
 
         setGeneratingWord(true);
         try {
+            const issuedUrl = await issueContractDownloadLink();
+            const contactNumber = issuedUrl ? '6' : '5';
             await generateKetsQuoteDocx({
                 document_title: title,
                 company_name: companyName || '귀하',
@@ -308,6 +312,7 @@ export default function GeneratorPage() {
                 proposal_date: formatDateKorean(issueDate),
                 issue_date: issueDate,
                 scope_text: scopeText,
+                verification_target: verificationTarget || '-',
                 vat_type: vatType,
                 vat_description: vatType === '포함' ? '포함된' : '제외된',
                 audit_rate: vatType === '포함' ? '1,155,000' : '1,050,000',
@@ -332,18 +337,19 @@ export default function GeneratorPage() {
                 plan_total_cost: formatCost(mpCalculatedTotal),
                 plan_final_cost: formatCost(mpFinalCost),
                 combined_final_cost: formatCost(invFinalCost + mpFinalCost),
-                contract_note: contractNote,
+                contract_download_url: issuedUrl,
+                contract_note: '5) 계약서 PDF는 [[CONTRACT_LINK]]할 수 있습니다(발급 후 10일, 최대 3회).',
                 contact_note: `${contactNumber}) 자세한 사항은 권대근 과장(02-3703-7514)에게 문의 바랍니다. 끝.`,
             }, companyName, quoteType);
 
             saveHistoryRecord(
                 'generator', 'K-ETS 견적서', companyName,
                 totalFinalCost, vatType,
-                { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType, includeContractLink, contractDownloadUrl, hqAddress, businessRegistration, industryType, contractContact, materiality },
+                { quotType, companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType, includeContractLink, contractDownloadUrl: issuedUrl, hqAddress, businessRegistration, industryType, contractContact, materiality },
                 { s1Days: parseFloat(invS1Days) || 0, s2Days: parseFloat(invS2Days) || 0, s3Days: parseFloat(invS3Days) || 0, expenses: invExpenses, auditRate: STANDARD_RATE },
             );
-        } catch {
-            window.alert('Word 견적서 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        } catch (error) {
+            window.alert(error instanceof Error ? error.message : 'Word 견적서 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
             setGeneratingWord(false);
         }
