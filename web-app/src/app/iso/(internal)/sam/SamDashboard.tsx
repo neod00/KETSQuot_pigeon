@@ -976,8 +976,12 @@ function ProgressSection({
 
   return (
     <section className="mt-8 border-t border-slate-300 pt-6">
-      <h3 className="text-lg font-bold">진행현황 업데이트</h3>
-      <p className="mt-1 text-sm text-slate-500">업데이트는 누적 보관되며 회의 모드에서 지난 회의 이후 변경사항으로 표시됩니다.</p>
+      <h3 className="text-lg font-bold">진행현황 이력 · 추가 전용</h3>
+      <p className="mt-1 text-sm text-slate-500">새 업데이트는 항상 새 이력으로 저장됩니다. 기존 기록은 덮어쓰거나 삭제하지 않으며, 회의 모드에서는 지난 회의 이후 변경사항으로 표시됩니다.</p>
+      <div className="mt-3 border-l-4 border-teal-600 bg-teal-50 px-4 py-3 text-sm text-teal-950" role="note">
+        <strong>저장 방식</strong>
+        <p className="mt-1 leading-6">아래의 <span className="font-semibold">새 이력으로 저장</span>을 누르면 이번 입력만 맨 위에 추가됩니다. AI 정리의 ‘초안에 누적’과 ‘초안 교체’는 아직 저장하지 않은 편집칸에만 적용되며, 기존 진행현황 이력에는 영향을 주지 않습니다.</p>
+      </div>
 
       <div className="mt-4 border border-slate-300 bg-white">
         <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1057,8 +1061,8 @@ function ProgressSection({
         />
         <div className="mt-3 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="inline-flex self-start border border-slate-300 bg-slate-100 p-1" role="group" aria-label="정리 결과 반영 방식">
-            <button type="button" onClick={() => setOrganizeMode('append')} className={`min-h-9 px-3 text-sm font-bold ${organizeMode === 'append' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>기존 내용에 추가</button>
-            <button type="button" onClick={() => setOrganizeMode('replace')} className={`min-h-9 px-3 text-sm font-bold ${organizeMode === 'replace' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>기존 내용 교체</button>
+            <button type="button" onClick={() => setOrganizeMode('append')} className={`min-h-9 px-3 text-sm font-bold ${organizeMode === 'append' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>초안에 누적</button>
+            <button type="button" onClick={() => setOrganizeMode('replace')} className={`min-h-9 px-3 text-sm font-bold ${organizeMode === 'replace' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}>초안 교체</button>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <p className="text-xs leading-5 text-slate-600">
@@ -1074,7 +1078,7 @@ function ProgressSection({
             </button>
           </div>
         </div>
-        <p className="mt-2 text-xs text-slate-500">AI 결과는 아래 편집칸에만 반영되며, 진행현황 추가 버튼을 누르기 전까지 저장되지 않습니다.</p>
+        <p className="mt-2 text-xs text-slate-500">AI 결과는 아래 편집칸에만 반영됩니다. 새 이력으로 저장하기 전에는 저장되지 않으며, ‘초안 교체’도 기존 이력을 바꾸지 않습니다.</p>
         {organizeMessage && <p className="mt-2 border-l-2 border-teal-500 pl-2 text-sm font-semibold text-slate-700">{organizeMessage}</p>}
       </div>
 
@@ -1100,20 +1104,35 @@ function ProgressSection({
         onClick={() => selectedMailDraftId ? void approveSelectedMailDraft() : onAdd()}
         className="mt-4 bg-teal-700 px-5 py-2 text-sm font-bold text-white disabled:bg-slate-300"
       >
-        {selectedMailDraftId ? '승인·Account Detail 반영' : '진행현황 추가'}
+        {selectedMailDraftId ? '승인·새 이력으로 반영' : '새 이력으로 저장'}
       </button>
-      <div className="mt-6 space-y-3">
-        {account.updates.map((update) => (
+      <div className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+          <h4 className="font-bold text-slate-950">누적 이력</h4>
+          <span className="text-xs font-semibold text-slate-500">총 {account.updates.length}건 · 최신순 · 기존 기록은 유지</span>
+        </div>
+        <div className="mt-3 space-y-3">
+        {account.updates.map((update, index) => (
           <article key={update.id} className="border-l-4 border-slate-300 bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
               <strong>{update.date}</strong>
               <span className={`border px-2 py-0.5 text-xs font-bold ${statusClass[update.status]}`}>{statusLabel[update.status]}</span>
               <span className="text-xs text-slate-500">{update.owner}</span>
+              <span className="border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600">이력 #{account.updates.length - index}</span>
             </div>
             <p className="mt-2 whitespace-pre-line text-sm">{update.briefing?.ko || update.accomplishments.ko || update.nextActions.ko || '내용 없음'}</p>
+            <p className="mt-2 text-xs text-slate-500">등록 {new Date(update.createdAt).toLocaleString('ko-KR')} · {update.createdBy}</p>
+            {update.dueDate && <p className="mt-1 text-xs text-slate-500">완료 예정일 {update.dueDate}</p>}
+            {(update.sourceMemo || update.uncategorized?.ko) && (
+              <details className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-600">
+                <summary className="cursor-pointer font-semibold text-slate-700">근거·입력 메모 보기</summary>
+                <p className="mt-2 whitespace-pre-line leading-5">{update.sourceMemo || update.uncategorized?.ko}</p>
+              </details>
+            )}
           </article>
         ))}
         {!account.updates.length && <p className="text-sm text-slate-500">등록된 진행현황이 없습니다.</p>}
+        </div>
       </div>
     </section>
   );
