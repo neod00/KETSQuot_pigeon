@@ -66,10 +66,6 @@ const statusClass: Record<SamProgressStatus, string> = {
   'at-risk': 'border-red-200 bg-red-50 text-red-800',
 };
 
-const formatUsd = (value: number) => value > 0
-  ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
-  : 'TBD';
-
 const formatKrw = (value: number) => value > 0
   ? `${new Intl.NumberFormat('ko-KR').format(value)}원`
   : '0원';
@@ -747,8 +743,8 @@ function AccountTable({ accounts, onOpen }: { accounts: SamAccountView[]; onOpen
   return (
     <div className="mt-3 overflow-x-auto border border-slate-300 bg-white">
       <table className="w-full min-w-[850px] text-sm">
-        <thead className="bg-slate-100 text-left text-xs text-slate-600"><tr><th className="p-3">Account</th><th className="p-3">SAM</th><th className="p-3">Next QBR</th><th className="p-3">Opportunity</th><th className="p-3 text-right">Pipeline</th><th className="p-3">Risk</th><th className="p-3">최근 수정</th></tr></thead>
-        <tbody>{accounts.map((account) => <tr key={account.id} onClick={() => onOpen(account.id)} className="cursor-pointer border-t hover:bg-slate-50"><td className="min-w-[150px] p-3"><strong>{account.name.ko}</strong><p className="text-xs text-slate-500">{account.name.en}</p></td><td className="whitespace-nowrap p-3">{account.manager}</td><td className="max-w-[240px] p-3"><p className="line-clamp-2" title={account.nextQbrDate}>{account.nextQbrDate || '미정'}</p></td><td className="max-w-[260px] p-3"><p className="line-clamp-2">{account.opportunity.ko || '-'}</p></td><td className="whitespace-nowrap p-3 text-right font-bold">{account.activePipelineUsd > 0 ? formatKrw(account.activePipelineUsd) : formatUsd(account.dealValueUsd)}</td><td className="whitespace-nowrap p-3"><span className={`border px-2 py-1 text-xs font-bold ${account.atRisk ? statusClass['at-risk'] : statusClass['on-track']}`}>{account.atRisk ? 'At Risk' : '정상'}</span></td><td className="whitespace-nowrap p-3 text-xs text-slate-500">{new Date(account.updatedAt).toLocaleDateString('ko-KR')}</td></tr>)}</tbody>
+        <thead className="bg-slate-100 text-left text-xs text-slate-600"><tr><th className="p-3">Account</th><th className="p-3">SAM</th><th className="p-3">Next QBR</th><th className="p-3">Opportunity</th><th className="p-3 text-right">세일즈 Pipeline</th><th className="p-3">Risk</th><th className="p-3">최근 수정</th></tr></thead>
+        <tbody>{accounts.map((account) => <tr key={account.id} onClick={() => onOpen(account.id)} className="cursor-pointer border-t hover:bg-slate-50"><td className="min-w-[150px] p-3"><strong>{account.name.ko}</strong><p className="text-xs text-slate-500">{account.name.en}</p></td><td className="whitespace-nowrap p-3">{account.manager}</td><td className="max-w-[240px] p-3"><p className="line-clamp-2" title={account.nextQbrDate}>{account.nextQbrDate || '미정'}</p></td><td className="max-w-[260px] p-3"><p className="line-clamp-2">{account.opportunity.ko || '-'}</p></td><td className="whitespace-nowrap p-3 text-right font-bold">{formatKrw(account.activePipelineUsd)}</td><td className="whitespace-nowrap p-3"><span className={`border px-2 py-1 text-xs font-bold ${account.atRisk ? statusClass['at-risk'] : statusClass['on-track']}`}>{account.atRisk ? 'At Risk' : '정상'}</span></td><td className="whitespace-nowrap p-3 text-xs text-slate-500">{new Date(account.updatedAt).toLocaleDateString('ko-KR')}</td></tr>)}</tbody>
       </table>
     </div>
   );

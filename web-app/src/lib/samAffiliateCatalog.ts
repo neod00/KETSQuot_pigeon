@@ -187,8 +187,16 @@ export const mergeOfficialAffiliateCatalog = (account: SamAccount): SamAccount =
   const catalog = officialAffiliateCatalog(account.id);
   if (!catalog) return account;
 
-  const legacyRemovedIds = account.id === 'sam-hyosung' ? new Set(['hyosung-3']) : new Set<string>();
-  const remaining = [...(account.affiliates || [])].filter((affiliate) => !legacyRemovedIds.has(affiliate.id));
+  const retainedStrategicAliases: Record<string, string[]> = account.id === 'sam-hyosung'
+    ? {
+      'hyosung-3': [
+        'HS효성첨단소재',
+        'HS Hyosung Advanced Materials',
+        'HS Hyosung Advanced Material',
+      ],
+    }
+    : {};
+  const remaining = [...(account.affiliates || [])];
   const merged = catalog.affiliates.map((entry) => {
     const entryKeys = new Set(identityKeys(entry));
     const index = remaining.findIndex((candidate) => identityKeys(candidate).some((key) => entryKeys.has(key)));
@@ -208,6 +216,10 @@ export const mergeOfficialAffiliateCatalog = (account: SamAccount): SamAccount =
   return {
     ...account,
     affiliateCatalog: catalog.info,
-    affiliates: [...merged, ...remaining.map((affiliate) => ({ ...affiliate, source: affiliate.source || 'manual' as const }))],
+    affiliates: [...merged, ...remaining.map((affiliate) => ({
+      ...affiliate,
+      source: affiliate.source || 'manual' as const,
+      aliases: Array.from(new Set([...(affiliate.aliases || []), ...(retainedStrategicAliases[affiliate.id] || [])])),
+    }))],
   };
 };
