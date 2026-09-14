@@ -141,10 +141,17 @@ export async function listSamAccountsWithPipeline(): Promise<SamAccountView[]> {
   ]);
   return accounts.map((account) => {
     const matchers = companyMatchers(account);
+    const aliasPrefixes = [...matchers.entries()]
+      .filter(([, match]) => match.matchedBy === 'alias')
+      .sort(([left], [right]) => right.length - left.length);
     const manual = new Set(account.manualSalesRecordIds);
     const pipeline = sales.flatMap((record): SamPipelineRecord[] => {
       const candidates = [record.companyName, record.accountName].map(normalizeCompany).filter(Boolean);
-      const matched = candidates.map((candidate) => matchers.get(candidate)).find((value) => Boolean(value));
+      const matched = candidates.map((candidate) => {
+        const exact = matchers.get(candidate);
+        if (exact) return exact;
+        return aliasPrefixes.find(([alias]) => candidate.startsWith(alias))?.[1];
+      }).find((value) => Boolean(value));
       const matchedBy = manual.has(record.id) ? 'manual' : matched?.matchedBy;
       if (!matchedBy) return [];
       return [{
