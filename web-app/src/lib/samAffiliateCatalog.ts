@@ -187,16 +187,39 @@ export const mergeOfficialAffiliateCatalog = (account: SamAccount): SamAccount =
   const catalog = officialAffiliateCatalog(account.id);
   if (!catalog) return account;
 
-  const retainedStrategicAliases: Record<string, string[]> = account.id === 'sam-hyosung'
-    ? {
-      'hyosung-3': [
+  const strategicAffiliates: SamAffiliate[] = account.id === 'sam-hyosung'
+    ? [{
+      id: 'hyosung-hs-advanced-materials',
+      nameKo: 'HS효성첨단소재',
+      nameEn: 'HS Hyosung Advanced Materials',
+      category: '소재',
+      aliases: [
+        '효성첨단소재',
         'HS효성첨단소재',
+        'HS효성첨단소재(주)',
         'HS Hyosung Advanced Materials',
         'HS Hyosung Advanced Material',
+        '효성',
+        'HS효성',
+        'HS Hyosung',
       ],
-    }
-    : {};
+      source: 'manual',
+    }]
+    : [];
   const remaining = [...(account.affiliates || [])];
+  strategicAffiliates.forEach((strategic) => {
+    const strategicKeys = new Set(identityKeys(strategic));
+    const index = remaining.findIndex((candidate) => identityKeys(candidate).some((key) => strategicKeys.has(key)));
+    if (index < 0) {
+      remaining.push(strategic);
+      return;
+    }
+    const existing = remaining[index];
+    remaining[index] = {
+      ...existing,
+      aliases: Array.from(new Set([...(existing.aliases || []), ...strategic.aliases])),
+    };
+  });
   const merged = catalog.affiliates.map((entry) => {
     const entryKeys = new Set(identityKeys(entry));
     const index = remaining.findIndex((candidate) => identityKeys(candidate).some((key) => entryKeys.has(key)));
@@ -219,7 +242,6 @@ export const mergeOfficialAffiliateCatalog = (account: SamAccount): SamAccount =
     affiliates: [...merged, ...remaining.map((affiliate) => ({
       ...affiliate,
       source: affiliate.source || 'manual' as const,
-      aliases: Array.from(new Set([...(affiliate.aliases || []), ...(retainedStrategicAliases[affiliate.id] || [])])),
     }))],
   };
 };
