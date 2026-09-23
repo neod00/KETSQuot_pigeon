@@ -294,22 +294,26 @@ function saveState() {
   localStorage.setItem("adj-builder-draft", JSON.stringify(state));
 }
 
-function set(path, value) {
+function set(path, value, shouldRender = true) {
   const keys = path.split(".");
   let ref = state;
   for (const key of keys.slice(0, -1)) ref = ref[key];
   ref[keys.at(-1)] = value;
   saveState();
-  render();
+  if (shouldRender) {
+    render();
+  }
 }
 
-function updateSite(index, path, value) {
+function updateSite(index, path, value, shouldRender = true) {
   const keys = path.split(".");
   let ref = state.sites[index];
   for (const key of keys.slice(0, -1)) ref = ref[key];
   ref[keys.at(-1)] = value;
   saveState();
-  render();
+  if (shouldRender) {
+    render();
+  }
 }
 
 function input(path, label, attrs = {}) {
@@ -1103,7 +1107,7 @@ document.addEventListener("input", (event) => {
     set(target.dataset.path, value);
   } else if (target.matches("[data-site-index]")) {
     const value = target.type === "number" ? Number(target.value) : target.value;
-    updateSite(Number(target.dataset.siteIndex), target.dataset.sitePath, value);
+    updateSite(Number(target.dataset.siteIndex), target.dataset.sitePath, value, false);
   } else if (target.matches("[data-code-standard]")) {
     const standard = target.dataset.codeStandard;
     const idx = Number(target.dataset.codeIndex);
@@ -1135,6 +1139,9 @@ document.addEventListener("change", (event) => {
   } else if (target.matches("[data-path]")) {
     const value = target.type === "checkbox" ? target.checked : target.type === "number" ? Number(target.value) : target.value;
     set(target.dataset.path, value);
+  } else if (target.matches("[data-site-index]")) {
+    const value = target.type === "number" ? Number(target.value) : target.value;
+    updateSite(Number(target.dataset.siteIndex), target.dataset.sitePath, value, true);
   }
 });
 
