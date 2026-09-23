@@ -5,6 +5,7 @@ import Link from 'next/link';
 import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
 import ResponsiveDocumentPreview from '../../components/ResponsiveDocumentPreview';
 import { generateKetsQuoteDocx, type KetsQuoteType } from '../../utils/docxGenerator';
+import { KETS_QUOTE_HANDOFF_KEY, type KetsQuoteHandoff } from '../../lib/ketsQuoteHandoff';
 
 const STANDARD_RATE = 1050000;
 const EXPENSES_DEFAULT = 600000;
@@ -355,6 +356,12 @@ export default function GeneratorPage() {
         }
     };
 
+    const continueToContract = () => {
+        const handoff: KetsQuoteHandoff = { quotType: quotType as KetsQuoteHandoff['quotType'], companyName, contactPerson, docId, issueDate, verificationTarget, invYear, invS1Days, invS2Days, invS3Days, invExpenses, invFinalCost, mpYear, mpS1Days, mpS2Days, mpS3Days, mpExpenses, mpFinalCost, vatType, hqAddress, businessRegistration, industryType, contractContact, materiality };
+        window.sessionStorage.setItem(KETS_QUOTE_HANDOFF_KEY, JSON.stringify(handoff));
+        window.location.assign('/kets-contract');
+    };
+
     return (
         <div className="min-h-screen overflow-x-hidden bg-gray-50 pb-24 flex flex-col items-center md:pb-0">
             {/* Input Section */}
@@ -595,6 +602,12 @@ export default function GeneratorPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                         {issuingContract ? '계약서 PDF 생성 중…' : '견적서 인쇄 / PDF 저장'}
                     </button>
+                </div>
+
+                <div className="no-print mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p className="font-bold text-emerald-900">다음 단계 · 계약서 작성</p>
+                    <p className="mt-1 text-sm text-emerald-800">견적 유형, 고객·사업장 정보, 심사일수와 제안 금액을 계약서 입력란으로 가져옵니다. 계약 조건을 확인한 뒤 문서를 생성하세요.</p>
+                    <button type="button" onClick={continueToContract} className="mt-3 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">계약서 이어서 작성 →</button>
                 </div>
 
                 {/* 생성 이력 */}

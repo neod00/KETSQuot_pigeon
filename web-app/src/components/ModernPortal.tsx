@@ -3,26 +3,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import FeedbackSidebar from './FeedbackSidebar';
+import { PRODUCT_LINKS } from './workspaceNavigation';
 import type { HistoryRecord } from './GenerationHistory';
 import styles from './ModernPortal.module.css';
 
 interface ModernPortalProps {
     onUseLegacy: () => void;
     isAdminAccount: boolean;
+    isCoordinationOwner: boolean;
 }
 
-const NAV_ITEMS = [
-    { label: '업무 대시보드', href: '/', active: true },
-    { label: 'ISO 견적·계약', href: '/iso' },
-    { label: '신청서 접수함', href: '/iso/applications' },
-    { label: '생성 문서', href: '/iso/documents' },
-    { label: '세일즈 현황·D365', href: '/iso/sales' },
-    { label: 'K-ETS 견적', href: '/generator' },
-    { label: 'K-ETS 계약', href: '/kets-contract' },
-    { label: 'P827 견적·계약', href: '/system' },
-    { label: 'P827 신청관리', href: '/p827/admin' },
-    { label: 'CBAM 관리', href: '/cbam/admin' },
-];
+
 
 const QUICK_ACTIONS = [
     { code: 'ISO', label: 'ISO 견적 작성', detail: '견적서와 계약서 생성', href: '/iso' },
@@ -46,7 +37,7 @@ const formatDate = (iso: string) => {
     return `${date.getMonth() + 1}.${date.getDate()}`;
 };
 
-export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPortalProps) {
+export default function ModernPortal({ onUseLegacy, isAdminAccount, isCoordinationOwner }: ModernPortalProps) {
     const [history, setHistory] = useState<HistoryRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -99,25 +90,18 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                     </div>
 
                     <nav className={styles.nav} aria-label="포털 메뉴">
-                        {NAV_ITEMS.map(item => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className={`${styles.navLink} ${item.active ? styles.navLinkActive : ''}`}
-                            >
+                        <Link href="/" aria-current="page" className={`${styles.navLink} ${styles.navLinkActive}`}>업무 홈</Link>
+                        <span className={styles.navSection}>견적·계약</span>
+                        {PRODUCT_LINKS.map(item => (
+                            <Link key={item.label} href={item.href} className={`${styles.navLink} ${styles.navProduct}`}>
                                 {item.label}
                             </Link>
                         ))}
-                        {isAdminAccount && (
-                            <Link href="/iso/sam" className={styles.navLink}>
-                                SAM&apos;s Business
-                            </Link>
-                        )}
-                        {isAdminAccount && (
-                            <Link href="/iso/users" className={styles.navLink}>
-                                팀원 관리
-                            </Link>
-                        )}
+                        <span className={styles.navSection}>영업 관리</span>
+                        <Link href="/iso/sales" className={styles.navLink}>세일즈·D365</Link>
+                        {isAdminAccount && <Link href="/iso/sam" className={styles.navLink}>SAM&apos;s Business</Link>}
+                        {isCoordinationOwner && <Link href="/iso/coordination" className={styles.navLink}>조정 에이전트</Link>}
+                        {isAdminAccount && <Link href="/iso/users" className={styles.navLink}>팀원 관리</Link>}
                     </nav>
 
                     <div className={styles.railFooter}>
@@ -146,11 +130,10 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                         <div className={styles.heroCopy}>
                             <div className={styles.heroKicker}>Operations overview</div>
                             <h1 className={styles.heroTitle}>
-                                CONTROL
-                                <span className={styles.heroAccent}>THE PIPELINE</span>
+                                이어서 처리할 업무
                             </h1>
                             <p className={styles.heroText}>
-                                신청부터 견적, 계약, 세일즈 현황과 D365 생성까지 하나의 업무 흐름으로 관리합니다.
+                                최근 생성 문서를 다시 열거나 제품별 신청·견적 업무로 이동합니다.
                             </p>
                         </div>
                         <div className={styles.tick} aria-hidden="true" />
@@ -182,7 +165,7 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                                 <div className={styles.metric}>
                                     <div className={styles.metricLabel}>전체 문서 기록</div>
                                     <div className={styles.metricValue}>{loading ? '-' : `${history.length}건`}</div>
-                                    <div className={styles.metricNote}>최근 100건 보관</div>
+                                    <div className={styles.metricNote}>과거 생성 이력 보관</div>
                                 </div>
                             </div>
                         </section>

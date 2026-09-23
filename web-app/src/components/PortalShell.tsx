@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import FeedbackSidebar from './FeedbackSidebar';
+import WorkspaceProductTabs from './WorkspaceProductTabs';
+import { PRODUCT_LINKS } from './workspaceNavigation';
 import styles from './PortalShell.module.css';
 
 type PortalDesign = 'modern' | 'legacy';
@@ -16,18 +18,7 @@ interface SessionSummary {
 
 const DESIGN_STORAGE_KEY = 'lrqa_portal_design';
 
-const NAV_ITEMS = [
-  { label: '업무 대시보드', href: '/' },
-  { label: 'ISO 견적·계약', href: '/iso' },
-  { label: '신청서 접수함', href: '/iso/applications' },
-  { label: '생성 문서', href: '/iso/documents' },
-  { label: '세일즈 현황·D365', href: '/iso/sales' },
-  { label: 'K-ETS 견적', href: '/generator' },
-  { label: 'K-ETS 계약', href: '/kets-contract' },
-  { label: 'P827 견적·계약', href: '/system' },
-  { label: 'P827 신청관리', href: '/p827/admin' },
-  { label: 'CBAM 관리', href: '/cbam/admin' },
-];
+
 
 const pageTitle = (pathname: string) => {
   if (pathname === '/iso') return 'ISO 견적·계약서 생성기';
@@ -52,7 +43,8 @@ const pageTitle = (pathname: string) => {
 
 const isNavActive = (pathname: string, href: string) => {
   if (href === '/') return false;
-  if (href === '/iso') return pathname === '/iso' || pathname === '/iso/adj';
+  const product = PRODUCT_LINKS.find(item => item.href === href);
+  if (product) return product.paths.some(path => pathname === path || pathname.startsWith(`${path}/`));
   return pathname === href || pathname.startsWith(`${href}/`);
 };
 
@@ -148,34 +140,35 @@ export default function PortalShell({ children }: { children: React.ReactNode })
         </Link>
 
         <nav className={styles.nav} aria-label="업무 메뉴">
-          {NAV_ITEMS.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
+          <Link href="/" className={styles.navLink}>업무 홈</Link>
+          <span className={styles.navSection}>견적·계약</span>
+          {PRODUCT_LINKS.map(item => (
+            <Link key={item.href} href={item.href}
               aria-current={isNavActive(pathname, item.href) ? 'page' : undefined}
-              className={`${styles.navLink} ${isNavActive(pathname, item.href) ? styles.navLinkActive : ''}`}
-            >
+              className={`${styles.navLink} ${styles.navProduct} ${isNavActive(pathname, item.href) ? styles.navLinkActive : ''}`}>
               {item.label}
             </Link>
           ))}
+          <span className={styles.navSection}>영업 관리</span>
+          <Link href="/iso/sales" aria-current={pathname === '/iso/sales' ? 'page' : undefined}
+            className={`${styles.navLink} ${pathname === '/iso/sales' ? styles.navLinkActive : ''}`}>
+            세일즈·D365
+          </Link>
           {session?.role === 'admin' && (
-            <Link href="/iso/sam" aria-current={pathname === '/iso/sam' ? 'page' : undefined} className={`${styles.navLink} ${pathname === '/iso/sam' ? styles.navLinkActive : ''}`}>SAM&apos;s Business</Link>
+            <Link href="/iso/sam" aria-current={pathname === '/iso/sam' ? 'page' : undefined}
+              className={`${styles.navLink} ${pathname === '/iso/sam' ? styles.navLinkActive : ''}`}>
+              SAM&apos;s Business
+            </Link>
           )}
           {session?.coordinationOwner && (
-            <Link
-              href="/iso/coordination"
-              aria-current={pathname === '/iso/coordination' ? 'page' : undefined}
-              className={`${styles.navLink} ${pathname === '/iso/coordination' ? styles.navLinkActive : ''}`}
-            >
+            <Link href="/iso/coordination" aria-current={pathname === '/iso/coordination' ? 'page' : undefined}
+              className={`${styles.navLink} ${pathname === '/iso/coordination' ? styles.navLinkActive : ''}`}>
               조정 에이전트
             </Link>
           )}
           {session?.role === 'admin' && (
-            <Link
-              href="/iso/users"
-              aria-current={pathname === '/iso/users' ? 'page' : undefined}
-              className={`${styles.navLink} ${pathname === '/iso/users' ? styles.navLinkActive : ''}`}
-            >
+            <Link href="/iso/users" aria-current={pathname === '/iso/users' ? 'page' : undefined}
+              className={`${styles.navLink} ${pathname === '/iso/users' ? styles.navLinkActive : ''}`}>
               팀원 관리
             </Link>
           )}
@@ -209,6 +202,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
           </div>
         </header>
 
+        <WorkspaceProductTabs pathname={pathname} />
         <div className={`${styles.content} portal-modern-content`}>
           {children}
         </div>
