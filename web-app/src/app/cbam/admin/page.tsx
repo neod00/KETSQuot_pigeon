@@ -71,7 +71,7 @@ export default function CbamAdminPage() {
 
   return (
     <main className="min-h-screen bg-[#f4f6f8] text-slate-950">
-      <header className="bg-slate-950 text-white">
+      <header className="bg-slate-950 text-white print:hidden">
         <div className="mx-auto max-w-[1500px] px-5 py-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div><p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">Internal review workspace</p><h1 className="mt-1 text-2xl font-black">CBAM 신청·견적 관리</h1></div>
@@ -83,7 +83,7 @@ export default function CbamAdminPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1500px] px-5 py-7">
+      <div className="mx-auto max-w-[1500px] px-5 py-7 print:hidden">
         {error && <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5"><p className="font-bold text-amber-900">{error}</p><div className="mt-3 flex max-w-md gap-2"><input type="password" placeholder="CBAM_ADMIN_KEY" value={adminKey} onChange={e => setAdminKey(e.target.value)} className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm"/><button onClick={() => load()} className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white">인증</button></div></div>}
         <nav className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="CBAM 내부 관리 메뉴">
           <button type="button" onClick={() => setView('applications')} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === 'applications' ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>신청서 관리</button>
