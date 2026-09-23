@@ -24,8 +24,9 @@ export const generateP1173EnquiryDocx = async (app: StoredCbamApplication) => {
   const arrayBuffer = await response.arrayBuffer();
 
   const zip = new PizZip(arrayBuffer);
-  let xml = zip.file('word/document.xml')?.asText();
-  if (!xml) throw new Error('문서 document.xml을 읽을 수 없습니다.');
+  const rawXml = zip.file('word/document.xml')?.asText();
+  if (!rawXml) throw new Error('문서 document.xml을 읽을 수 없습니다.');
+  let xml: string = rawXml;
 
   // Checkbox helpers
   const check = (condition: boolean) => (condition ? '☒' : '☐');
@@ -94,23 +95,6 @@ export const generateP1173EnquiryDocx = async (app: StoredCbamApplication) => {
   const fuels = app.fuelStreams || '-';
   const complexityText = `${check(app.goodsComplexity === 'simple')} Simple good/ 단순상품  ${check(app.goodsComplexity === 'complex' || app.goodsComplexity === 'both')} Complex good/ 복합상품`;
   const biomassText = `${check(app.biomass === 'none')} No biomass fuel streams/ 바이오매스 없음  ${check(app.biomass !== 'none')} Utilisation of biomass fuel streams/ 바이오매스 사용`;
-
-  // Replacement helper inside table cell XML
-  // We can inject into the specific row/cells by replacing cell content
-  // In table 0:
-  const replaceCellInRow = (rowRegex: RegExp, newValues: string[]) => {
-    xml = xml.replace(rowRegex, (rowMatch) => {
-      let cellIdx = 0;
-      return rowMatch.replace(/<w:tc[\s\S]*?<\/w:tc>/g, (cellMatch) => {
-        const val = newValues[cellIdx];
-        cellIdx += 1;
-        if (val === undefined || val === null) return cellMatch;
-        // replace inner paragraphs or text
-        return cellMatch.replace(/<w:t(\s[^>]*)?>[\s\S]*?<\/w:t>/g, '')
-          .replace(/(<\/w:tcPr>)/, `$1<w:p><w:r><w:rPr><w:rFonts w:ascii="Malgun Gothic" w:eastAsia="Malgun Gothic" w:hAnsi="Malgun Gothic"/><w:sz w:val="18"/></w:rPr><w:t>${escapeXml(val)}</w:t></w:r></w:p>`);
-      });
-    });
-  };
 
   // Direct targeted replacements for row cells in Table 0
   const patchTable0 = () => {
