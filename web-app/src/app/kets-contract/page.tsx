@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { generateKetsDocx, type KetsContractType } from '../../utils/docxGenerator';
 import GenerationHistory, { saveHistoryRecord } from '../../components/GenerationHistory';
+import { KETS_QUOTE_HANDOFF_KEY, mapKetsQuoteToContract, type KetsQuoteHandoff } from '../../lib/ketsQuoteHandoff';
 
 // --- Types ---
 interface KetsContractData {
@@ -93,11 +94,13 @@ export default function KetsContractPage() {
         contractType: 'statement' as KetsContractType,
         companyName: '',
         proposalNo: '',
+        sourceQuoteNo: '',
         proposalDate: '',
         adminName: '권대근',
         hqAddress: '',
         targetSites: '본사 및 대상 사업장',
         ghgDeclarationPeriod: '2025년 01월 01일~2025년 12월 31일',
+        planTargetYear: '2026년',
         materiality: '5%',
         auditRate: DEFAULT_AUDIT_RATE,
         s1Days: 1.0,
@@ -118,6 +121,8 @@ export default function KetsContractPage() {
         clientContact: '',
         industryType: '',
     });
+
+    const [importedQuoteNo, setImportedQuoteNo] = useState('');
 
     const formatNum = (n: number) => n.toLocaleString();
 
@@ -216,6 +221,19 @@ export default function KetsContractPage() {
         } catch { /* ignore */ }
     }, []);
 
+    useEffect(() => {
+        const raw = window.sessionStorage.getItem(KETS_QUOTE_HANDOFF_KEY);
+        if (!raw) return;
+        window.sessionStorage.removeItem(KETS_QUOTE_HANDOFF_KEY);
+        try {
+            const quote = JSON.parse(raw) as KetsQuoteHandoff;
+            if (!['1', '2', '3'].includes(quote.quotType) || typeof quote.companyName !== 'string') return;
+            const imported = mapKetsQuoteToContract(quote);
+            setFormData(prev => ({ ...prev, ...imported }));
+            setImportedQuoteNo(quote.docId);
+        } catch { /* discard an invalid handoff */ }
+    }, []);
+
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -287,8 +305,9 @@ export default function KetsContractPage() {
             Number(fd.auditRate) || 0,
             fd.vatType,
         );
-        const yearMatch = rawText(fd.ghgDeclarationPeriod).match(/(\d{4})/);
-        const targetYear = yearMatch ? `${yearMatch[1]}년` : rawText(fd.ghgDeclarationPeriod);
+        const targetYearSource = fd.contractType === 'statement' ? fd.ghgDeclarationPeriod : (fd.planTargetYear || fd.ghgDeclarationPeriod);
+        const yearMatch = rawText(targetYearSource).match(/(\d{4})/);
+        const targetYear = yearMatch ? `${yearMatch[1]}년` : rawText(targetYearSource);
 
         const data: KetsContractData = {
             company_name: rawText(fd.companyName),
@@ -503,6 +522,12 @@ export default function KetsContractPage() {
                     </div>
                 </div>
 
+                {importedQuoteNo && (
+                    <div role="status" className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+                        <strong>견적서 {importedQuoteNo}에서 가져왔습니다.</strong> 고객·사업장, 심사일수, VAT와 최종 금액을 확인한 뒤 계약서를 생성하세요.
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <div className="lg:col-span-8 space-y-4">
 
@@ -602,6 +627,12 @@ export default function KetsContractPage() {
                                     <label className="text-xs font-bold text-slate-600">온실가스 선언이 적용되는 기간</label>
                                     <input type="text" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all" value={formData.ghgDeclarationPeriod} onChange={(e) => handleChange('ghgDeclarationPeriod', e.target.value)} placeholder="2025년 01월 01일~2025년 12월 31일" />
                                 </div>
+                                {formData.contractType !== 'statement' && (
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-600">배출량산정계획서 대상 연도</label>
+                                        <input type="text" className="w-full rounded-xl border border-slate-200 px-3 py-2 font-medium" value={formData.planTargetYear} onChange={(e) => handleChange('planTargetYear', e.target.value)} placeholder="2026년" />
+                                    </div>
+                                )}
                             </div>
                         </section>
 

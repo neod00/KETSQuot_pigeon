@@ -113,6 +113,7 @@ export interface IsoQuoteInput {
     input: AuditDurationInput;
     result: AuditDurationResult;
     appliedAt?: string;
+    dayDifferenceReason?: string;
     multiSiteEvidence?: IsoMultiSiteEvidence;
     adjustments?: AuditDurationAdjustment[];
   };

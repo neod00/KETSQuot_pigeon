@@ -9,12 +9,16 @@ import ModernPortal from '../components/ModernPortal';
 
 export default function LandingPage() {
     const [isAdminAccount, setIsAdminAccount] = useState(false);
+    const [isCoordinationOwner, setIsCoordinationOwner] = useState(false);
     const [portalView, setPortalView] = useState<'modern' | 'legacy'>('modern');
 
     useEffect(() => {
         fetch('/api/iso/auth/session', { cache: 'no-store' })
             .then(response => response.ok ? response.json() : null)
-            .then(session => setIsAdminAccount(session?.role === 'admin'))
+            .then(session => {
+                setIsAdminAccount(session?.role === 'admin');
+                setIsCoordinationOwner(Boolean(session?.coordinationOwner));
+            })
             .catch(() => setIsAdminAccount(false));
     }, []);
 
@@ -31,7 +35,7 @@ export default function LandingPage() {
     };
 
     if (portalView === 'modern') {
-        return <ModernPortal isAdminAccount={isAdminAccount} onUseLegacy={() => changePortalView('legacy')} />;
+        return <ModernPortal isAdminAccount={isAdminAccount} isCoordinationOwner={isCoordinationOwner} onUseLegacy={() => changePortalView('legacy')} />;
     }
 
     return <LegacyLandingPage isAdminAccount={isAdminAccount} onUseModern={() => changePortalView('modern')} />;
@@ -488,7 +492,7 @@ function RecentHistorySection() {
 
                         {/* Footer */}
                         <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-slate-50/50">
-                            <span className="text-[11px] text-slate-400 font-medium">총 {history.length}건 (최대 100건)</span>
+                            <span className="text-[11px] text-slate-400 font-medium">총 {history.length}건</span>
                             {isAdmin && (
                                 <div className="flex items-center gap-2">
                                     <button onClick={handleDeleteAll} className="text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-3 py-1.5 transition-colors">
