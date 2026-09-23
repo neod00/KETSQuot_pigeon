@@ -12,6 +12,7 @@ import {
   type StoredCbamApplication,
 } from '@/lib/cbam';
 import CnCodeChecker from './CnCodeChecker';
+import { P1173EnquiryEditor } from './P1173EnquiryEditor';
 
 export default function CbamAdminPage() {
   const [applications, setApplications] = useState<StoredCbamApplication[]>([]);
@@ -104,7 +105,7 @@ export default function CbamAdminPage() {
           </aside>
         </div> : <CnCodeChecker adminKey={adminKey} initialCodes={selected?.cnCodes || ''} applicationReference={selected?.reference} companyName={selected?.companyName} />}
       </div>
-      {editing && <ApplicationEditor application={editing} onClose={() => setEditing(null)} onSave={saveApplication} />}
+      {editing && <P1173EnquiryEditor application={editing} onClose={() => setEditing(null)} onSave={saveApplication} />}
       {pricingEditing && <PricingEditor application={pricingEditing} onClose={() => setPricingEditing(null)} onSave={savePricing} />}
     </main>
   );
