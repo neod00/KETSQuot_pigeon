@@ -1,40 +1,6 @@
-export type CbamClientType = 'importer' | 'operator';
-export type CbamComplexity = 'simple' | 'medium' | 'complex' | 'very_complex';
-
-export type CbamApplicationInput = {
-  clientType: CbamClientType;
-  serviceType: 'pre_verification' | 'verification' | 'other';
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  address: string;
-  country: string;
-  sites: string;
-  verificationYears: string[];
-  cbamGoods: string[];
-  cnCodes: string;
-  operatorCount: string;
-  processCount: string;
-  goodsCount: string;
-  dataLocation: string;
-  remoteAccess: 'yes' | 'partial' | 'no';
-  managementSystems: string[];
-  dataPersonnel: string;
-  communicationTemplate: 'all' | 'partial' | 'none';
-  mmdStatus: 'clear' | 'complex' | 'none' | 'not_applicable';
-  carbonPrice: 'yes' | 'no';
-  previouslyVerified: 'yes' | 'no';
-  embeddedEmissionsKt: string;
-  productionProcesses: string;
-  fuelStreams: string;
-  goodsComplexity: 'simple' | 'complex' | 'both';
-  biomass: 'none' | 'used_red_compliant' | 'used_review_needed';
-  chp: boolean;
-  knownClient: boolean;
-  notes: string;
-  consent: boolean;
-};
+import type { CbamApplicationInput, CbamClientType, CbamComplexity } from './cbam-input';
+export type { CbamApplicationInput, CbamClientType, CbamComplexity } from './cbam-input';
+import type { CbamNavigatorData, CbamLeadSource, CbamLeadStage } from './cbam-navigator';
 
 export type CbamCalculation = {
   complexity: CbamComplexity;
@@ -49,6 +15,14 @@ export type CbamCalculation = {
 };
 
 export type StoredCbamApplication = CbamApplicationInput & CbamCalculation & {
+  source?: CbamLeadSource;
+  navigatorSessionId?: string;
+  leadStage?: CbamLeadStage;
+  navigatorData?: CbamNavigatorData;
+  marketingConsent?: boolean;
+  privacyNoticeVersion?: string;
+  consentedAt?: string;
+  intakeDigest?: string;
   reference: string;
   submittedAt: string;
   status: string;
