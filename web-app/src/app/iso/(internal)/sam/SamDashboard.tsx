@@ -12,6 +12,7 @@ import type {
   SamReviewCadence,
 } from '@/lib/samTypes';
 import { parseSamEml } from '@/lib/samEml';
+import SamReportBrief from '@/components/SamReportBrief';
 
 type View = 'dashboard' | 'accounts' | 'detail' | 'meeting' | 'translation' | 'documents';
 type Language = 'ko' | 'en';
@@ -711,7 +712,10 @@ export default function SamDashboard() {
       )}
 
       {view === 'meeting' && (
-        <MeetingMode accounts={accounts} language={language} setLanguage={setLanguage} onOpen={(id) => openAccount(id, 'detail')} />
+        <>
+          <SamReportBrief accounts={accounts} onOpen={(id) => openAccount(id, 'detail')} />
+          <MeetingMode accounts={accounts} language={language} setLanguage={setLanguage} onOpen={(id) => openAccount(id, 'detail')} />
+        </>
       )}
 
       {view === 'translation' && draft && (

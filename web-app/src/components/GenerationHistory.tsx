@@ -310,7 +310,7 @@ export default function GenerationHistory({ pageType, pageLabel, onRestore, onRe
                             <div className="flex items-center gap-4 text-xs font-medium">
                                 <span className="text-blue-600">📊 이번 달: <strong>{stats.monthCount}건</strong> 생성</span>
                                 <span className="text-purple-600">💰 총 ₩<strong>{formatCost(stats.monthTotal)}</strong></span>
-                                <span className="text-slate-500">전체 {stats.allCount}건 / 최대 100건</span>
+                                <span className="text-slate-500">전체 {stats.allCount}건</span>
                             </div>
                         </div>
                     )}
@@ -434,7 +434,7 @@ export default function GenerationHistory({ pageType, pageLabel, onRestore, onRe
                     {/* Footer */}
                     <div className="flex items-center justify-between p-4 border-t border-slate-100 bg-slate-50/50">
                         <span className="text-[11px] text-slate-400 font-medium">
-                            총 {allHistory.length}건 (최대 100건)
+                            총 {allHistory.length}건
                         </span>
                         {isAdmin && (
                             <div className="flex items-center gap-2">
