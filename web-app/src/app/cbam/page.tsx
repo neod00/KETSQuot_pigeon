@@ -1,12 +1,15 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import {
   CBAM_GOODS,
   MANAGEMENT_SYSTEMS,
   createDefaultCbamApplication,
   type CbamApplicationInput,
 } from '@/lib/cbam';
+
+import { decodeHandoff } from '@/lib/cbam-handoff';
+import { QUESTIONS, type CbamNavigatorData } from '@/lib/cbam-navigator';
 
 const FIELD = 'mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100';
 const LABEL = 'text-sm font-semibold text-slate-800';
@@ -16,6 +19,20 @@ export default function CbamApplicationPage() {
   const [submittedReference, setSubmittedReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [navigatorData, setNavigatorData] = useState<CbamNavigatorData>();
+  const [handoffError, setHandoffError] = useState('');
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const encoded = params.get('navigator');
+    if (encoded === null) return;
+    params.delete('navigator');
+    history.replaceState(history.state, '', window.location.pathname + window.location.search + (params.size ? '#' + params.toString() : ''));
+    try {
+      const data = decodeHandoff(encoded);
+      setNavigatorData(data.navigatorData);
+      setForm(current => ({ ...current, ...data.prefill, consent: false }));
+    } catch { setHandoffError('진단정보를 불러오지 못했습니다. Navigator에서 검증 신청을 다시 눌러 주세요.'); }
+  }, []);
   const update = <K extends keyof CbamApplicationInput>(key: K, value: CbamApplicationInput[K]) =>
     setForm(current => ({ ...current, [key]: value }));
 
@@ -38,7 +55,7 @@ export default function CbamApplicationPage() {
       const response = await fetch('/api/cbam/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...(navigatorData ? { navigatorData } : {}) }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || '신청서를 접수하지 못했습니다.');
@@ -60,7 +77,7 @@ export default function CbamApplicationPage() {
           <h1 className="mt-3 text-4xl font-black tracking-tight">CBAM 서비스 신청이 접수되었습니다.</h1>
           <p className="mt-5 text-lg leading-8 text-slate-300">접수번호는 <strong className="text-white">{submittedReference}</strong>입니다.</p>
           <div className="mt-8 border-l-4 border-teal-400 bg-white/10 px-5 py-4 text-sm leading-7 text-slate-200">제출된 정보를 바탕으로 LRQA 담당자가 검증 범위와 필요 일수를 검토한 후 일정 및 견적을 안내해 드립니다.</div>
-          <button onClick={() => { setForm(createDefaultCbamApplication()); setSubmittedReference(''); }} className="mt-8 rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-950 hover:bg-teal-300">새 신청서 작성</button>
+          <button onClick={() => { setForm(createDefaultCbamApplication()); setSubmittedReference(''); setNavigatorData(undefined); }} className="mt-8 rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-950 hover:bg-teal-300">새 신청서 작성</button>
         </div>
       </main>
     );
@@ -92,6 +109,14 @@ export default function CbamApplicationPage() {
       </section>
 
       <form onSubmit={submit} className="mx-auto max-w-7xl px-5 py-10">
+        {handoffError && <p role="alert" className="mb-6 text-red-700">{handoffError}</p>}
+        {navigatorData && <section className="mb-7 rounded-2xl border border-teal-200 bg-teal-50 p-6" aria-label="Navigator 진단정보">
+          <h2 className="text-xl font-bold">Navigator 진단정보가 연결되었습니다</h2>
+          <p className="mt-2">제품: {navigatorData.productName || '미입력'} · CN 코드: {navigatorData.searchedCnCodes?.join(', ') || form.cnCodes || '미입력'}</p>
+          <p>준비도: {navigatorData.readinessScore === undefined ? '진단 미완료' : `${navigatorData.readinessScore}점`} · 미비항목: {navigatorData.gapCodes?.length ?? 0}개</p>
+          <details className="mt-3"><summary>진단 및 증빙자료 상세 보기</summary><ul className="mt-2 space-y-1">{QUESTIONS.filter(q => navigatorData.readinessAnswers?.[q.id] || navigatorData.evidenceStatus?.[q.id]).map(q => <li key={q.id}>{q.text} — {{ ready: '준비 완료', partial: '일부 준비', missing: '미준비' }[navigatorData.readinessAnswers?.[q.id] || 'missing']} / {q.evidence}: {navigatorData.evidenceStatus?.[q.id] || '미확인'}</li>)}</ul></details>
+          <p className="mt-3 text-sm">아래 자동 입력된 내용을 확인해 주세요. 동의 후 제출하면 진단정보도 LRQA에 함께 접수됩니다.</p>
+        </section>}
         <div className="grid items-start gap-7 lg:grid-cols-[1fr_330px]">
           <div className="space-y-7">
             <FormSection number="01" title="고객 및 업무 정보" subtitle="Client details & service required">

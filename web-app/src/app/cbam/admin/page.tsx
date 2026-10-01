@@ -13,6 +13,7 @@ import {
 } from '@/lib/cbam';
 import CnCodeChecker from './CnCodeChecker';
 import { P1173EnquiryEditor } from './P1173EnquiryEditor';
+import { QUESTIONS } from '@/lib/cbam-navigator';
 
 export default function CbamAdminPage() {
   const [applications, setApplications] = useState<StoredCbamApplication[]>([]);
@@ -115,6 +116,15 @@ function ApplicationDetail({ application, onCheckCnCodes, onEdit, onEditPricing 
   // 기존에 접수된 신청서도 최신 산정 설명을 즉시 보여 주되, 확정 일수는 저장된 값을 유지한다.
   const explanation = calculateCbamDays(application);
   return <div className="space-y-5">
+    {application.source === 'NAVIGATOR' && <section className="rounded-2xl border border-teal-200 bg-teal-50 p-5 text-sm">
+      <h3 className="font-black">유입경로 · CBAM Navigator</h3>
+      <p className="mt-2">제품: {application.navigatorData?.productName || '미입력'}</p>
+      <p>검색 CN 코드: {application.navigatorData?.searchedCnCodes?.join(', ') || '미입력'}</p>
+      <p>검증 준비도: {application.navigatorData?.readinessScore === undefined ? '진단 미완료' : `${application.navigatorData.readinessScore}%`}</p>
+      <p>주요 미비사항: {application.navigatorData?.gapCodes?.map(code => QUESTIONS.find(q => q.id === code)?.evidence || code).join(', ') || (application.navigatorData?.readinessScore === undefined ? '진단 미완료' : '응답 기준 미비사항 없음')}</p>
+      <p className="break-all">세션: {application.navigatorSessionId}</p>
+      <p className="mt-2">자가진단 결과입니다. 제출된 범위와 산정 전제는 담당자가 확인해야 합니다.</p>
+    </section>}
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-teal-700">{application.reference}</p><h2 className="mt-2 text-2xl font-black">{application.companyName}</h2><p className="mt-1 text-sm text-slate-500">{application.contactName} · {application.email} · {application.phone}</p></div><Badge tone="blue">{application.status}</Badge></div><button type="button" onClick={onEdit} className="mt-4 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">신청서 열람·수정</button></div>
       <div className="p-5">

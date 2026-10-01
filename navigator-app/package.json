@@ -1,0 +1,32 @@
+{
+  "name": "lrqa-cbam-navigator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "node scripts/preview.mjs",
+    "sync": "node scripts/sync-shared.mjs",
+    "predev": "npm run sync",
+    "dev": "next dev --port 3100",
+    "prebuild": "npm run sync",
+    "build": "next build",
+    "start": "next start --port 3100",
+    "test": "npm run sync && tsx --test tests/*.test.ts",
+    "check": "tsc --noEmit",
+    "audit:public": "node scripts/audit-public.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.2",
+    "next": "^16.3.7",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tsx": "^4.20.0",
+    "typescript": "^5"
+  }
+}

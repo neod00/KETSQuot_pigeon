@@ -1,39 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStore } from '@netlify/blobs';
+import { listApplications, saveApplication } from '@/lib/cbam-store';
+import { randomUUID } from 'node:crypto';
+import { parseApplication, parseNavigator, object } from '@/lib/cbam-intake-schema';
 import { calculateCbamDays, DEFAULT_CBAM_DAY_RATE, DEFAULT_CBAM_EXPENSES, estimateCbamCost, type CbamApplicationInput, type StoredCbamApplication } from '@/lib/cbam';
 import { getIsoRequestSession } from '@/lib/isoAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-type ApplicationStore = { list: StoredCbamApplication[] };
-const globalStore = globalThis as typeof globalThis & { __cbamApplications?: ApplicationStore };
-
-function getMemoryStore() {
-  if (!globalStore.__cbamApplications) globalStore.__cbamApplications = { list: [] };
-  return globalStore.__cbamApplications;
-}
-
-function hasNetlifyBlobContext() {
-  return Boolean(process.env.NETLIFY || process.env.NETLIFY_BLOBS_CONTEXT || process.env.NETLIFY_SITE_ID);
-}
-
-async function listApplications() {
-  if (!hasNetlifyBlobContext()) return getMemoryStore().list;
-  const store = getStore({ name: 'cbam-applications', consistency: 'strong' });
-  const listed = await store.list();
-  const records = await Promise.all(listed.blobs.map(blob => store.get(blob.key, { type: 'json' }) as Promise<StoredCbamApplication | null>));
-  return records.filter((record): record is StoredCbamApplication => Boolean(record)).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-}
-
-async function saveApplication(application: StoredCbamApplication) {
-  if (!hasNetlifyBlobContext()) {
-    getMemoryStore().list.unshift(application);
-    return;
-  }
-  const store = getStore({ name: 'cbam-applications', consistency: 'strong' });
-  await store.setJSON(application.reference, application);
-}
 
 function isValid(input: Partial<CbamApplicationInput>) {
   return Boolean(input.companyName?.trim() && input.contactName?.trim() && input.email?.trim() && input.phone?.trim() && input.consent);
@@ -57,14 +30,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const input = await request.json() as CbamApplicationInput;
+    let input: CbamApplicationInput;
+    let navigatorData: ReturnType<typeof parseNavigator> | undefined;
+    try { const raw = object(await request.json()); input = parseApplication(raw, true); if (raw.navigatorData !== undefined) navigatorData = parseNavigator(raw.navigatorData); }
+    catch { return NextResponse.json({ message: '신청정보의 형식과 필수 항목을 확인해 주세요.' }, { status: 400 }); }
     if (!isValid(input)) return NextResponse.json({ message: '회사명, 담당자, 이메일, 전화번호와 동의를 확인해 주세요.' }, { status: 400 });
     const calculated = calculateCbamDays(input);
     const date = new Date();
-    const reference = `CBAM-${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-    const application: StoredCbamApplication = { ...input, ...calculated, reference, submittedAt: date.toISOString(), status: '신규 접수', estimatedCost: estimateCbamCost(calculated.quotedDays) };
+    const reference = `CBAM-${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${randomUUID().slice(0, 12).toUpperCase()}`;
+    const application: StoredCbamApplication = { ...input, ...calculated, ...(navigatorData ? { source: 'NAVIGATOR' as const, navigatorSessionId: navigatorData.sessionId, navigatorData, consentedAt: date.toISOString() } : {}), reference, submittedAt: date.toISOString(), status: '신규 접수', estimatedCost: estimateCbamCost(calculated.quotedDays) };
     await saveApplication(application);
-    return NextResponse.json({ application }, { status: 201 });
+    return NextResponse.json({ application: { reference: application.reference } }, { status: 201 });
   } catch (error) {
     console.error('CBAM application save failed.', error);
     return NextResponse.json({ message: '신청서를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
@@ -88,6 +64,14 @@ export async function PUT(request: NextRequest) {
     const application: StoredCbamApplication = {
       ...payload.application,
       ...calculated,
+      source: current.source,
+      navigatorSessionId: current.navigatorSessionId,
+      leadStage: current.leadStage,
+      navigatorData: current.navigatorData,
+      marketingConsent: current.marketingConsent,
+      privacyNoticeVersion: current.privacyNoticeVersion,
+      consentedAt: current.consentedAt,
+      intakeDigest: current.intakeDigest,
       reference: current.reference,
       submittedAt: current.submittedAt,
       status: current.status,

@@ -52,6 +52,7 @@ export async function proxy(request: NextRequest) {
   const publicPath =
     pathname.startsWith('/samples/') ||
     pathname === '/cbam' ||
+    (pathname === '/api/cbam/navigator-intake' && request.method === 'POST') ||
     (pathname === '/api/cbam/applications' && request.method === 'POST') ||
     pathname === '/p827' ||
     (pathname === '/api/p827/applications' && request.method === 'POST') ||
