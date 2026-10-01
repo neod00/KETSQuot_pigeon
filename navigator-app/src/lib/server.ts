@@ -55,9 +55,10 @@ export function requireSession(request: NextRequest) {
 }
 export function sameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
+  const siteOrigin = process.env.NETLIFY ? "https://lrqa-cbam-navigator.netlify.app" : null;
   if (
     request.headers.get("sec-fetch-site") === "cross-site" ||
-    (origin && origin !== request.nextUrl.origin)
+    (origin && origin !== request.nextUrl.origin && origin !== siteOrigin)
   )
     throw new HttpError(403, "허용되지 않은 요청입니다.");
   if (!request.headers.get("content-type")?.startsWith("application/json"))
