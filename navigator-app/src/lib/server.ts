@@ -55,7 +55,7 @@ export function requireSession(request: NextRequest) {
 }
 export function sameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
-  const siteOrigin = process.env.NETLIFY ? "https://lrqa-cbam-navigator.netlify.app" : null;
+  const siteOrigin = "https://lrqa-cbam-navigator.netlify.app";
   if (
     request.headers.get("sec-fetch-site") === "cross-site" ||
     (origin && origin !== request.nextUrl.origin && origin !== siteOrigin)
@@ -97,9 +97,7 @@ export async function rateLimit(
 ) {
   const ip =
     request.headers.get("x-nf-client-connection-ip") ||
-    (process.env.NODE_ENV !== "production" || !process.env.NETLIFY
-      ? "local"
-      : "unknown");
+    (process.env.NODE_ENV !== "production" ? "local" : "unknown");
   const bucket = Math.floor(Date.now() / (seconds * 1000));
   const key = `nav:${scope}:${bucket}:${hmac(id || ip).slice(0, 32)}`;
   const url = process.env.UPSTASH_REDIS_REST_URL,
@@ -127,7 +125,7 @@ export async function rateLimit(
       throw new HttpError(503, "잠시 후 다시 이용해 주세요.");
     count = result.result;
   } else {
-    if (process.env.NETLIFY) {
+    if (process.env.SITE_ID === "27f6b7d1-7eab-48aa-a135-2b3da10aa028") {
       if (ip === "unknown") throw new HttpError(503, "잠시 후 다시 이용해 주세요.");
       const store = getStore("cbam-navigator-rate-limit");
       const recordKey = `nav:${scope}:${hmac(id || ip).slice(0, 32)}`;
@@ -141,6 +139,8 @@ export async function rateLimit(
       }
       throw new HttpError(503, "잠시 후 다시 이용해 주세요.");
     }
+    if (process.env.NODE_ENV === "production" && !(process.env.NAVIGATOR_LOCAL_PREVIEW === "1" && request.nextUrl.hostname === "localhost"))
+      throw new HttpError(503, "잠시 후 다시 이용해 주세요.");
     for (const [k, v] of localCounters)
       if (v.expires < Date.now()) localCounters.delete(k);
     const current = localCounters.get(key) || {

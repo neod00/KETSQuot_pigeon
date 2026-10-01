@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const url = new URL(endpoint);
     if (
       url.protocol !== "https:" &&
-      !(url.hostname === "localhost" && !process.env.NETLIFY)
+      !(url.hostname === "localhost" && process.env.NAVIGATOR_LOCAL_PREVIEW === "1" && request.nextUrl.hostname === "localhost")
     )
       throw new HttpError(503, "신청 서비스를 준비 중입니다.");
     const payload = JSON.stringify({ ...parsed, requestId: key });

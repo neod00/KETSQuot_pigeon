@@ -13,6 +13,7 @@ const secret = randomBytes(32).toString("hex");
 const env: NodeJS.ProcessEnv = {
   ...process.env,
   NAVIGATOR_SESSION_SECRET: secret,
+  NAVIGATOR_LOCAL_PREVIEW: "1",
   NAVIGATOR_INTAKE_SECRET: secret,
   ISO_SESSION_SECRET: secret,
   NAVIGATOR_INTAKE_URL: "http://localhost:3101/api/cbam/navigator-intake",
