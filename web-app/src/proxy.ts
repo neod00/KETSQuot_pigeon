@@ -51,6 +51,7 @@ export async function proxy(request: NextRequest) {
     Boolean(request.headers.get('x-coordination-sync-key'));
   const publicPath =
     pathname.startsWith('/samples/') ||
+    pathname === '/lrqa-logo.png' ||
     pathname === '/cbam' ||
     (pathname === '/api/cbam/navigator-intake' && request.method === 'POST') ||
     (pathname === '/api/cbam/applications' && request.method === 'POST') ||
