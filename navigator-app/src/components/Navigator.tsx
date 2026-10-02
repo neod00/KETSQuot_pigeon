@@ -141,16 +141,16 @@ function Home() {
     <>
       <section className="hero">
         <div className="hero-content">
-          <p className="eyebrow">LRQA Korea · 무료 CBAM 준비지원</p>
+          <p className="eyebrow">LRQA Korea · CBAM readiness</p>
           <h1>
-            CBAM 대상 확인부터
+            CBAM 검증 준비,
             <br />
-            <em>검증 준비까지</em>
+            <em>지금 어디쯤인가요?</em>
           </h1>
           <p className="hero-description">
-            복잡한 규정, 필요한 자료.
+            우리 제품의 대상 여부부터 검증 준비 수준까지.
             <br />
-            우리 제품의 다음 단계를 차근차근 확인하세요.
+            필요한 다음 단계를 차근차근 확인하세요.
           </p>
           <form
             className="hero-search"
@@ -683,113 +683,34 @@ function Readiness() {
   const { draft, setDraft, track } = useNavigator();
   const scored = scoreReadiness(draft.answers);
   const [show, setShow] = useState(false);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const question = QUESTIONS[questionIndex];
+  const options = [
+    ["ready", "준비됨", "관련 자료와 근거를 확인할 수 있습니다."],
+    ["partial", "일부 준비", "일부 자료가 있지만 추가 확인이 필요합니다."],
+    ["missing", "미준비 / 모름", "아직 준비하지 못했거나 확인이 필요합니다."],
+  ] as const;
+  const showResults = () => {
+    setShow(true);
+    track("READINESS_COMPLETE");
+  };
   return (
     <>
-      <div className="progress-card">
-        <strong>{scored.answered} / 24개 응답</strong>
-        <progress
-          value={scored.answered}
-          max={24}
-          aria-label="진단 응답 진행률"
-        />
-        <span>준비됨 · 일부 준비 · 미준비/모름</span>
-      </div>
-      {Object.entries(CATEGORY_LABELS).map(([key, title], index) => (
-        <section className="panel" key={key}>
-          <h2>
-            <span className="section-number">0{index + 1}</span>
-            {title}
-          </h2>
-          {QUESTIONS.filter((q) => q.category === key).map((q) => (
-            <fieldset className="question" key={q.id}>
-              <legend>{q.text}</legend>
-              <div className="answer-options">
-                {(
-                  [
-                    ["ready", "준비됨"],
-                    ["partial", "일부 준비"],
-                    ["missing", "미준비/모름"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <label key={value}>
-                    <input
-                      type="radio"
-                      name={q.id}
-                      checked={draft.answers[q.id] === value}
-                      onChange={() => {
-                        setDraft({
-                          answers: {
-                            ...draft.answers,
-                            [q.id]: value as ReadinessAnswer,
-                          },
-                        });
-                        setShow(false);
-                      }}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          ))}
+      {show && scored.complete ? (
+        <section className="readiness-results" aria-live="polite">
+          <div className="results-head"><div><p className="eyebrow">Your readiness snapshot</p><h2>검증 준비도 진단 결과</h2><p>24개 응답을 바탕으로 준비 영역과 확인할 자료를 정리했습니다.</p></div><div className="score">{scored.readinessScore}<small>%</small></div></div>
+          <div className="results-grid">
+            <div className="panel"><h3>영역별 준비도</h3>{Object.entries(scored.readinessCategories).map(([key, value]) => <div className="bar-row" key={key}><span>{CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]}</span><progress max={100} value={value} aria-label={`${CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]} ${value}%`} /><strong>{value}%</strong></div>)}</div>
+            <div className="panel"><h3>우선 확인할 자료</h3>{scored.gapCodes.length ? <ul className="gap-list">{QUESTIONS.filter((q) => scored.gapCodes.includes(q.id)).map((q) => <li key={q.id}><span className="badge">{q.priority}</span> {q.evidence}</li>)}</ul> : <p>응답 기준으로 미비사항이 없습니다. 실제 증빙자료 검토 결과와 다를 수 있습니다.</p>}</div>
+          </div>
+          <p className="muted">점수는 동일 가중치의 자가진단 지표입니다. 준비됨 1점, 일부 준비 0.5점, 미준비/모름 0점.</p>
+          <div className="results-actions"><button className="button secondary" onClick={() => setShow(false)}>응답 다시 보기</button><Link className="button secondary" href="/evidence">증빙자료 확인</Link><ApplicationLink className="button">검증 신청 ↗</ApplicationLink></div>
         </section>
-      ))}
-      <button
-        className="button"
-        disabled={!scored.complete}
-        onClick={() => {
-          setShow(true);
-          track("READINESS_COMPLETE");
-        }}
-      >
-        진단 결과 확인
-      </button>
-      {!scored.complete && (
-        <p>
-          전체 질문에 응답하면 준비도를 확인할 수 있습니다. 해당 없는 항목은 그
-          근거가 준비되어 있을 때 ‘준비됨’을 선택하세요.
-        </p>
-      )}
-      {show && (
-        <section className="panel accent" aria-live="polite">
-          <p className="eyebrow">전체 검증 준비도</p>
-          <div className="score">
-            {scored.readinessScore}
-            <small>%</small>
-          </div>
-          <div className="grid two">
-            {Object.entries(scored.readinessCategories).map(([key, value]) => (
-              <div key={key}>
-                <p>
-                  {CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]}{" "}
-                  <strong>{value}%</strong>
-                </p>
-                <progress max={100} value={value} />
-              </div>
-            ))}
-          </div>
-          <h3>주요 미비사항</h3>
-          {scored.gapCodes.length ? (
-            <ul className="gap-list">
-              {QUESTIONS.filter((q) => scored.gapCodes.includes(q.id)).map(
-                (q) => (
-                  <li key={q.id}>
-                    <span className="badge">{q.priority}</span> {q.evidence}
-                  </li>
-                ),
-              )}
-            </ul>
-          ) : (
-            <p>
-              응답 기준으로 미비사항이 없습니다. 실제 증빙자료 검토 결과와 다를
-              수 있습니다.
-            </p>
-          )}
-          <p className="muted">
-            점수는 동일 가중치의 자가진단 지표입니다. 준비됨 1점, 일부 준비
-            0.5점, 미준비/모름 0점.
-          </p>
-          <Next href="/evidence">필요한 증빙자료 확인</Next>
+      ) : (
+        <section className="readiness-flow">
+          <div className="readiness-top"><div><p className="eyebrow">Step by step assessment</p><h2>하나씩 확인하며 준비도를 진단하세요</h2></div><strong>{questionIndex + 1} / {QUESTIONS.length}</strong></div>
+          <div className="progress-card"><progress value={scored.answered} max={QUESTIONS.length} aria-label="진단 응답 진행률" /><span>{scored.answered}개 응답 완료 · 준비됨 / 일부 준비 / 미준비·모름</span></div>
+          <div className="assessment-grid"><div className="question-panel"><p className="eyebrow">{CATEGORY_LABELS[question.category]} · 질문 {questionIndex + 1}</p><fieldset className="question"><legend>{question.text}</legend><p className="question-hint">현재 준비 상태에 가장 가까운 항목을 선택해 주세요.</p><div className="answer-options">{options.map(([value, label, description]) => <label key={value}><input type="radio" name={question.id} checked={draft.answers[question.id] === value} onChange={() => setDraft({ answers: { ...draft.answers, [question.id]: value as ReadinessAnswer } })} /><span><strong>{label}</strong><small>{description}</small></span></label>)}</div></fieldset><div className="question-actions"><button className="button secondary" disabled={questionIndex === 0} onClick={() => setQuestionIndex(questionIndex - 1)}>이전 질문</button>{questionIndex < QUESTIONS.length - 1 ? <button className="button" disabled={!draft.answers[question.id]} onClick={() => setQuestionIndex(questionIndex + 1)}>다음 질문 →</button> : <button className="button" disabled={!scored.complete} onClick={showResults}>진단 결과 확인 →</button>}</div>{scored.complete && questionIndex < QUESTIONS.length - 1 && <button className="text-button" onClick={showResults}>완료된 진단 결과 보기 →</button>}</div><aside className="assessment-aside"><h3>진단 영역</h3><ol>{Object.entries(CATEGORY_LABELS).map(([key, title], index) => <li key={key} className={question.category === key ? "current" : ""}><button onClick={() => setQuestionIndex(index * 4)} aria-current={question.category === key ? "step" : undefined}>{title}</button><span>{QUESTIONS.filter((q) => q.category === key && draft.answers[q.id]).length}/4</span></li>)}</ol><p>해당 없는 항목은 그 근거가 준비되어 있을 때 ‘준비됨’을 선택하세요.</p></aside></div>
         </section>
       )}
       <Note>{READINESS_NOTICE}</Note>
@@ -863,7 +784,9 @@ function Evidence() {
   );
 }
 function Application() {
-  return <section className="panel prose"><h2>LRQA CBAM 검증 신청서로 이동</h2><p>제품, CN 코드, 사업장, 생산공정과 준비도 진단·증빙자료 상태가 신청서에 자동 전달됩니다. 신청서에서 연락처를 입력하고 동의 후 제출해 주세요.</p><ApplicationLink className="button">CBAM 검증 신청 →</ApplicationLink></section>;
+  const { draft } = useNavigator();
+  const scored = scoreReadiness(draft.answers);
+  return <div className="application-grid"><section><p className="eyebrow">Ready for the next step</p><h2>진단 내용을 가지고<br />검증 신청으로 이어가세요.</h2><p>제품, CN 코드, 사업장, 생산공정과 준비도 진단·증빙자료 상태가 신청서에 자동 전달됩니다.</p><div className="panel transfer-card"><h3>신청서에 전달할 정보</h3><dl><dt>제품</dt><dd>{draft.productName || "미입력"}</dd><dt>CN 코드</dt><dd>{draft.cnCode || "미입력"}</dd><dt>사업장</dt><dd>{draft.sites || "미입력"}</dd><dt>준비도 진단</dt><dd>{scored.answered} / 24개 응답 {scored.complete ? `· ${scored.readinessScore}%` : ""}</dd><dt>증빙자료</dt><dd>{Object.keys(draft.evidence).length}개 상태 기록</dd></dl></div></section><aside className="panel application-card"><h3>LRQA CBAM 검증 신청</h3><p>다음 화면에서 전달 정보를 확인하고 연락처 입력 및 동의 후 신청서를 제출해 주세요.</p><ApplicationLink className="button">CBAM 검증 신청 ↗</ApplicationLink><small>연결 대상: ketsquot-pigeon.netlify.app/cbam</small></aside></div>;
 }
 function PrivacyNotice({ privacy }: { privacy: Privacy }) {
   return (
