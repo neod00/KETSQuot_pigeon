@@ -11,7 +11,7 @@ export function PreparationChecklist() {
   const { draft, ready } = useNavigator();
   const [details, setDetails] = useState({ ...EMPTY_REPORT_DETAILS });
   const [contact, setContact] = useState({ phone:'', email:'', consultationMessage:'', consent:false });
-  const [privacy, setPrivacy] = useState({ retention:'', processors:'', contact:'' });
+  const [privacy, setPrivacy] = useState({ retention:'', contact:'' });
   const formRef = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState<LeadIntent | null>(null);
   const [error, setError] = useState('');
@@ -24,8 +24,8 @@ export function PreparationChecklist() {
       const value: unknown = await response.json();
       if (!value || typeof value !== 'object') return;
       const fields = value as Record<string, unknown>;
-      if (active && typeof fields.retention === 'string' && typeof fields.processors === 'string' && typeof fields.contact === 'string') {
-        setPrivacy({ retention: fields.retention, processors: fields.processors, contact: fields.contact });
+      if (active && typeof fields.retention === 'string' && typeof fields.contact === 'string') {
+        setPrivacy({ retention: fields.retention, contact: fields.contact });
       }
     })().catch(() => {});
     return () => { active = false; };
@@ -93,7 +93,7 @@ export function PreparationChecklist() {
         <label>회신 요청기한<input type="date" value={details.deadline} onChange={e => setDetails({ ...details, deadline: e.target.value })} /></label>
         <label className="document-request">지원·의사결정 요청<textarea rows={3} maxLength={1500} value={details.decisionRequest} onChange={e => setDetails({ ...details, decisionRequest: e.target.value })} placeholder="예: 부서별 자료 담당자 지정과 공급업체 배출량 자료 요청에 대한 협조가 필요합니다." /></label>
       </div>
-      <details className="lead-privacy"><summary>개인정보 수집·이용 안내</summary><p>수집 항목: 회사명, 담당자명, 전화번호, 이메일, 진단 응답·자료 확보상태 및 입력한 요청사항</p><p>이용 목적: 진단 접수 관리, 요청 문서 제공 및 상담 요청에 대한 연락</p><p>보유기간: {privacy.retention || '개인정보 안내 페이지 확인'}</p><p>처리위탁·국외 처리: {privacy.processors || '개인정보 안내 페이지 확인'}</p><p>문의: {privacy.contact || 'LRQA Korea'}</p><p>동의를 거부할 수 있으며, 거부 시 문서 제공과 상담 요청 접수가 제한됩니다. <Link href="/privacy" target="_blank">개인정보 안내 전체 보기</Link></p></details>
+      <details className="lead-privacy"><summary>개인정보 수집·이용 안내</summary><p>수집 항목: 회사명, 담당자명, 전화번호, 이메일, 진단 응답·자료 확보상태 및 입력한 요청사항</p><p>이용 목적: 진단 접수 관리, 요청 문서 제공 및 상담 요청에 대한 연락</p><p>보유기간: {privacy.retention || '개인정보 안내 페이지 확인'}</p><p>문의: {privacy.contact || 'LRQA Korea'}</p><p>동의를 거부할 수 있으며, 거부 시 문서 제공과 상담 요청 접수가 제한됩니다. <Link href="/privacy" target="_blank">개인정보 안내 전체 보기</Link></p></details>
       <label className="lead-consent"><input required type="checkbox" checked={contact.consent} onChange={e => setContact({ ...contact, consent:e.target.checked })} /><span>개인정보 수집·이용에 동의하며, 연락처와 진단정보를 LRQA에 제출합니다. *</span></label>
       <div className="document-downloads">
         <div><strong>내부 보고용 PDF</strong><p>준비도 요약 · 우선 조치 · 지원 요청 · 전체 진단 내역</p><button type="button" className="button primary" disabled={!!busy || !ready} onClick={() => exportDocument('pdf')}>{busy === 'pdf' ? '접수·PDF 생성 중…' : '보고서 다운로드 (PDF)'}</button></div>

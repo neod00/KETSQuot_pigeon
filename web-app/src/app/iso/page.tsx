@@ -579,7 +579,7 @@ export default function ISOQuotePage() {
       try {
         return JSON.parse(text) as { error?: string };
       } catch {
-        return { error: response.ok ? '' : 'Netlify가 문서 업로드를 처리하지 못했습니다.' };
+        return { error: response.ok ? '' : '문서 업로드를 처리하지 못했습니다.' };
       }
     };
 

@@ -3,7 +3,7 @@ import { parseLead } from '@/shared/cbam-lead';
 import { signIntake } from '@/shared/cbam-intake-signature';
 import { body, sameOrigin, requireSession, rateLimit, json, failure, HttpError } from '@/lib/server';
 export async function GET() {
-  return json({ retention:process.env.NAVIGATOR_PRIVACY_RETENTION || '', processors:process.env.NAVIGATOR_PRIVACY_PROCESSORS || '', contact:process.env.NAVIGATOR_PRIVACY_CONTACT || '' });
+  return json({ retention:process.env.NAVIGATOR_PRIVACY_RETENTION || '', contact:process.env.NAVIGATOR_PRIVACY_CONTACT || '' });
 }
 export async function POST(request: NextRequest) {
   try {
