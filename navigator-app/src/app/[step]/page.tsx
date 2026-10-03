@@ -27,7 +27,6 @@ export default async function Page({
       step={step}
       privacy={{
         retention: process.env.NAVIGATOR_PRIVACY_RETENTION || "",
-        processors: process.env.NAVIGATOR_PRIVACY_PROCESSORS || "",
         contact: process.env.NAVIGATOR_PRIVACY_CONTACT || "",
       }}
     />

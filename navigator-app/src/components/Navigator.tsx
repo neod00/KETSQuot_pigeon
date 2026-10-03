@@ -24,7 +24,7 @@ import {
   assessApplicability,
 } from "@/shared/cbam-regulatory";
 import { assessCnCode, type CbamCnAssessment } from "@/shared/cbam-cn";
-type Privacy = { retention: string; processors: string; contact: string };
+type Privacy = { retention: string; contact: string };
 const titles: Record<string, [string, string]> = {
   "cn-search": [
     "CN 코드 및 제품 검색",
@@ -90,7 +90,7 @@ function Next({ href, children }: { href: string; children: ReactNode }) {
 }
 export default function Navigator({
   step,
-  privacy = { retention: "", processors: "", contact: "" },
+  privacy = { retention: "", contact: "" },
 }: {
   step: string;
   privacy?: Privacy;
@@ -797,7 +797,7 @@ function Evidence() {
 function Application() {
   const { draft } = useNavigator();
   const scored = scoreReadiness(draft.answers);
-  return <div className="application-grid"><section><p className="eyebrow">Ready for the next step</p><h2>진단 내용을 가지고<br />검증 신청으로 이어가세요.</h2><p>제품, CN 코드, 사업장, 생산공정과 준비도 진단·증빙자료 상태가 신청서에 자동 전달됩니다.</p><div className="panel transfer-card"><h3>신청서에 전달할 정보</h3><dl><dt>제품</dt><dd>{draft.productName || "미입력"}</dd><dt>CN 코드</dt><dd>{draft.cnCode || "미입력"}</dd><dt>사업장</dt><dd>{draft.sites || "미입력"}</dd><dt>준비도 진단</dt><dd>{scored.answered} / 24개 응답 {scored.complete ? `· ${scored.readinessScore}%` : ""}</dd><dt>증빙자료</dt><dd>{Object.keys(draft.evidence).length}개 상태 기록</dd></dl></div></section><aside className="panel application-card"><h3>LRQA CBAM 검증 신청</h3><p>다음 화면에서 전달 정보를 확인하고 연락처 입력 및 동의 후 신청서를 제출해 주세요.</p><ApplicationLink className="button">CBAM 검증 신청 ↗</ApplicationLink><small>연결 대상: ketsquot-pigeon.netlify.app/cbam</small></aside></div>;
+  return <div className="application-grid"><section><p className="eyebrow">Ready for the next step</p><h2>진단 내용을 가지고<br />검증 신청으로 이어가세요.</h2><p>제품, CN 코드, 사업장, 생산공정과 준비도 진단·증빙자료 상태가 신청서에 자동 전달됩니다.</p><div className="panel transfer-card"><h3>신청서에 전달할 정보</h3><dl><dt>제품</dt><dd>{draft.productName || "미입력"}</dd><dt>CN 코드</dt><dd>{draft.cnCode || "미입력"}</dd><dt>사업장</dt><dd>{draft.sites || "미입력"}</dd><dt>준비도 진단</dt><dd>{scored.answered} / 24개 응답 {scored.complete ? `· ${scored.readinessScore}%` : ""}</dd><dt>증빙자료</dt><dd>{Object.keys(draft.evidence).length}개 상태 기록</dd></dl></div></section><aside className="panel application-card"><h3>LRQA CBAM 검증 신청</h3><p>다음 화면에서 전달 정보를 확인하고 연락처 입력 및 동의 후 신청서를 제출해 주세요.</p><ApplicationLink className="button">CBAM 검증 신청 ↗</ApplicationLink></aside></div>;
 }
 function PrivacyNotice({ privacy }: { privacy: Privacy }) {
   return (
@@ -808,7 +808,7 @@ function PrivacyNotice({ privacy }: { privacy: Privacy }) {
         문서 다운로드와 진단 결과 상담 요청 시 필수 동의를 받은 후 연락처,
         진단정보와 요청사항을 저장해 문서 제공과 접수 관리에 사용합니다.
         상담을 요청한 경우 담당자가 연락하며, 상담 요청 내용과 연락처는
-        Netlify Forms를 통해 내부 담당자에게 이메일로 알립니다.
+        내부 담당자에게 이메일로 알립니다.
         검증 신청정보는 담당자 연락과 검증 범위 검토를 위해 저장합니다.
       </p>
       <h2>수집 항목</h2>
@@ -823,7 +823,6 @@ function PrivacyNotice({ privacy }: { privacy: Privacy }) {
         {privacy.retention ||
           "검증 신청서의 개인정보 안내를 확인해 주세요."}
       </p>
-      <p>위탁·국외 처리: {privacy.processors || "운영 준비 중"}</p>
       <p>
         열람·정정·삭제·동의 철회 문의:{" "}
         {privacy.contact || "LRQA Korea 공식 문의 채널"}
@@ -837,8 +836,7 @@ function PrivacyNotice({ privacy }: { privacy: Privacy }) {
         선택을 해제하면 기기 저장본을 삭제하고 현재 탭의 입력은 유지합니다. 공용 기기에서는 이 옵션을 선택하지 마세요.
         문서·상담 요청과 검증 신청서의 연락처 및 동의 내용은 이 저장 기능에 포함되지 않습니다.
         이용기록에는 검색어·연락처·세션 ID를 남기지 않습니다. 요청 제한에는
-        변환된 접속주소 식별자를 사용하며 최대 24시간 보관합니다. 호스팅
-        사업자의 기본 접속기록 처리는 위 운영 안내에 따릅니다.
+        변환된 접속주소 식별자를 사용하며 최대 24시간 보관합니다.
       </p>
       <h2>동의 선택</h2>
       <p>
