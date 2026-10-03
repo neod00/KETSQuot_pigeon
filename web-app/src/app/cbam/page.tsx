@@ -4,9 +4,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import {
   CBAM_GOODS,
   MANAGEMENT_SYSTEMS,
-  createDefaultCbamApplication,
-  type CbamApplicationInput,
 } from '@/lib/cbam';
+import { createPublicCbamApplication, type PublicCbamApplicationDraft } from '@/lib/cbam-application-draft';
 
 import { decodeHandoff } from '@/lib/cbam-handoff';
 import { QUESTIONS, type CbamNavigatorData } from '@/lib/cbam-navigator';
@@ -15,7 +14,7 @@ const FIELD = 'mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2
 const LABEL = 'text-sm font-semibold text-slate-800';
 
 export default function CbamApplicationPage() {
-  const [form, setForm] = useState<CbamApplicationInput>(() => createDefaultCbamApplication());
+  const [form, setForm] = useState<PublicCbamApplicationDraft>(createPublicCbamApplication);
   const [submittedReference, setSubmittedReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -33,7 +32,7 @@ export default function CbamApplicationPage() {
       setForm(current => ({ ...current, ...data.prefill, consent: false }));
     } catch { setHandoffError('진단정보를 불러오지 못했습니다. Navigator에서 검증 신청을 다시 눌러 주세요.'); }
   }, []);
-  const update = <K extends keyof CbamApplicationInput>(key: K, value: CbamApplicationInput[K]) =>
+  const update = <K extends keyof PublicCbamApplicationDraft>(key: K, value: PublicCbamApplicationDraft[K]) =>
     setForm(current => ({ ...current, [key]: value }));
 
   const toggleList = (key: 'verificationYears' | 'cbamGoods' | 'managementSystems', value: string) => {
@@ -46,6 +45,10 @@ export default function CbamApplicationPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
+    if (!form.verificationYears.length || !form.cbamGoods.length) {
+      setError('검증 대상 데이터 연도와 CBAM 상품 유형을 선택해 주세요.');
+      return;
+    }
     if (!form.consent) {
       setError('개인정보 처리 및 신청정보 제공 동의가 필요합니다.');
       return;
@@ -77,7 +80,7 @@ export default function CbamApplicationPage() {
           <h1 className="mt-3 text-4xl font-black tracking-tight">CBAM 서비스 신청이 접수되었습니다.</h1>
           <p className="mt-5 text-lg leading-8 text-slate-300">접수번호는 <strong className="text-white">{submittedReference}</strong>입니다.</p>
           <div className="mt-8 border-l-4 border-teal-400 bg-white/10 px-5 py-4 text-sm leading-7 text-slate-200">제출된 정보를 바탕으로 LRQA 담당자가 검증 범위와 필요 일수를 검토한 후 일정 및 견적을 안내해 드립니다.</div>
-          <button onClick={() => { setForm(createDefaultCbamApplication()); setSubmittedReference(''); setNavigatorData(undefined); }} className="mt-8 rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-950 hover:bg-teal-300">새 신청서 작성</button>
+          <button onClick={() => { setForm(createPublicCbamApplication()); setSubmittedReference(''); setNavigatorData(undefined); }} className="mt-8 rounded-xl bg-teal-400 px-5 py-3 font-bold text-slate-950 hover:bg-teal-300">새 신청서 작성</button>
         </div>
       </main>
     );
@@ -111,27 +114,27 @@ export default function CbamApplicationPage() {
       <form onSubmit={submit} className="mx-auto max-w-7xl px-5 py-10">
         {handoffError && <p role="alert" className="mb-6 text-red-700">{handoffError}</p>}
         {navigatorData && <section className="mb-7 rounded-2xl border border-teal-200 bg-teal-50 p-6" aria-label="Navigator 진단정보">
-          <h2 className="text-xl font-bold">Navigator 진단정보가 연결되었습니다</h2>
+          <h2 className="text-xl font-bold">Navigator 진단정보가 연결되었습니다</h2><p className="mt-2 text-sm">진단 응답은 아래 신청 항목의 선택을 대신하지 않습니다. 실제 자료와 검증 범위를 확인해 선택해 주세요.</p>
           <p className="mt-2">제품: {navigatorData.productName || '미입력'} · CN 코드: {navigatorData.searchedCnCodes?.join(', ') || form.cnCodes || '미입력'}</p>
           <p>준비도: {navigatorData.readinessScore === undefined ? '진단 미완료' : `${navigatorData.readinessScore}점`} · 미비항목: {navigatorData.gapCodes?.length ?? 0}개</p>
           <details className="mt-3"><summary>진단 및 증빙자료 상세 보기</summary><ul className="mt-2 space-y-1">{QUESTIONS.filter(q => navigatorData.readinessAnswers?.[q.id] || navigatorData.evidenceStatus?.[q.id]).map(q => <li key={q.id}>{q.text} — {{ ready: '준비 완료', partial: '일부 준비', missing: '미준비' }[navigatorData.readinessAnswers?.[q.id] || 'missing']} / {q.evidence}: {navigatorData.evidenceStatus?.[q.id] || '미확인'}</li>)}</ul></details>
           <p className="mt-3 text-sm">아래 자동 입력된 내용을 확인해 주세요. 동의 후 제출하면 진단정보도 LRQA에 함께 접수됩니다.</p>
         </section>}
-        <div className="grid items-start gap-7 lg:grid-cols-[1fr_330px]">
+        <p className="mb-5 text-sm text-slate-600">* 표시는 필수 항목입니다. 선택 항목은 실제 자료와 상태를 확인해 직접 선택해 주세요.</p><div className="grid items-start gap-7 lg:grid-cols-[1fr_330px]">
           <div className="space-y-7">
             <FormSection number="01" title="고객 및 업무 정보" subtitle="Client details & service required">
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="고객 유형">
-                  <select className={FIELD} value={form.clientType} onChange={e => update('clientType', e.target.value as CbamApplicationInput['clientType'])}>
+                <Field label="고객 유형 *">
+                  <select required className={FIELD} value={form.clientType} onChange={e => update('clientType', e.target.value as PublicCbamApplicationDraft['clientType'])}><option value="" disabled>선택하세요</option>
                     <option value="operator">제3국 제조사업자</option><option value="importer">EU 수입자/CBAM 신고자</option>
                   </select>
                 </Field>
-                <Field label="요청 서비스">
-                  <select className={FIELD} value={form.serviceType} onChange={e => update('serviceType', e.target.value as CbamApplicationInput['serviceType'])}>
-                    <option value="pre_verification">사전검증(갭 분석)</option><option value="verification">CBAM 검증</option><option value="other">기타 자문</option>
+                <Field label="요청 서비스 *">
+                  <select required className={FIELD} value={form.serviceType} onChange={e => update('serviceType', e.target.value as PublicCbamApplicationDraft['serviceType'])}><option value="" disabled>선택하세요</option>
+                    <option value="pre_verification">검증 준비상태 검토(갭 분석)</option><option value="verification">CBAM 검증</option><option value="other">기타 자문</option>
                   </select>
                 </Field>
-                <Field label="회사명 *"><input required className={FIELD} value={form.companyName} onChange={e => update('companyName', e.target.value)} /></Field>
+                <div className="sm:col-span-2 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">CBAM 검증은 배출량 보고서의 검증을 위한 신청입니다. 검증 준비상태 검토(갭 분석)는 부족한 자료와 준비사항을 먼저 확인하기 위한 신청입니다. 진단 점수와 별도로 요청 서비스를 선택해 주세요.</div><Field label="회사명 *"><input required className={FIELD} value={form.companyName} onChange={e => update('companyName', e.target.value)} /></Field>
                 <Field label="담당자명 *"><input required className={FIELD} value={form.contactName} onChange={e => update('contactName', e.target.value)} /></Field>
                 <Field label="이메일 *"><input required type="email" className={FIELD} value={form.email} onChange={e => update('email', e.target.value)} /></Field>
                 <Field label="전화번호 *"><input required className={FIELD} value={form.phone} onChange={e => update('phone', e.target.value)} /></Field>
@@ -142,15 +145,15 @@ export default function CbamApplicationPage() {
             </FormSection>
 
             <FormSection number="02" title="검증 범위" subtitle="Scope & CBAM goods">
-              <ChoiceGroup label="검증 대상 데이터 연도" options={['2024','2025','2026','2027','2028','2029','2030','2031']} selected={form.verificationYears} onToggle={value => toggleList('verificationYears', value)} />
-              <div className="mt-6"><ChoiceGroup label="CBAM 상품 유형" options={CBAM_GOODS} selected={form.cbamGoods} onToggle={value => toggleList('cbamGoods', value)} /></div>
+              <ChoiceGroup label="검증 대상 데이터 연도 *" options={['2024','2025','2026','2027','2028','2029','2030','2031']} selected={form.verificationYears} onToggle={value => toggleList('verificationYears', value)} />
+              <div className="mt-6"><ChoiceGroup label="CBAM 상품 유형 *" options={CBAM_GOODS} selected={form.cbamGoods} onToggle={value => toggleList('cbamGoods', value)} /></div>
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
                 <Field label="8자리 CN 코드"><textarea className={`${FIELD} min-h-24`} placeholder="예: 7213 10 00 (여러 개는 줄바꿈)" value={form.cnCodes} onChange={e => update('cnCodes', e.target.value)} /></Field>
                 <Field label="예상 내재배출량 (ktCO₂e)"><input type="number" min="0" step="0.01" className={FIELD} value={form.embeddedEmissionsKt} onChange={e => update('embeddedEmissionsKt', e.target.value)} /></Field>
                 <Field label="관련 CBAM 상품 사업자 수"><input type="number" min="0" className={FIELD} value={form.operatorCount} onChange={e => update('operatorCount', e.target.value)} /></Field>
                 <Field label="관련 CBAM 상품 수"><input type="number" min="0" className={FIELD} value={form.goodsCount} onChange={e => update('goodsCount', e.target.value)} /></Field>
                 <Field label="관련 생산공정 수"><input type="number" min="0" className={FIELD} value={form.processCount} onChange={e => update('processCount', e.target.value)} /></Field>
-                <Field label="상품 구성"><select className={FIELD} value={form.goodsComplexity} onChange={e => update('goodsComplexity', e.target.value as CbamApplicationInput['goodsComplexity'])}><option value="simple">단순 상품</option><option value="complex">복합 상품</option><option value="both">단순 + 복합 상품</option></select></Field>
+                <Field label="상품 구성 *"><select required className={FIELD} value={form.goodsComplexity} onChange={e => update('goodsComplexity', e.target.value as PublicCbamApplicationDraft['goodsComplexity'])}><option value="" disabled>선택하세요</option><option value="simple">단순 상품</option><option value="complex">복합 상품</option><option value="both">단순 + 복합 상품</option></select></Field>
               </div>
             </FormSection>
 
@@ -158,18 +161,18 @@ export default function CbamApplicationPage() {
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="데이터 보관 위치"><input className={FIELD} placeholder="예: 본사 ERP, 사업장 서버" value={form.dataLocation} onChange={e => update('dataLocation', e.target.value)} /></Field>
                 <Field label="원자료 수집·처리·보고 담당 인원"><input type="number" min="0" className={FIELD} value={form.dataPersonnel} onChange={e => update('dataPersonnel', e.target.value)} /></Field>
-                <Field label="데이터 디지털화 및 원격 접근"><select className={FIELD} value={form.remoteAccess} onChange={e => update('remoteAccess', e.target.value as CbamApplicationInput['remoteAccess'])}><option value="yes">예</option><option value="partial">부분적으로 가능</option><option value="no">아니요</option></select></Field>
-                <Field label="EU 커뮤니케이션 템플릿 사용"><select className={FIELD} value={form.communicationTemplate} onChange={e => update('communicationTemplate', e.target.value as CbamApplicationInput['communicationTemplate'])}><option value="all">모든 사업자 사용</option><option value="partial">일부만 사용</option><option value="none">사용하지 않음</option></select></Field>
+                <Field label="데이터 디지털화 및 원격 접근 *"><select required className={FIELD} value={form.remoteAccess} onChange={e => update('remoteAccess', e.target.value as PublicCbamApplicationDraft['remoteAccess'])}><option value="" disabled>선택하세요</option><option value="yes">예</option><option value="partial">부분적으로 가능</option><option value="no">아니요</option></select></Field>
+                <Field label="EU 커뮤니케이션 템플릿 사용 *"><select required className={FIELD} value={form.communicationTemplate} onChange={e => update('communicationTemplate', e.target.value as PublicCbamApplicationDraft['communicationTemplate'])}><option value="" disabled>선택하세요</option><option value="all">모든 사업자 사용</option><option value="partial">일부만 사용</option><option value="none">사용하지 않음</option></select></Field>
               </div>
               <div className="mt-6"><ChoiceGroup label="구축·인증된 경영시스템" options={MANAGEMENT_SYSTEMS} selected={form.managementSystems} onToggle={value => toggleList('managementSystems', value)} /></div>
             </FormSection>
 
             <FormSection number="04" title="생산·배출 및 검증 준비도" subtitle="Fuel streams, emissions & readiness">
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="MMD(모니터링 방법론 문서)"><select className={FIELD} value={form.mmdStatus} onChange={e => update('mmdStatus', e.target.value as CbamApplicationInput['mmdStatus'])}><option value="clear">제공 가능하며 명확함</option><option value="complex">제공 가능하나 복잡/불명확</option><option value="none">미제공/미작성</option><option value="not_applicable">해당 없음(수입자)</option></select></Field>
-                <Field label="관할권 탄소가격 정보 관련"><select className={FIELD} value={form.carbonPrice} onChange={e => update('carbonPrice', e.target.value as CbamApplicationInput['carbonPrice'])}><option value="no">아니요</option><option value="yes">예</option></select></Field>
-                <Field label="내재배출량 기존 인정 검증"><select className={FIELD} value={form.previouslyVerified} onChange={e => update('previouslyVerified', e.target.value as CbamApplicationInput['previouslyVerified'])}><option value="no">아니요</option><option value="yes">예</option></select></Field>
-                <Field label="바이오매스 연료흐름"><select className={FIELD} value={form.biomass} onChange={e => update('biomass', e.target.value as CbamApplicationInput['biomass'])}><option value="none">없음</option><option value="used_red_compliant">사용, RED II 기준 충족 자료 있음</option><option value="used_review_needed">사용, 기준 충족 검토 필요</option></select></Field>
+                <Field label="MMD(모니터링 방법론 문서) *"><select required className={FIELD} value={form.mmdStatus} onChange={e => update('mmdStatus', e.target.value as PublicCbamApplicationDraft['mmdStatus'])}><option value="" disabled>선택하세요</option><option value="clear">제공 가능하며 명확함</option><option value="complex">제공 가능하나 복잡/불명확</option><option value="none">미제공/미작성</option><option value="not_applicable">해당 없음(수입자)</option></select></Field>
+                <Field label="관할권 탄소가격 정보 관련 *"><select required className={FIELD} value={form.carbonPrice} onChange={e => update('carbonPrice', e.target.value as PublicCbamApplicationDraft['carbonPrice'])}><option value="" disabled>선택하세요</option><option value="no">아니요</option><option value="yes">예</option></select></Field>
+                <Field label="내재배출량 기존 인정 검증 *"><select required className={FIELD} value={form.previouslyVerified} onChange={e => update('previouslyVerified', e.target.value as PublicCbamApplicationDraft['previouslyVerified'])}><option value="" disabled>선택하세요</option><option value="no">아니요</option><option value="yes">예</option></select></Field>
+                <Field label="바이오매스 연료흐름 *"><select required className={FIELD} value={form.biomass} onChange={e => update('biomass', e.target.value as PublicCbamApplicationDraft['biomass'])}><option value="" disabled>선택하세요</option><option value="none">없음</option><option value="used_red_compliant">사용, RED II 기준 충족 자료 있음</option><option value="used_review_needed">사용, 기준 충족 검토 필요</option></select></Field>
                 <Field label="생산공정 설명"><textarea className={`${FIELD} min-h-28`} value={form.productionProcesses} onChange={e => update('productionProcesses', e.target.value)} /></Field>
                 <Field label="연료흐름 설명"><textarea className={`${FIELD} min-h-28`} value={form.fuelStreams} onChange={e => update('fuelStreams', e.target.value)} /></Field>
               </div>

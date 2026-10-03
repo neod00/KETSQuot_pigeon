@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { ApplicationLink } from "./ApplicationLink";
 import { REGULATORY_DATE } from "@/shared/cbam-navigator";
+import { useNavigator } from './NavigatorContext';
 
 const navigation = [
   ["/", "시작하기"],
@@ -18,6 +19,7 @@ const navigation = [
 
 export function NavigatorShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { initialized, remember, setRemember, saveStatus } = useNavigator();
   return (
     <div className="app-shell">
       <aside className="site-sidebar">
@@ -40,7 +42,11 @@ export function NavigatorShell({ children }: { children: ReactNode }) {
           <Link href="/" className="topbar-title">LRQA KOREA <span>/</span> CBAM READINESS</Link>
           <ApplicationLink className="button small">검증 신청 <span aria-hidden="true">↗</span></ApplicationLink>
         </header>
-        <main id="content">{children}</main>
+        <div className="storage-bar">
+          <span role="status">{saveStatus === 'unavailable' ? '브라우저 저장을 사용할 수 없습니다. 창을 닫기 전에 체크리스트를 내려받아 주세요.' : remember ? '이 기기에 자동 저장 · 마지막 작업 후 7일간 이어서 사용' : '현재 탭에 자동 저장 · 새로고침 후 입력 복원'}</span>
+          <label><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} />이 기기에 7일 저장</label>
+        </div>
+        <main id="content">{initialized || pathname === '/' ? children : <p className="page" role="status">저장된 입력을 확인하고 있습니다…</p>}</main>
         <footer>
           <div><strong>LRQA Korea · CBAM Navigator</strong><p>CBAM 대상 확인부터 검증 준비까지 함께합니다.</p><small>규정 데이터 기준일 {REGULATORY_DATE} · 무료 사전 확인 서비스</small></div>
           <div className="footer-links"><Link href="/privacy">개인정보 안내</Link><Link href="/legal">법적 근거 및 면책</Link><a href="https://www.lrqa.com/ko-kr/">LRQA Korea 공식 문의 ↗</a></div>
