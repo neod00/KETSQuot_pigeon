@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { parseApplication, parseNavigator, object } from '@/lib/cbam-intake-schema';
 import { calculateCbamDays, DEFAULT_CBAM_DAY_RATE, DEFAULT_CBAM_EXPENSES, estimateCbamCost, type CbamApplicationInput, type StoredCbamApplication } from '@/lib/cbam';
 import { getIsoRequestSession } from '@/lib/isoAuth';
+import { linkLeadApplication } from '@/lib/cbam-lead-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,10 @@ export async function POST(request: NextRequest) {
     const reference = `CBAM-${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${randomUUID().slice(0, 12).toUpperCase()}`;
     const application: StoredCbamApplication = { ...input, ...calculated, ...(navigatorData ? { source: 'NAVIGATOR' as const, navigatorSessionId: navigatorData.sessionId, navigatorData, consentedAt: date.toISOString() } : {}), reference, submittedAt: date.toISOString(), status: '신규 접수', estimatedCost: estimateCbamCost(calculated.quotedDays) };
     await saveApplication(application);
+    if (navigatorData) {
+      try { await linkLeadApplication(navigatorData.sessionId, input.email, reference); }
+      catch { console.error('Navigator lead linking failed.'); }
+    }
     return NextResponse.json({ application: { reference: application.reference } }, { status: 201 });
   } catch (error) {
     console.error('CBAM application save failed.', error);

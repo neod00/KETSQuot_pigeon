@@ -38,7 +38,7 @@ for (const route of Object.keys(manifest))
     ].includes(route) &&
     !/^\/api\/public\/cbam\/(session|cn-search|application|events)\/route$/.test(
       route,
-    )
+    ) && route !== '/api/public/cbam/leads/route'
   )
     throw new Error(`Unexpected route: ${route}`);
 const prerender = JSON.parse(
@@ -51,7 +51,7 @@ for (const file of await walk(path.join(root, ".next/static")))
   if (/\.(js|json)$/.test(file) && forbidden.test(await readFile(file, "utf8")))
     throw new Error(`Internal data in browser asset: ${file}`);
 const assets = await readdir("public");
-if (assets.some((x) => !["lrqa-logo.png", "fonts"].includes(x)))
+if (assets.some((x) => !["lrqa-logo.png", "fonts", "__forms.html"].includes(x)))
   throw new Error("Unexpected public asset");
 const fonts = await readdir("public/fonts");
 if (fonts.some(x => !["NotoSansKR-Regular.ttf", "OFL.txt"].includes(x)))
