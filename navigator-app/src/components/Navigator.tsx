@@ -4,6 +4,8 @@ import { ApplicationLink } from "./ApplicationLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigator } from "./NavigatorContext";
+import { PreparationChecklist } from './PreparationChecklist';
+import { QUESTION_GUIDANCE, ANSWER_LABELS } from '@/lib/readiness-guidance';
 import {
   CN_NOTICE,
   READINESS_NOTICE,
@@ -134,9 +136,10 @@ export default function Navigator({
   );
 }
 function Home() {
-  const { draft, setDraft } = useNavigator(),
+  const { draft, setDraft, initialized } = useNavigator(),
     router = useRouter();
   const [query, setQuery] = useState(draft.productName || draft.cnCode);
+  useEffect(() => { if (initialized) setQuery(draft.productName || draft.cnCode); }, [initialized]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       <section className="hero">
@@ -260,6 +263,7 @@ function Search() {
     if (ready) {
       setCodes(draft.cnCode);
       setName(draft.productName);
+      setMode(draft.productName ? 'product' : 'codes');
     }
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
   async function search(e: FormEvent) {
@@ -615,7 +619,7 @@ function ProductMap() {
           ))}
         </ol>
         <div className="grid two">
-          <Field label="생산공정 (확인한 내용만 입력)">
+          <Field label="생산공정 (확인한 내용만 입력)" hint="개별 작업 단계입니다. 예: 냉간단조 → 전조 → 열처리 → 표면처리">
             <textarea
               maxLength={500}
               value={draft.productionProcesses}
@@ -624,14 +628,14 @@ function ProductMap() {
               }
             />
           </Field>
-          <Field label="생산경로 (선택)">
+          <Field label="생산경로 (선택)" hint="제품을 만드는 공정의 연결입니다. 여러 경로가 있으면 제품별로 구분해 주세요.">
             <textarea
               maxLength={500}
               value={draft.productionRoute}
               onChange={(e) => setDraft({ productionRoute: e.target.value })}
             />
           </Field>
-          <Field label="관련 전구물질 (선택)">
+          <Field label="관련 전구물질 (선택)" hint="생산에 투입되는 관련 물질입니다. 예: 철강 선재의 품명과 공급업체. 해당 여부를 모르면 확인 필요라고 적어 주세요.">
             <textarea
               maxLength={500}
               value={draft.precursors}
@@ -683,8 +687,10 @@ function Readiness() {
   const { draft, setDraft, track } = useNavigator();
   const scored = scoreReadiness(draft.answers);
   const [show, setShow] = useState(false);
-  const [questionIndex, setQuestionIndex] = useState(0);
+  const questionIndex = draft.readinessIndex;
+  const setQuestionIndex = (readinessIndex: number) => setDraft({ readinessIndex });
   const question = QUESTIONS[questionIndex];
+  const guidance = QUESTION_GUIDANCE[question.id];
   const options = [
     ["ready", "준비됨", "관련 자료와 근거를 확인할 수 있습니다."],
     ["partial", "일부 준비", "일부 자료가 있지만 추가 확인이 필요합니다."],
@@ -698,19 +704,20 @@ function Readiness() {
     <>
       {show && scored.complete ? (
         <section className="readiness-results" aria-live="polite">
-          <div className="results-head"><div><p className="eyebrow">Your readiness snapshot</p><h2>검증 준비도 진단 결과</h2><p>24개 응답을 바탕으로 준비 영역과 확인할 자료를 정리했습니다.</p></div><div className="score">{scored.readinessScore}<small>%</small></div></div>
+          <div className="results-head"><div><p className="eyebrow">Your readiness snapshot</p><h2>검증 준비도 진단 결과</h2><p>24개 응답을 바탕으로 준비 영역과 확인할 자료를 정리했습니다.</p></div><div className="score">{scored.readinessScore}<small>%</small></div></div><PreparationChecklist />
           <div className="results-grid">
             <div className="panel"><h3>영역별 준비도</h3>{Object.entries(scored.readinessCategories).map(([key, value]) => <div className="bar-row" key={key}><span>{CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]}</span><progress max={100} value={value} aria-label={`${CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]} ${value}%`} /><strong>{value}%</strong></div>)}</div>
-            <div className="panel"><h3>우선 확인할 자료</h3>{scored.gapCodes.length ? <ul className="gap-list">{QUESTIONS.filter((q) => scored.gapCodes.includes(q.id)).map((q) => <li key={q.id}><span className="badge">{q.priority}</span> {q.evidence}</li>)}</ul> : <p>응답 기준으로 미비사항이 없습니다. 실제 증빙자료 검토 결과와 다를 수 있습니다.</p>}</div>
+            <div className="panel"><details className="gap-disclosure"><summary>진단 미비항목 {scored.gapCodes.length}개 보기</summary>{scored.gapCodes.length ? <ul className="gap-list">{QUESTIONS.filter((q) => scored.gapCodes.includes(q.id)).map((q) => <li key={q.id}><span className="badge">{q.priority}</span> {q.evidence}</li>)}</ul> : <p>응답 기준으로 미비사항이 없습니다. 실제 증빙자료 검토 결과와 다를 수 있습니다.</p>}</details></div>
           </div>
           <p className="muted">점수는 동일 가중치의 자가진단 지표입니다. 준비됨 1점, 일부 준비 0.5점, 미준비/모름 0점.</p>
+
           <div className="results-actions"><button className="button secondary" onClick={() => setShow(false)}>응답 다시 보기</button><Link className="button secondary" href="/evidence">증빙자료 확인</Link><ApplicationLink className="button">검증 신청 ↗</ApplicationLink></div>
         </section>
       ) : (
         <section className="readiness-flow">
           <div className="readiness-top"><div><p className="eyebrow">Step by step assessment</p><h2>하나씩 확인하며 준비도를 진단하세요</h2></div><strong>{questionIndex + 1} / {QUESTIONS.length}</strong></div>
           <div className="progress-card"><progress value={scored.answered} max={QUESTIONS.length} aria-label="진단 응답 진행률" /><span>{scored.answered}개 응답 완료 · 준비됨 / 일부 준비 / 미준비·모름</span></div>
-          <div className="assessment-grid"><div className="question-panel"><p className="eyebrow">{CATEGORY_LABELS[question.category]} · 질문 {questionIndex + 1}</p><fieldset className="question"><legend>{question.text}</legend><p className="question-hint">현재 준비 상태에 가장 가까운 항목을 선택해 주세요.</p><div className="answer-options">{options.map(([value, label, description]) => <label key={value}><input type="radio" name={question.id} checked={draft.answers[question.id] === value} onChange={() => setDraft({ answers: { ...draft.answers, [question.id]: value as ReadinessAnswer } })} /><span><strong>{label}</strong><small>{description}</small></span></label>)}</div></fieldset><div className="question-actions"><button className="button secondary" disabled={questionIndex === 0} onClick={() => setQuestionIndex(questionIndex - 1)}>이전 질문</button>{questionIndex < QUESTIONS.length - 1 ? <button className="button" disabled={!draft.answers[question.id]} onClick={() => setQuestionIndex(questionIndex + 1)}>다음 질문 →</button> : <button className="button" disabled={!scored.complete} onClick={showResults}>진단 결과 확인 →</button>}</div>{scored.complete && questionIndex < QUESTIONS.length - 1 && <button className="text-button" onClick={showResults}>완료된 진단 결과 보기 →</button>}</div><aside className="assessment-aside"><h3>진단 영역</h3><ol>{Object.entries(CATEGORY_LABELS).map(([key, title], index) => <li key={key} className={question.category === key ? "current" : ""}><button onClick={() => setQuestionIndex(index * 4)} aria-current={question.category === key ? "step" : undefined}>{title}</button><span>{QUESTIONS.filter((q) => q.category === key && draft.answers[q.id]).length}/4</span></li>)}</ol><p>해당 없는 항목은 그 근거가 준비되어 있을 때 ‘준비됨’을 선택하세요.</p></aside></div>
+          <div className="assessment-grid"><div className="question-panel"><p className="eyebrow">{CATEGORY_LABELS[question.category]} · 질문 {questionIndex + 1}</p><fieldset className="question"><legend>{question.text}</legend><p className="question-hint">{guidance.explanation}</p><details className="question-help" key={question.id}><summary>답변 판단을 위한 자료 예시</summary><p>{guidance.example}</p><small>확인할 부서: {guidance.owner}</small><p>자료와 근거를 확인할 수 있으면 준비됨, 일부 자료만 있으면 일부 준비를 선택하세요. 해당 여부를 모르면 미준비 / 모름을 선택하고 확인해 주세요.</p></details><div className="answer-options">{options.map(([value, label, description]) => <label key={value}><input type="radio" name={question.id} checked={draft.answers[question.id] === value} onChange={() => setDraft({ answers: { ...draft.answers, [question.id]: value as ReadinessAnswer } })} /><span><strong>{label}</strong><small>{description}</small></span></label>)}</div></fieldset><div className="question-actions"><button className="button secondary" disabled={questionIndex === 0} onClick={() => setQuestionIndex(questionIndex - 1)}>이전 질문</button>{questionIndex < QUESTIONS.length - 1 ? <button className="button" disabled={!draft.answers[question.id]} onClick={() => setQuestionIndex(questionIndex + 1)}>다음 질문 →</button> : <button className="button" disabled={!scored.complete} onClick={showResults}>진단 결과 확인 →</button>}</div>{questionIndex === QUESTIONS.length - 1 && !scored.complete && <button className="text-button" onClick={() => setQuestionIndex(QUESTIONS.findIndex(q => !draft.answers[q.id]))}>미응답 질문으로 이동 →</button>}{scored.complete && questionIndex < QUESTIONS.length - 1 && <button className="text-button" onClick={showResults}>완료된 진단 결과 보기 →</button>}</div><aside className="assessment-aside"><h3>진단 영역</h3><ol>{Object.entries(CATEGORY_LABELS).map(([key, title], index) => <li key={key} className={question.category === key ? "current" : ""}><button onClick={() => setQuestionIndex(index * 4)} aria-current={question.category === key ? "step" : undefined}>{title}</button><span>{QUESTIONS.filter((q) => q.category === key && draft.answers[q.id]).length}/4</span></li>)}</ol><p>해당 없는 항목은 그 근거가 준비되어 있을 때 ‘준비됨’을 선택하세요.</p></aside></div>
         </section>
       )}
       <Note>{READINESS_NOTICE}</Note>
@@ -730,6 +737,8 @@ function Evidence() {
         자료 파일은 이 화면에서 업로드하지 않습니다. 준비상태만 확인하며 신청 시
         담당자에게 전달할 수 있습니다.
       </Note>
+      <p className="muted">자가진단 응답은 준비 수준에 대한 판단입니다. 자료 확보상태는 실제 파일과 근거를 찾아 확인한 기록입니다. 응답을 참고해 자료를 확인한 뒤 상태를 선택해 주세요.</p>
+      <PreparationChecklist />
       {!scored.complete && (
         <p>
           진단을 완료하면 필요한 자료를 더 쉽게 확인할 수 있습니다.{" "}
@@ -750,7 +759,9 @@ function Evidence() {
             <span className="badge">{q.priority}</span>
             <h3>{q.evidence}</h3>
             <p>{CATEGORY_LABELS[q.category]}</p>
-            <Field label="자료 준비상태">
+            <p className="answer-reference">자가진단 응답: <strong>{ANSWER_LABELS[draft.answers[q.id]] || '미응답'}</strong></p>
+            <p className="evidence-example">자료 예시: {QUESTION_GUIDANCE[q.id].example}<br />확인할 부서: {QUESTION_GUIDANCE[q.id].owner}</p>
+            <Field label="실제 자료 확보상태">
               <select
                 value={draft.evidence[q.id] || ""}
                 onChange={(e) =>
@@ -816,8 +827,12 @@ function PrivacyNotice({ privacy }: { privacy: Privacy }) {
       </p>
       <h2>익명 세션과 이용기록</h2>
       <p>
-        필수 세션 쿠키는 24시간 유지됩니다. 현재 탭의 저장소에는 CN 코드와 진단
-        응답을 보관하며, 연락처와 자유입력 내용은 저장하지 않습니다.
+        필수 세션 쿠키는 24시간 유지됩니다. 현재 탭의 저장소에는 제품명, CN 코드,
+        공정·사업장, 적용 가능성 입력, 진단 응답과 자료 상태를 자동 보관해 새로고침 후 복원합니다.
+        현재 탭의 저장 내용은 마지막 작업 후 최대 24시간까지 복원할 수 있으며 탭을 닫으면 사라집니다.
+        ‘이 기기에 7일 저장’을 선택하면 같은 브라우저에서 마지막 작업 후 7일간 이어서 사용할 수 있습니다.
+        선택을 해제하면 기기 저장본을 삭제하고 현재 탭의 입력은 유지합니다. 공용 기기에서는 이 옵션을 선택하지 마세요.
+        검증 신청서의 연락처와 동의 내용은 이 저장 기능에 포함되지 않습니다.
         이용기록에는 검색어·연락처·세션 ID를 남기지 않습니다. 요청 제한에는
         변환된 접속주소 식별자를 사용하며 최대 24시간 보관합니다. 호스팅
         사업자의 기본 접속기록 처리는 위 운영 안내에 따릅니다.

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { CbamApplicationInput } from "@/shared/cbam-input";
+import { TAB_STORAGE, DEVICE_STORAGE, DEVICE_RETENTION, readSavedDraft, serializeDraft } from '@/lib/draft-storage';
 import type {
   ReadinessAnswer,
   EvidenceStatus,
@@ -30,6 +31,7 @@ export type Draft = {
   allImports: boolean;
   answers: Record<string, ReadinessAnswer>;
   evidence: Record<string, EvidenceStatus>;
+  readinessIndex: number;
 };
 const empty: Draft = {
   sessionId: "",
@@ -49,6 +51,7 @@ const empty: Draft = {
   allImports: false,
   answers: {},
   evidence: {},
+  readinessIndex: 0,
 };
 type Context = {
   draft: Draft;
@@ -59,16 +62,33 @@ type Context = {
   error: string;
   track: (event: NavigatorEvent) => void;
   clear: () => void;
+  initialized: boolean;
+  remember: boolean;
+  setRemember: (value: boolean) => void;
+  saveStatus: 'saved' | 'unavailable';
 };
 const Context = createContext<Context | null>(null);
-const STORAGE = "lrqa-cbam-navigator-v1";
 export function NavigatorProvider({ children }: { children: ReactNode }) {
   const [draft, set] = useState<Draft>(empty);
   const [application, setForm] = useState<Partial<CbamApplicationInput>>({});
   const [ready, setReady] = useState(false),
     [error, setError] = useState("");
+  const [initialized, setInitialized] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'unavailable'>('saved');
   useEffect(() => {
     let active = true;
+    let restored: Partial<Draft> = {};
+    try {
+      const tab = readSavedDraft(sessionStorage.getItem(TAB_STORAGE));
+      const device = readSavedDraft(localStorage.getItem(DEVICE_STORAGE));
+      if (!device) localStorage.removeItem(DEVICE_STORAGE);
+      const saved = device && (!tab || device.savedAt > tab.savedAt) ? device : tab;
+      restored = saved?.draft || {};
+      setRemember(!!device);
+    } catch { setSaveStatus('unavailable'); }
+    set({ ...empty, ...restored });
+    setInitialized(true);
     fetch("/api/public/cbam/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -81,19 +101,11 @@ export function NavigatorProvider({ children }: { children: ReactNode }) {
       })
       .then((result) => {
         if (!active) return;
-        let saved: Partial<Draft> = {};
-        try {
-          const value = JSON.parse(sessionStorage.getItem(STORAGE) || "{}");
-          if (value.sessionId === result.sessionId) saved = value;
-        } catch {
-          /* private browsing */
-        }
-        set({
-          ...empty,
-          ...saved,
+        set(current => ({
+          ...current,
           sessionId: result.sessionId,
-          startedAt: saved.startedAt || new Date().toISOString(),
-        });
+          startedAt: current.startedAt || new Date().toISOString(),
+        }));
         setReady(true);
       })
       .catch((e) => {
@@ -104,25 +116,16 @@ export function NavigatorProvider({ children }: { children: ReactNode }) {
     };
   }, []);
   useEffect(() => {
-    if (!ready) return;
-    // Only diagnostic answers/codes persist. Free text, sites and contacts stay in memory.
+    if (!initialized) return;
     try {
-      sessionStorage.setItem(
-        STORAGE,
-        JSON.stringify({
-          sessionId: draft.sessionId,
-          startedAt: draft.startedAt,
-          cnCode: draft.cnCode,
-          sector: draft.sector,
-          searchedCnCodes: draft.searchedCnCodes,
-          answers: draft.answers,
-          evidence: draft.evidence,
-        }),
-      );
+      sessionStorage.setItem(TAB_STORAGE, serializeDraft(draft, 24 * 60 * 60 * 1000));
+      if (remember) localStorage.setItem(DEVICE_STORAGE, serializeDraft(draft, DEVICE_RETENTION));
+      else localStorage.removeItem(DEVICE_STORAGE);
+      setSaveStatus('saved');
     } catch {
-      /* optional persistence */
+      setSaveStatus('unavailable');
     }
-  }, [draft, ready]);
+  }, [draft, initialized, remember]);
   const track = (event: NavigatorEvent) => {
     if (ready)
       void fetch("/api/public/cbam/events", {
@@ -139,6 +142,10 @@ export function NavigatorProvider({ children }: { children: ReactNode }) {
         application,
         setApplication: (v) => setForm((current) => ({ ...current, ...v })),
         ready,
+        initialized,
+        remember,
+        setRemember,
+        saveStatus,
         error,
         track,
         clear: () => {
