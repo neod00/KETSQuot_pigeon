@@ -4,6 +4,7 @@ import { verifyIntake } from '@/lib/cbam-intake-signature';
 import { parseIntake } from '@/lib/cbam-intake-schema';
 import { calculateCbamDays, estimateCbamCost, type StoredCbamApplication } from '@/lib/cbam';
 import { createApplicationOnce } from '@/lib/cbam-store';
+import { linkLeadApplication } from '@/lib/cbam-lead-store';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -31,6 +32,8 @@ export async function POST(request: NextRequest) {
     };
     const saved = await createApplicationOnce(application);
     if (saved.intakeDigest !== digest) return json({ message: '동일 접수 요청의 내용이 변경되었습니다.' }, 409);
+    try { await linkLeadApplication(parsed.navigatorData.sessionId, parsed.application.email, saved.reference); }
+    catch { console.error('Navigator lead application link failed'); }
     return json({ reference: saved.reference }, 201);
   } catch { return json({ message: '신청을 저장하지 못했습니다.' }, 503); }
 }

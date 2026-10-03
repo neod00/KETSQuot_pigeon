@@ -1,6 +1,8 @@
 # CBAM business documents
 
-The evidence page and completed readiness results create documents in the browser. Report metadata stays in component state and is neither persisted nor submitted. Diagnostic responses and evidence states are snapshots; editing the workbook does not change Navigator data.
+The evidence page and completed readiness results create documents in the browser after successful lead registration. Company, contact name, phone, email and collection/use consent are required. Contact details, report metadata and a diagnostic/evidence snapshot are submitted to the authenticated intake and stored in the portal's `cbam-navigator-leads` Netlify Blob store. Contact fields remain in component memory, not browser draft storage. Editing the workbook does not change Navigator data.
+
+Document requests and consultation requests are distinct. The same session and email accumulate in one record. Only explicit consultation requests submit the `cbam-consultation` Netlify Form and request an email notification. Failed notifications remain visible and can be retried from CBAM management's Navigator intake tab. Administrators can manage status, assignee and notes. A later formal application links the matching lead. Netlify Forms detection and the recipient email hook must be configured separately on the Navigator site.
 
 - PDF: A4 report summary, three priority actions, user-entered support requests, and all 24 diagnostic/evidence records. Unfinished diagnoses show no final percentage. Long text continues on additional pages.
 - XLSX: report summary, outstanding cooperation requests with editable department/owner/date/status/notes, and the complete diagnostic snapshot. Evidence marked ready or not applicable is excluded from requests. Example departments require review before circulation.
@@ -27,4 +29,4 @@ font.save('public/fonts/NotoSansKR-Regular.ttf')
 
 ## Validation
 
-Run `npm test`, `npm run build`, and `npm run audit:public`. Tests reopen generated PDF/XLSX files and cover incomplete diagnoses, literal user text, evidence exclusions, dates, workflow controls and long metadata. Visual QA must render the actual browser-downloaded PDFs with Poppler and inspect all worksheet views. Existing KETSQuot portal files are outside this change.
+Run `npm test`, `npm run build`, and `npm run audit:public`. Tests reopen generated PDF/XLSX files and cover incomplete diagnoses, literal user text, evidence exclusions, dates, workflow controls and long metadata. Lead tests cover validation, deduplication, notification retry and application linking. The portal adds a dedicated intake API and administrator tab.

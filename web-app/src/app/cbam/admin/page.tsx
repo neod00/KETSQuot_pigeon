@@ -14,6 +14,7 @@ import {
 import CnCodeChecker from './CnCodeChecker';
 import { P1173EnquiryEditor } from './P1173EnquiryEditor';
 import { QUESTIONS } from '@/lib/cbam-navigator';
+import NavigatorLeads from './NavigatorLeads';
 
 export default function CbamAdminPage() {
   const [applications, setApplications] = useState<StoredCbamApplication[]>([]);
@@ -21,7 +22,7 @@ export default function CbamAdminPage() {
   const [adminKey, setAdminKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'applications' | 'cn-checker'>('applications');
+  const [view, setView] = useState<'applications' | 'cn-checker' | 'leads'>('applications');
   const [editing, setEditing] = useState<StoredCbamApplication | null>(null);
   const [pricingEditing, setPricingEditing] = useState<StoredCbamApplication | null>(null);
 
@@ -43,6 +44,7 @@ export default function CbamAdminPage() {
   }, [adminKey]);
 
   useEffect(() => { const savedKey = sessionStorage.getItem('cbamAdminKey') || ''; setAdminKey(savedKey); load(savedKey); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (new URLSearchParams(window.location.search).get('view') === 'leads') setView('leads'); }, []);
 
   const stats = useMemo(() => ({
     total: applications.length,
@@ -89,6 +91,7 @@ export default function CbamAdminPage() {
         <nav className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="CBAM 내부 관리 메뉴">
           <button type="button" onClick={() => setView('applications')} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === 'applications' ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>신청서 관리</button>
           <button type="button" onClick={() => setView('cn-checker')} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === 'cn-checker' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>CN 코드·제품 판정</button>
+          <button type="button" onClick={() => setView('leads')} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === 'leads' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>Navigator 진단 접수</button>
         </nav>
         {view === 'applications' ? <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_.85fr]">
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -104,7 +107,7 @@ export default function CbamAdminPage() {
           <aside className="xl:sticky xl:top-5">
             {selected ? <ApplicationDetail application={selected} onCheckCnCodes={() => setView('cn-checker')} onEdit={() => setEditing(selected)} onEditPricing={() => setPricingEditing(selected)} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">신청서를 선택해 주세요.</div>}
           </aside>
-        </div> : <CnCodeChecker adminKey={adminKey} initialCodes={selected?.cnCodes || ''} applicationReference={selected?.reference} companyName={selected?.companyName} />}
+        </div> : view === 'leads' ? <NavigatorLeads /> : <CnCodeChecker adminKey={adminKey} initialCodes={selected?.cnCodes || ''} applicationReference={selected?.reference} companyName={selected?.companyName} />}
       </div>
       {editing && <P1173EnquiryEditor application={editing} onClose={() => setEditing(null)} onSave={saveApplication} />}
       {pricingEditing && <PricingEditor application={pricingEditing} onClose={() => setPricingEditing(null)} onSave={savePricing} />}

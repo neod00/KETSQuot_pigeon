@@ -14,6 +14,7 @@ const files = [
   "cbam-regulatory.ts",
   "cbam-intake-schema.ts",
   "cbam-intake-signature.ts",
+  "cbam-lead.ts",
 ];
 await mkdir(path.join(root, "src/shared"), { recursive: true });
 const existing = await readdir(path.join(root, "src/shared"));
