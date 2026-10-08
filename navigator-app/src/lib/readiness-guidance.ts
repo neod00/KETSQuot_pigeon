@@ -31,9 +31,13 @@ export const QUESTION_GUIDANCE: Record<string, Guidance> = {
 export const ANSWER_LABELS: Record<ReadinessAnswer, string> = { ready: '준비됨', partial: '일부 준비', missing: '미준비 / 모름' };
 export const EVIDENCE_LABELS: Record<EvidenceStatus, string> = { ready: '준비 완료', partial: '일부 준비', missing: '미준비', not_applicable: '해당 없음 (근거 확인 필요)' };
 
+export function needsEvidenceFollowup(status: EvidenceStatus | undefined) {
+  return status !== 'ready' && status !== 'not_applicable';
+}
+
 export function recommendedActions(draft: Pick<Draft, 'answers' | 'evidence'>) {
   const priority = { '중요': 0, '보완 필요': 1, '확인 권장': 2 };
-  return QUESTIONS.filter(q => draft.evidence[q.id] !== 'ready' && draft.evidence[q.id] !== 'not_applicable')
+  return QUESTIONS.filter(q => needsEvidenceFollowup(draft.evidence[q.id]))
     .map(q => ({ ...q, ...QUESTION_GUIDANCE[q.id], confirmOnly: draft.answers[q.id] === 'ready' && !draft.evidence[q.id] }))
     .sort((a, b) => Number(a.confirmOnly) - Number(b.confirmOnly) || priority[a.priority] - priority[b.priority] || Number(draft.answers[b.id] === 'missing') - Number(draft.answers[a.id] === 'missing'));
 }

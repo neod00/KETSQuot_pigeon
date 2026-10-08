@@ -12,6 +12,7 @@
     "build": "next build",
     "start": "next start --port 3100",
     "test": "npm run sync && tsx --test tests/*.test.ts",
+    "test:priority-fixes": "tsx tests/priority-fixes.integration.ts",
     "check": "tsc --noEmit",
     "audit:public": "node scripts/audit-public.mjs"
   },

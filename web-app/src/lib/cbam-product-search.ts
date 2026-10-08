@@ -1,4 +1,4 @@
-import { CBAM_SCOPE_RULE_SUMMARY, CBAM_SCOPE_VERSION, CBAM_CN_VERSION, normalizeCnCode, assessCnCode, type CbamProductCandidate } from './cbam-cn';
+import { CBAM_SCOPE_RULE_SUMMARY, CBAM_SCOPE_VERSION, CBAM_CN_VERSION, normalizeCnCode, assessCnCode, matchesProductMaterial, type CbamProductCandidate } from './cbam-cn';
 type ProductSearchInput = {
   kind: 'product';
   productName: string;
@@ -119,6 +119,8 @@ export async function searchWithAi(input: ProductSearchInput): Promise<{ candida
     const candidates = (parsed.candidates || []).flatMap(candidate => {
       const code = normalizeCnCode(candidate.code);
       if (![2, 4, 5, 6, 8].includes(code.length) || seen.has(code)) return [];
+      const assessment = assessCnCode(code);
+      if (!matchesProductMaterial(input, assessment.sector)) return [];
       seen.add(code);
       return [{
         code,
@@ -128,7 +130,7 @@ export async function searchWithAi(input: ProductSearchInput): Promise<{ candida
         confidence: candidate.confidence,
         missingInformation: candidate.missingInformation,
         source: 'ai' as const,
-        assessment: assessCnCode(code),
+        assessment,
       }];
     });
     return { candidates, model };

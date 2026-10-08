@@ -281,12 +281,9 @@ try {
     .getByLabel("제품명 또는 CN 코드", { exact: true })
     .fill("7318 15 90");
   await page.getByRole("button", { name: "CBAM 대상 확인" }).click();
-  await page
-    .getByRole("button", { name: "대상 여부 확인", exact: true })
-    .click();
-  await page.getByText("CBAM 대상", { exact: true }).waitFor();
+  await page.getByText("CN 코드 유효성 미확인", { exact: true }).waitFor();
   await page.getByRole("button", { name: "이 코드로 계속하기" }).click();
-  await page.getByRole("link", { name: "거래 적용 가능성 확인" }).click();
+  await page.waitForURL(base + '/applicability');
   assert.equal(
     await page.getByLabel("검토할 CN 코드").inputValue(),
     "73181590",

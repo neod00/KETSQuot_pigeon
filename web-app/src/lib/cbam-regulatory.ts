@@ -40,7 +40,7 @@ export const CBAM_CN_MASTER = [
 export function assessApplicability(input: { euExport: string; cnCode: string; origin: string; importer: string; mass: string; allImports: boolean }) {
   if (input.euExport === 'no') return '현재 입력한 거래는 EU 반입 거래가 아닙니다. 향후 거래가 바뀌면 다시 확인하세요.';
   const a = assessCnCode(input.cnCode);
-  if (a.status === 'out_of_scope') return '입력한 코드가 CBAM 대상 범위에 포함되지 않습니다. 실제 통관 코드의 유효성을 확인하세요.';
+  if (a.status === 'out_of_scope') return '입력한 코드가 CBAM 포함 규칙과 일치하지 않거나 명시적 제외 규칙에 해당합니다. 현재 유효한 CN 코드와 실제 통관 분류를 확인한 후 비대상 여부를 판단하세요.';
   if (input.euExport !== 'yes' || a.status !== 'in_scope' || !input.origin || !input.importer) return '추가 정보 확인이 필요합니다. EU 반입 여부, 최종 CN 코드, 원산지와 수입자 역할을 확인하세요.';
   if (['CH', 'IS', 'LI', 'NO'].includes(input.origin)) return 'Annex III의 원산지 제외 적용 가능성을 확인하세요. 발송국이 아닌 관세 원산지 기준입니다.';
   if (a.sector === '전력' || a.sector === '수소') return 'CBAM 적용 가능성이 높습니다. 전력·수소에는 연간 50톤 면제가 적용되지 않습니다. 기타 제외조건을 확인하세요.';

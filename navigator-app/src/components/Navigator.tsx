@@ -2,10 +2,10 @@
 import Link from "next/link";
 import { ApplicationLink } from "./ApplicationLink";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { useNavigator } from "./NavigatorContext";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useNavigator, type SearchRequest } from "./NavigatorContext";
 import { PreparationChecklist } from './PreparationChecklist';
-import { QUESTION_GUIDANCE, ANSWER_LABELS } from '@/lib/readiness-guidance';
+import { QUESTION_GUIDANCE, ANSWER_LABELS, needsEvidenceFollowup } from '@/lib/readiness-guidance';
 import {
   CN_NOTICE,
   READINESS_NOTICE,
@@ -23,7 +23,7 @@ import {
   productStructure,
   assessApplicability,
 } from "@/shared/cbam-regulatory";
-import { assessCnCode, type CbamCnAssessment } from "@/shared/cbam-cn";
+import { assessCnCode, TARIC_SOURCE, type CbamCnAssessment } from "@/shared/cbam-cn";
 type Privacy = { retention: string; contact: string };
 const titles: Record<string, [string, string]> = {
   "cn-search": [
@@ -136,7 +136,7 @@ export default function Navigator({
   );
 }
 function Home() {
-  const { draft, setDraft, initialized } = useNavigator(),
+  const { draft, setDraft, initialized, queueSearch } = useNavigator(),
     router = useRouter();
   const [query, setQuery] = useState(draft.productName || draft.cnCode);
   useEffect(() => { if (initialized) setQuery(draft.productName || draft.cnCode); }, [initialized]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -159,11 +159,15 @@ function Home() {
             className="hero-search"
             onSubmit={(e) => {
               e.preventDefault();
+              const value = query.trim();
+              if (!value) return;
+              const isCode = /^[\d\s,;|/-]+$/.test(value);
               setDraft(
-                /^[\d\s-]+$/.test(query)
-                  ? { cnCode: query, productName: "" }
-                  : { productName: query, cnCode: "" },
+                isCode
+                  ? { cnCode: value, productName: "" }
+                  : { productName: value, cnCode: "" },
               );
+              queueSearch(isCode ? { kind: 'codes', codes: value } : { kind: 'product', productName: value });
               router.push("/cn-search");
             }}
           >
@@ -172,12 +176,13 @@ function Home() {
             </label>
             <input
               id="home-query"
+              required
               maxLength={200}
               placeholder="제품명 또는 CN 코드를 입력하세요"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button className="button" type="submit">
+            <button className="button" type="submit" disabled={!initialized}>
               CBAM 대상 확인 →
             </button>
           </form>
@@ -243,7 +248,9 @@ function Home() {
   );
 }
 function Search() {
-  const { draft, setDraft, ready, track } = useNavigator();
+  const { draft, setDraft, ready, track, pendingSearch, queueSearch } = useNavigator();
+  const router = useRouter();
+  const handledSearch = useRef<SearchRequest | null>(null);
   const [mode, setMode] = useState(draft.productName ? "product" : "codes");
   const [codes, setCodes] = useState(draft.cnCode),
     [name, setName] = useState(draft.productName);
@@ -254,33 +261,35 @@ function Search() {
       unit?: string;
       candidateTitle?: string;
       missing?: string[];
+      calculationSourceUrl?: string;
+      calculationReference?: string;
     })[]
   >([]);
   const [message, setMessage] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (ready) {
-      setCodes(draft.cnCode);
-      setName(draft.productName);
-      setMode(draft.productName ? 'product' : 'codes');
+    if (ready && pendingSearch && handledSearch.current !== pendingSearch) {
+      handledSearch.current = pendingSearch;
+      queueSearch(null);
+      void runSearch(pendingSearch);
     }
-  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
-  async function search(e: FormEvent) {
+  }, [ready, pendingSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+  function search(e: FormEvent) {
     e.preventDefault();
+    void runSearch(mode === 'codes' ? { kind: 'codes', codes } : { kind: 'product', productName: name, ...extra });
+  }
+  async function runSearch(input: SearchRequest) {
     setBusy(true);
     setError("");
     setResults([]);
+    setMessage("");
     track("CN_SEARCH");
     try {
       const response = await fetch("/api/public/cbam/cn-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          mode === "codes"
-            ? { kind: "codes", codes }
-            : { kind: "product", productName: name, ...extra },
-        ),
+        body: JSON.stringify(input),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message);
@@ -300,7 +309,7 @@ function Search() {
       setResults(items);
       setMessage(result.message || "코드 범위 확인 결과입니다.");
       setDraft({
-        productName: mode === "product" ? name : draft.productName,
+        productName: input.kind === 'product' ? input.productName : draft.productName,
         searchedCnCodes: [
           ...new Set([
             ...draft.searchedCnCodes,
@@ -322,12 +331,14 @@ function Search() {
       <section className="panel">
         <div className="tabs" role="group" aria-label="검색방법">
           <button
+            disabled={busy}
             aria-pressed={mode === "codes"}
             onClick={() => setMode("codes")}
           >
             CN 코드로 검색
           </button>
           <button
+            disabled={busy}
             aria-pressed={mode === "product"}
             onClick={() => setMode("product")}
           >
@@ -399,11 +410,15 @@ function Search() {
         {results.map((r, i) => (
           <article className="panel result" key={`${r.input}-${i}`}>
             <div className="result-top">
-              <span className={`badge ${r.status}`}>{r.statusLabel}</span>
+              <span className={`badge ${r.status === 'invalid' ? 'invalid' : 'conditional'}`}>
+                {r.status === 'invalid' ? r.statusLabel : r.candidateTitle ? '분류 후보 · 확인 필요' : r.normalized.length === 8 ? 'CN 코드 유효성 미확인' : '상위 코드 범위 확인'}
+              </span>
               <strong className="code">{r.displayCode}</strong>
             </div>
             <h2>{r.candidateTitle || r.descriptionKo}</h2>
+            {r.status !== 'invalid' && <p><strong>{r.candidateTitle ? '후보 코드의 CBAM 범위' : '입력 코드의 CBAM 범위'}:</strong> {r.status === 'in_scope' ? 'Annex I 포함 규칙과 일치' : r.status === 'out_of_scope' ? r.matchedRule ? 'Annex I 명시적 제외 규칙과 일치' : 'Annex I 포함 규칙과 불일치' : r.statusLabel}</p>}
             <p>{r.explanation}</p>
+            {r.status !== 'invalid' && <p>{r.candidateTitle ? '추천 후보는 제품의 CN 분류를 확정하지 않습니다. 재질·형태·용도와 실제 통관 코드를 대조하세요. ' : ''}현재 유효한 CN 코드인지 별도 확인해야 하며, 이 결과만으로 대상·비대상을 확정할 수 없습니다. <a href={TARIC_SOURCE} target="_blank" rel="noopener noreferrer">EU TARIC에서 코드 확인 ↗</a></p>}
             <dl className="facts">
               <div>
                 <dt>산업분야</dt>
@@ -418,13 +433,14 @@ function Search() {
                 <dd>{r.greenhouseGases.join(", ") || "해당 없음"}</dd>
               </div>
               <div>
-                <dt>법적 근거</dt>
+                <dt>대상 범위 근거</dt>
                 <dd>
                   <a href={r.sourceUrl}>
                     {r.matchedRule || "2023/956 Annex I"} ↗
                   </a>
                 </dd>
               </div>
+              {r.calculationSourceUrl && <div><dt>품목군·산정 근거</dt><dd><a href={r.calculationSourceUrl}>{r.calculationReference} ↗</a></dd></div>}
             </dl>
             {r.missing?.length ? (
               <p>추가 확인: {r.missing.join(", ")}</p>
@@ -433,13 +449,12 @@ function Search() {
             {r.status !== "invalid" && (
               <button
                 className="button secondary"
-                onClick={() =>
-                  setDraft({ cnCode: r.normalized, sector: r.sector || "" })
-                }
+                onClick={() => {
+                  setDraft({ cnCode: r.normalized, sector: r.sector || "" });
+                  router.push('/applicability');
+                }}
               >
-                {draft.cnCode === r.normalized
-                  ? "선택됨 ✓"
-                  : "이 코드로 계속하기"}
+                이 코드로 계속하기 →
               </button>
             )}
           </article>
@@ -729,7 +744,7 @@ function Evidence() {
   const scored = scoreReadiness(draft.answers);
   const [onlyGaps, setOnlyGaps] = useState(false);
   const questions = QUESTIONS.filter(
-    (q) => !onlyGaps || draft.answers[q.id] !== "ready",
+    (q) => !onlyGaps || needsEvidenceFollowup(draft.evidence[q.id]),
   );
   return (
     <>
@@ -751,7 +766,7 @@ function Evidence() {
           checked={onlyGaps}
           onChange={(e) => setOnlyGaps(e.target.checked)}
         />
-        미비사항 관련 자료만 보기
+        미확보·확인 전 자료만 보기
       </label>
       <div className="evidence-grid">
         {questions.map((q) => (

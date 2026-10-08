@@ -33,6 +33,9 @@ export type Draft = {
   evidence: Record<string, EvidenceStatus>;
   readinessIndex: number;
 };
+export type SearchRequest =
+  | { kind: 'codes'; codes: string }
+  | { kind: 'product'; productName: string; material?: string; form?: string; use?: string };
 const empty: Draft = {
   sessionId: "",
   startedAt: "",
@@ -54,6 +57,8 @@ const empty: Draft = {
   readinessIndex: 0,
 };
 type Context = {
+  pendingSearch: SearchRequest | null;
+  queueSearch: (value: SearchRequest | null) => void;
   draft: Draft;
   setDraft: (value: Partial<Draft>) => void;
   application: Partial<CbamApplicationInput>;
@@ -70,6 +75,7 @@ type Context = {
 const Context = createContext<Context | null>(null);
 export function NavigatorProvider({ children }: { children: ReactNode }) {
   const [draft, set] = useState<Draft>(empty);
+  const [pendingSearch, queueSearch] = useState<SearchRequest | null>(null);
   const [application, setForm] = useState<Partial<CbamApplicationInput>>({});
   const [ready, setReady] = useState(false),
     [error, setError] = useState("");
@@ -137,6 +143,8 @@ export function NavigatorProvider({ children }: { children: ReactNode }) {
   return (
     <Context.Provider
       value={{
+        pendingSearch,
+        queueSearch,
         draft,
         setDraft: (v) => set((current) => ({ ...current, ...v })),
         application,
@@ -149,6 +157,7 @@ export function NavigatorProvider({ children }: { children: ReactNode }) {
         error,
         track,
         clear: () => {
+          queueSearch(null);
           setForm({});
           set((current) => ({
             ...empty,

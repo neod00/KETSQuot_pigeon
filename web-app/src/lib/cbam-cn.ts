@@ -17,6 +17,7 @@ export type CbamCnAssessment = {
   explanation: string;
   sourceVersion: string;
   sourceUrl: string;
+  codeValidity: 'unverified' | 'invalid_format';
 };
 
 export type CbamProductCandidate = {
@@ -61,12 +62,15 @@ export function assessCnCode(input: string): CbamCnAssessment {
     displayCode: formatCnCode(normalized),
     sourceVersion: `${CBAM_SCOPE_VERSION} · ${CBAM_CN_VERSION}`,
     sourceUrl: CBAM_SCOPE_SOURCE,
+    // Annex I prefix rules are not a complete, current CN code register.
+    codeValidity: 'unverified' as const,
   };
 
   if (!/^[0-9\s-]+$/.test(input) || !allowedLengths.includes(normalized.length)) {
     return {
       ...base,
       status: 'invalid',
+      codeValidity: 'invalid_format',
       statusLabel: STATUS_LABELS.invalid,
       descriptionKo: 'CN 코드는 2·4·5·6·8자리 숫자로 입력해 주세요.',
       greenhouseGases: [],
@@ -163,11 +167,26 @@ function normalizedText(value: string) {
   return value.toLocaleLowerCase('ko-KR').replace(/\s+/g, ' ').trim();
 }
 
+// Only product/material text determines compatibility; a use such as
+// "plastic pipe fitting" must not change the material of a steel product.
+export function matchesProductMaterial(input: { productName: string; material?: string }, sector?: string) {
+  if (sector !== '철강' && sector !== '알루미늄') return true;
+  const text = normalizedText(`${input.productName} ${input.material || ''}`);
+  const steel = /철강|강철|철제|철재|주철|탄소강|합금강|스테인리스|스텐|\b(?:steel|iron)\b/i.test(text);
+  const aluminium = /알루미늄|\b(?:aluminium|aluminum)\b/i.test(text);
+  const other = /플라스틱|폴리프로필렌|폴리에틸렌|나일론|폴리머|수지|황동|구리|동제|청동|티타늄|목재|\b(?:plastic|polypropylene|polyethylene|nylon|polymer|resin|pvc|ptfe|brass|copper|bronze|titanium|wood)\b/i.test(text);
+  if (steel && aluminium) return true; // Composite/ambiguous products need classification review.
+  if (steel) return sector === '철강';
+  if (aluminium) return sector === '알루미늄';
+  return !other;
+}
+
 export function searchProductCatalog(input: { productName: string; material?: string; form?: string; use?: string }): CbamProductCandidate[] {
   const query = normalizedText([input.productName, input.material, input.form, input.use].filter(Boolean).join(' '));
   if (!query) return [];
 
   const scored = [...INCLUDED_RULES, ...CONDITIONAL_RULES]
+    .filter(rule => matchesProductMaterial(input, rule.sector))
     .map(rule => {
       const searchable = normalizedText([rule.descriptionKo, rule.descriptionEn, ...rule.aliases].join(' '));
       const aliasMatches = rule.aliases.filter(alias => query.includes(normalizedText(alias)) || searchable.includes(query)).length;
