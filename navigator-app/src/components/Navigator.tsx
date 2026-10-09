@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { useNavigator, type SearchRequest } from "./NavigatorContext";
 import { PreparationChecklist } from './PreparationChecklist';
 import { GUIDE_STEPS, guideHref } from '@/lib/user-guide';
-import { QUESTION_GUIDANCE, ANSWER_LABELS, needsEvidenceFollowup } from '@/lib/readiness-guidance';
+import { QUESTION_GUIDANCE } from '@/lib/readiness-guidance';
 import { buildApplicabilityGuidance, APPLICABILITY_FIELD_LABELS, type ApplicabilityGuidance, type ApplicabilityField } from '@/lib/applicability-guidance';
 import {
   CN_NOTICE,
@@ -18,7 +18,6 @@ import {
   scoreReadiness,
   type NavigatorEvent,
   type ReadinessAnswer,
-  type EvidenceStatus,
 } from "@/shared/cbam-navigator";
 import {
   REGULATIONS,
@@ -42,10 +41,6 @@ const titles: Record<string, [string, string]> = {
   readiness: [
     "검증 준비도 진단",
     "6개 영역의 24개 질문으로 현재 준비상태를 확인하세요.",
-  ],
-  evidence: [
-    "검증 준비자료 확인",
-    "진단에서 확인된 미비사항과 연결되는 자료를 준비하세요.",
   ],
   application: [
     "CBAM 검증 신청",
@@ -91,9 +86,11 @@ function Next({ href, children }: { href: string; children: ReactNode }) {
 }
 export default function Navigator({
   step,
+  readinessView,
   privacy = { retention: "", contact: "" },
 }: {
   step: string;
+  readinessView?: 'results' | 'questions';
   privacy?: Privacy;
 }) {
   const { ready, error, track } = useNavigator();
@@ -104,7 +101,6 @@ export default function Navigator({
       applicability: "APPLICABILITY_START",
       "product-map": "PRODUCT_MAP_VIEW",
       readiness: "READINESS_START",
-      evidence: "EVIDENCE_VIEW",
       application: "APPLICATION_STARTED",
     };
     if (events[step]) track(events[step]);
@@ -129,8 +125,7 @@ export default function Navigator({
       {step === "cn-search" && <Search />}
       {step === "applicability" && <Applicability />}
       {step === "product-map" && <ProductMap />}
-      {step === "readiness" && <Readiness />}
-      {step === "evidence" && <Evidence />}
+      {step === "readiness" && <Readiness view={readinessView} />}
       {step === "application" && <Application />}
       {step === "privacy" && <PrivacyNotice privacy={privacy} />}
       {step === "legal" && <Legal />}
@@ -210,7 +205,7 @@ function Home() {
                   [
                     "CN 코드·적용 가능성",
                     "제품·공정·검증 준비도",
-                    "증빙자료·검증 신청",
+                    "진단 결과·자료 준비·검증 신청",
                   ][i]
                 }
               </small>
@@ -225,13 +220,13 @@ function Home() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">필요한 단계부터 시작하세요</p>
-            <h2>검증 준비를 위한 6가지 도구</h2>
+            <h2>검증 준비를 위한 5가지 도구</h2>
           </div>
           <p>검색과 진단 결과는 신청서로 이어집니다.</p>
         </div>
         <div className="tool-grid">
           {Object.entries(titles)
-            .slice(0, 6)
+            .slice(0, 5)
             .map(([key, [title, desc]], i) => (
               key === "application" ? <ApplicationLink className="tool-card" key={key}><span className="tool-number">0{i + 1}</span><h3>{title}</h3><p>{desc}</p><span className="tool-arrow">↗</span></ApplicationLink> : <Link className="tool-card" href={`/${key}`} key={key}>
                 <span className="tool-number">0{i + 1}</span>
@@ -733,10 +728,20 @@ function ProductMap() {
     </>
   );
 }
-function Readiness() {
+function Readiness({ view }: { view?: 'results' | 'questions' }) {
   const { draft, setDraft, track } = useNavigator();
   const scored = scoreReadiness(draft.answers);
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(view === 'results' || (view !== 'questions' && scored.complete));
+  const sectionRef = useRef<HTMLElement>(null);
+  const [focusHeading, setFocusHeading] = useState(false);
+  useEffect(() => {
+    if (view) setShow(view === 'results');
+  }, [view]);
+  useEffect(() => {
+    if (!focusHeading) return;
+    sectionRef.current?.querySelector<HTMLElement>('[data-result-heading], .readiness-top h2')?.focus();
+    setFocusHeading(false);
+  }, [show, focusHeading]);
   const questionIndex = draft.readinessIndex;
   const setQuestionIndex = (readinessIndex: number) => setDraft({ readinessIndex });
   const question = QUESTIONS[questionIndex];
@@ -748,106 +753,49 @@ function Readiness() {
   ] as const;
   const showResults = () => {
     setShow(true);
-    track("READINESS_COMPLETE");
+    setFocusHeading(true);
+    if (scored.complete) track("READINESS_COMPLETE");
+  };
+  const reviewQuestion = (id?: string) => {
+    const index = id ? QUESTIONS.findIndex(q => q.id === id) : QUESTIONS.findIndex(q => !draft.answers[q.id]);
+    setQuestionIndex(index >= 0 ? index : 0);
+    setShow(false);
+    setFocusHeading(true);
   };
   return (
-    <>
-      {show && scored.complete ? (
-        <section className="readiness-results" aria-live="polite">
-          <div className="results-head"><div><p className="eyebrow">Your readiness snapshot</p><h2>검증 준비도 진단 결과</h2><p>24개 응답을 바탕으로 준비 영역과 확인할 자료를 정리했습니다.</p></div><div className="score">{scored.readinessScore}<small>%</small></div></div><PreparationChecklist />
+    <section ref={sectionRef} className="readiness-content">
+      {show ? (
+        <section className="readiness-results">
+          <div className="results-head"><div><p className="eyebrow">진단에서 자료 준비까지</p><h2 data-result-heading tabIndex={-1}>검증 준비도 진단 결과</h2><p>{scored.complete ? '24개 진단 응답을 바탕으로 준비할 자료와 다음 조치를 정리했습니다.' : `${scored.answered}/24개 질문에 응답했습니다. 남은 질문에 응답하면 최종 준비도를 확인할 수 있습니다.`}</p></div>{scored.complete ? <div className="score">{scored.readinessScore}<small>%</small></div> : <strong className="incomplete-score">진단 진행 중</strong>}</div>
+          {!scored.complete && <p className="notice">아직 진단을 완료하지 않아 최종 점수는 표시하지 않습니다. <button type="button" className="inline-review" onClick={() => reviewQuestion()}>미응답 질문 이어하기 →</button></p>}
+          <nav className="results-section-links" aria-label="진단 결과 바로가기"><a href="#priority-actions">우선 조치 ↓</a><a href="#required-materials">준비할 자료 ↓</a><a href="#business-documents">PDF·Excel 문서 만들기 ↓</a></nav>
           <div className="results-grid">
-            <div className="panel"><h3>영역별 준비도</h3>{Object.entries(scored.readinessCategories).map(([key, value]) => <div className="bar-row" key={key}><span>{CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]}</span><progress max={100} value={value} aria-label={`${CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]} ${value}%`} /><strong>{value}%</strong></div>)}</div>
-            <div className="panel"><details className="gap-disclosure"><summary>진단 미비항목 {scored.gapCodes.length}개 보기</summary>{scored.gapCodes.length ? <ul className="gap-list">{QUESTIONS.filter((q) => scored.gapCodes.includes(q.id)).map((q) => <li key={q.id}><span className="badge">{q.priority}</span> {q.evidence}</li>)}</ul> : <p>응답 기준으로 미비사항이 없습니다. 실제 증빙자료 검토 결과와 다를 수 있습니다.</p>}</details></div>
+            <div className="panel"><h3>영역별 준비도</h3>{Object.entries(scored.readinessCategories).map(([key, value]) => {
+              const answered = QUESTIONS.filter(q => q.category === key && draft.answers[q.id]).length;
+              return <div className="bar-row" key={key}><span>{CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]}</span><progress max={100} value={answered === 4 ? value : answered * 25} aria-label={`${CATEGORY_LABELS[key as keyof typeof CATEGORY_LABELS]} ${answered === 4 ? `${value}%` : `${answered}/4개 응답`}`} /><strong>{answered === 4 ? `${value}%` : `${answered}/4`}</strong></div>;
+            })}</div>
+            <div className="panel results-next-work"><h3>이제 필요한 준비를 진행하세요</h3><p>‘일부 준비’, ‘미준비 / 모름’으로 답한 항목과 미응답 질문을 아래에 모았습니다. 응답을 바꾸려면 해당 항목의 ‘진단 응답 수정’을 누르세요.</p><p>자료별 담당자·기한과 회신자료 위치는 협조요청용 Excel에서 정리할 수 있습니다.</p></div>
           </div>
           <p className="muted">점수는 동일 가중치의 자가진단 지표입니다. 준비됨 1점, 일부 준비 0.5점, 미준비/모름 0점.</p>
-
-          <div className="results-actions"><button className="button secondary" onClick={() => setShow(false)}>응답 다시 보기</button><Link className="button secondary" href="/evidence">증빙자료 확인</Link><ApplicationLink className="button">검증 신청 ↗</ApplicationLink></div>
+          <PreparationChecklist onReview={reviewQuestion} />
+          <div className="results-actions"><button className="button secondary" onClick={() => reviewQuestion()}>응답 다시 보기</button><ApplicationLink className="button">검증 신청 ↗</ApplicationLink></div>
         </section>
       ) : (
         <section className="readiness-flow">
-          <div className="readiness-top"><div><p className="eyebrow">Step by step assessment</p><h2>하나씩 확인하며 준비도를 진단하세요</h2></div><strong>{questionIndex + 1} / {QUESTIONS.length}</strong></div>
+          <div className="readiness-top"><div><p className="eyebrow">Step by step assessment</p><h2 tabIndex={-1}>하나씩 확인하며 준비도를 진단하세요</h2></div><strong>{questionIndex + 1} / {QUESTIONS.length}</strong></div>
           <div className="progress-card"><progress value={scored.answered} max={QUESTIONS.length} aria-label="진단 응답 진행률" /><span>{scored.answered}개 응답 완료 · 준비됨 / 일부 준비 / 미준비·모름</span></div>
           <div className="assessment-grid"><div className="question-panel"><p className="eyebrow">{CATEGORY_LABELS[question.category]} · 질문 {questionIndex + 1}</p><fieldset className="question"><legend>{question.text}</legend><p className="question-hint">{guidance.explanation}</p><details className="question-help" key={question.id}><summary>답변 판단을 위한 자료 예시</summary><p>{guidance.example}</p><small>확인할 부서: {guidance.owner}</small><p>자료와 근거를 확인할 수 있으면 준비됨, 일부 자료만 있으면 일부 준비를 선택하세요. 해당 여부를 모르면 미준비 / 모름을 선택하고 확인해 주세요.</p></details><div className="answer-options">{options.map(([value, label, description]) => <label key={value}><input type="radio" name={question.id} checked={draft.answers[question.id] === value} onChange={() => setDraft({ answers: { ...draft.answers, [question.id]: value as ReadinessAnswer } })} /><span><strong>{label}</strong><small>{description}</small></span></label>)}</div></fieldset><div className="question-actions"><button className="button secondary" disabled={questionIndex === 0} onClick={() => setQuestionIndex(questionIndex - 1)}>이전 질문</button>{questionIndex < QUESTIONS.length - 1 ? <button className="button" disabled={!draft.answers[question.id]} onClick={() => setQuestionIndex(questionIndex + 1)}>다음 질문 →</button> : <button className="button" disabled={!scored.complete} onClick={showResults}>진단 결과 확인 →</button>}</div>{questionIndex === QUESTIONS.length - 1 && !scored.complete && <button className="text-button" onClick={() => setQuestionIndex(QUESTIONS.findIndex(q => !draft.answers[q.id]))}>미응답 질문으로 이동 →</button>}{scored.complete && questionIndex < QUESTIONS.length - 1 && <button className="text-button" onClick={showResults}>완료된 진단 결과 보기 →</button>}</div><aside className="assessment-aside"><h3>진단 영역</h3><ol>{Object.entries(CATEGORY_LABELS).map(([key, title], index) => <li key={key} className={question.category === key ? "current" : ""}><button onClick={() => setQuestionIndex(index * 4)} aria-current={question.category === key ? "step" : undefined}>{title}</button><span>{QUESTIONS.filter((q) => q.category === key && draft.answers[q.id]).length}/4</span></li>)}</ol><p>해당 없는 항목은 그 근거가 준비되어 있을 때 ‘준비됨’을 선택하세요.</p></aside></div>
         </section>
       )}
+      {!show && !scored.complete && <button type="button" className="text-button" onClick={showResults}>현재 응답으로 자료 준비 목록 보기 →</button>}
       <Note>{READINESS_NOTICE}</Note>
-    </>
-  );
-}
-function Evidence() {
-  const { draft, setDraft } = useNavigator();
-  const scored = scoreReadiness(draft.answers);
-  const [onlyGaps, setOnlyGaps] = useState(false);
-  const questions = QUESTIONS.filter(
-    (q) => !onlyGaps || needsEvidenceFollowup(draft.evidence[q.id]),
-  );
-  return (
-    <>
-      <Note>
-        자료 파일은 이 화면에서 업로드하지 않습니다. 준비상태만 확인하며 신청 시
-        담당자에게 전달할 수 있습니다.
-      </Note>
-      <p className="muted">자가진단 응답은 준비 수준에 대한 판단입니다. 자료 확보상태는 실제 파일과 근거를 찾아 확인한 기록입니다. 응답을 참고해 자료를 확인한 뒤 상태를 선택해 주세요.</p>
-      <PreparationChecklist />
-      {!scored.complete && (
-        <p>
-          진단을 완료하면 필요한 자료를 더 쉽게 확인할 수 있습니다.{" "}
-          <Link href="/readiness">준비도 진단하기 →</Link>
-        </p>
-      )}
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={onlyGaps}
-          onChange={(e) => setOnlyGaps(e.target.checked)}
-        />
-        미확보·확인 전 자료만 보기
-      </label>
-      <div className="evidence-grid">
-        {questions.map((q) => (
-          <article className="panel" key={q.id}>
-            <span className="badge">{q.priority}</span>
-            <h3>{q.evidence}</h3>
-            <p>{CATEGORY_LABELS[q.category]}</p>
-            <p className="answer-reference">자가진단 응답: <strong>{ANSWER_LABELS[draft.answers[q.id]] || '미응답'}</strong></p>
-            <p className="evidence-example">자료 예시: {QUESTION_GUIDANCE[q.id].example}<br />확인할 부서: {QUESTION_GUIDANCE[q.id].owner}</p>
-            <Field label="실제 자료 확보상태">
-              <select
-                value={draft.evidence[q.id] || ""}
-                onChange={(e) =>
-                  setDraft({
-                    evidence: {
-                      ...draft.evidence,
-                      [q.id]: e.target.value as EvidenceStatus,
-                    },
-                  })
-                }
-              >
-                <option value="">확인 전</option>
-                <option value="ready">준비 완료</option>
-                <option value="partial">일부 준비</option>
-                <option value="missing">미준비</option>
-                <option value="not_applicable">
-                  해당 없음 (근거 확인 필요)
-                </option>
-              </select>
-            </Field>
-          </article>
-        ))}
-      </div>
-      <Note>
-        자료 예시는 2025/2547 제5·10조 및 Annex II·IV, 2025/2551의 검증 활동
-        요건을 참고한 준비 안내입니다. 실제 요구자료는 제품과 검증 범위에 따라
-        달라집니다.
-      </Note>
-      <div className="next"><ApplicationLink className="button">LRQA 검증 신청</ApplicationLink></div>
-    </>
+    </section>
   );
 }
 function Application() {
   const { draft } = useNavigator();
   const scored = scoreReadiness(draft.answers);
-  return <div className="application-grid"><section><p className="eyebrow">Ready for the next step</p><h2>진단 내용을 가지고<br />검증 신청으로 이어가세요.</h2><p>제품, CN 코드, 사업장, 생산공정과 준비도 진단·증빙자료 상태가 신청서에 자동 전달됩니다.</p><div className="panel transfer-card"><h3>신청서에 전달할 정보</h3><dl><dt>제품</dt><dd>{draft.productName || "미입력"}</dd><dt>CN 코드</dt><dd>{draft.cnCode || "미입력"}</dd><dt>사업장</dt><dd>{draft.sites || "미입력"}</dd><dt>준비도 진단</dt><dd>{scored.answered} / 24개 응답 {scored.complete ? `· ${scored.readinessScore}%` : ""}</dd><dt>증빙자료</dt><dd>{Object.keys(draft.evidence).length}개 상태 기록</dd></dl></div></section><aside className="panel application-card"><h3>LRQA CBAM 검증 신청</h3><p>다음 화면에서 전달 정보를 확인하고 연락처 입력 및 동의 후 신청서를 제출해 주세요.</p><ApplicationLink className="button">CBAM 검증 신청 ↗</ApplicationLink></aside></div>;
+  return <div className="application-grid"><section><p className="eyebrow">Ready for the next step</p><h2>진단 내용을 가지고<br />검증 신청으로 이어가세요.</h2><p>제품, CN 코드, 사업장, 생산공정과 준비도 진단 응답이 신청서에 자동 전달됩니다.</p><div className="panel transfer-card"><h3>신청서에 전달할 정보</h3><dl><dt>제품</dt><dd>{draft.productName || "미입력"}</dd><dt>CN 코드</dt><dd>{draft.cnCode || "미입력"}</dd><dt>사업장</dt><dd>{draft.sites || "미입력"}</dd><dt>준비도 진단</dt><dd>{scored.answered} / 24개 응답 {scored.complete ? `· ${scored.readinessScore}%` : ""}</dd></dl></div><Link href="/readiness?view=results#required-materials">진단 결과와 준비할 자료 보기 →</Link></section><aside className="panel application-card"><h3>LRQA CBAM 검증 신청</h3><p>다음 화면에서 전달 정보를 확인하고 연락처 입력 및 동의 후 신청서를 제출해 주세요.</p><ApplicationLink className="button">CBAM 검증 신청 ↗</ApplicationLink></aside></div>;
 }
 function PrivacyNotice({ privacy }: { privacy: Privacy }) {
   return (
@@ -880,7 +828,7 @@ function PrivacyNotice({ privacy }: { privacy: Privacy }) {
       <h2>익명 세션과 이용기록</h2>
       <p>
         필수 세션 쿠키는 24시간 유지됩니다. 현재 탭의 저장소에는 제품명, CN 코드,
-        공정·사업장, 적용 가능성 입력, 진단 응답과 자료 상태를 자동 보관해 새로고침 후 복원합니다.
+        공정·사업장, 적용 가능성 입력과 진단 응답을 자동 보관해 새로고침 후 복원합니다.
         현재 탭의 저장 내용은 마지막 작업 후 최대 24시간까지 복원할 수 있으며 탭을 닫으면 사라집니다.
         ‘이 기기에 7일 저장’을 선택하면 같은 브라우저에서 마지막 작업 후 7일간 이어서 사용할 수 있습니다.
         선택을 해제하면 기기 저장본을 삭제하고 현재 탭의 입력은 유지합니다. 공용 기기에서는 이 옵션을 선택하지 마세요.

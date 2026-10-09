@@ -30,6 +30,7 @@ export type Draft = {
   mass: string;
   allImports: boolean;
   answers: Record<string, ReadinessAnswer>;
+  // Retain old draft records for compatibility; current preparation uses answers.
   evidence: Record<string, EvidenceStatus>;
   readinessIndex: number;
 };

@@ -10,7 +10,7 @@ export async function buildBusinessReport(data: BusinessDocumentData, fontBytes:
   const font = await doc.embedFont(fontBytes, { subset: false });
   const logo = logoBytes ? await doc.embedPng(logoBytes) : undefined;
   doc.setTitle('CBAM 검증 준비현황 보고서'); doc.setAuthor(data.details.author || 'LRQA CBAM Navigator');
-  doc.setSubject('자가진단 및 증빙자료 준비상태'); doc.setCreator('LRQA CBAM Navigator');
+  doc.setSubject('자가진단 결과 및 자료 준비 안내'); doc.setCreator('LRQA CBAM Navigator');
   const navy = rgb(.063, .075, .188), mint = rgb(.059, .949, .698), ink = rgb(.15, .19, .29), muted = rgb(.39, .44, .52), pale = rgb(.95, .96, .98), white = rgb(1, 1, 1);
   const W = 595.28, H = 841.89, L = 42, CW = W - 84;
   let page: PDFPage, y = 0;
@@ -61,8 +61,8 @@ export async function buildBusinessReport(data: BusinessDocumentData, fontBytes:
   section('01  준비도 요약');
   rect(L, y, CW, 65, navy); text(data.scoreLabel, L + 16, y + 6, 150, 23, mint);
   text(`${data.scored.answered}/24개 응답`, L + 16, y + 42, 145, 9, white);
-  text(`증빙 준비 완료 ${data.readyEvidence}건`, L + 195, y + 12, 285, 12, white);
-  text(`추가 확인·자료 확보 ${data.actions.length}건 / 해당 없음 ${data.notApplicable}건`, L + 195, y + 37, 285, 9, white); y += 76;
+  text(`준비됨 응답 ${data.readyAnswers}개`, L + 195, y + 12, 285, 12, white);
+  text(`추가 준비·미응답 ${data.actions.length}개`, L + 195, y + 37, 285, 9, white); y += 76;
   data.categories.forEach((c, i) => {
     const x = L + (i % 2) * (half + 12), top = y + Math.floor(i / 2) * 28;
     text(c.label, x, top, half - 65, 8);
@@ -70,11 +70,11 @@ export async function buildBusinessReport(data: BusinessDocumentData, fontBytes:
     rect(x, top + 18, half, 5);
     if (c.answered === 4) rect(x, top + 18, half * c.score / 100, 5, mint);
   }); y += 88;
-  paragraph('점수는 자가진단 응답을 기준으로 계산합니다. 증빙 준비 완료는 실제 자료 확보상태에 기록한 항목 수이며, 해당 없음은 근거 확인이 필요합니다.', 9);
+  paragraph('점수와 자료 준비 안내는 같은 진단 응답을 기준으로 작성했습니다. 준비됨은 담당자의 응답이며, 공식 검증결과와 다를 수 있습니다.', 9);
   if (y + 125 > 748) newPage('우선 조치');
   section('02  우선 조치');
   const top = data.actions.slice(0, 3);
-  if (!top.length) paragraph('현재 기록 기준으로 추가 자료 확보 대상이 없습니다. 검증 범위와 해당 없음의 근거를 담당자와 확인하세요.');
+  if (!top.length) paragraph('진단 응답 기준으로 추가 준비 항목이 없습니다. 검증 범위와 제출 일정을 담당자와 확인하세요.');
   for (const [i, a] of top.entries()) {
     const content = `${i + 1}. [${a.id}] ${a.action}\n확인할 부서 (예시): ${a.owner}`;
     const h = lines(content, CW - 24, 9).length * 14 + 15;
@@ -84,15 +84,15 @@ export async function buildBusinessReport(data: BusinessDocumentData, fontBytes:
   if (y + 60 > 748) newPage('지원·의사결정 요청');
   section('03  지원·의사결정 요청');
   flow(data.details.decisionRequest || '미작성 - 관련 부서 담당자 지정, 자료 확보 일정, 공급업체 협조 등 필요한 지원사항을 작성해 주세요.', '지원·의사결정 요청 (계속)');
-  newPage('전체 진단·증빙 내역');
-  text('전체 진단·증빙 내역', L, y, CW, 21); y += 39;
-  paragraph('자가진단 응답과 실제 자료 확보상태를 나란히 표시했습니다. 다운로드 시점의 기록이며 공식 검증결과가 아닙니다.', 9);
+  newPage('전체 진단·자료 내역');
+  text('전체 진단·자료 내역', L, y, CW, 21); y += 39;
+  paragraph('진단 응답과 필요한 자료를 연결했습니다. 다운로드 시점의 기록이며, 담당자·기한·자료 위치는 협조요청용 Excel에서 관리할 수 있습니다.', 9);
   let previousCategory = '';
   for (const r of data.rows) {
     const questionHeight = lines(r.text, CW - 24, 10).length * 15.5;
-    const status = `자가진단: ${r.answer} / 자료 상태: ${r.status}`;
+    const status = `진단 응답: ${r.answer}`;
     const h = questionHeight + lines(status, CW - 24, 9).length * 14 + lines(`필요 자료: ${r.evidence}`, CW - 24, 9).length * 14 + 34;
-    if (y + h + (previousCategory !== r.category ? 29 : 0) > 748) { newPage('전체 진단·증빙 내역 (계속)'); previousCategory = ''; }
+    if (y + h + (previousCategory !== r.category ? 29 : 0) > 748) { newPage('전체 진단·자료 내역 (계속)'); previousCategory = ''; }
     if (previousCategory !== r.category) { text(r.categoryLabel, L, y, CW, 12); y += 29; previousCategory = r.category; }
     rect(L, y, CW, h);
     text(`[${r.id}] ${r.priority}`, L + 12, y + 6, CW - 24, 8, muted);

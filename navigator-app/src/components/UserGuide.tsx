@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { GUIDE_STEPS } from '@/lib/user-guide';
 
 export default function UserGuide({ from }: { from?: string }) {
-  const previous = GUIDE_STEPS.find(step => step.id === from);
+  const previous = GUIDE_STEPS.find(step => step.id === (from === 'evidence' ? 'readiness' : from));
   return <div className="page user-guide" id="guide-top">
     <header className="guide-heading">
       <p className="eyebrow">업체 담당자를 위한 안내</p>
@@ -32,7 +32,7 @@ export default function UserGuide({ from }: { from?: string }) {
 
     <section id="guide-steps" className="guide-section" aria-labelledby="guide-steps-title">
       <p className="eyebrow">02 · 단계별 사용법</p>
-      <h2 id="guide-steps-title">확인 → 준비 → 신청, 여섯 단계로 진행하세요</h2>
+      <h2 id="guide-steps-title">확인 → 준비 → 신청, 다섯 단계로 진행하세요</h2>
       <p className="muted">처음이라면 순서대로, 이미 진행 중이라면 필요한 단계부터 보세요.</p>
       <nav className="guide-step-nav" aria-label="단계별 설명 바로가기">{GUIDE_STEPS.map((step, index) => <a key={step.id} href={`#${step.id}`}><span>0{index + 1}</span>{step.title}</a>)}</nav>
       <div className="guide-step-list">{GUIDE_STEPS.map((step, index) => <article key={step.id} id={step.id} className="guide-step" aria-labelledby={`guide-title-${step.id}`}>
@@ -50,7 +50,7 @@ export default function UserGuide({ from }: { from?: string }) {
         <details><summary>‘추가 정보 확인 필요’가 나오면 멈춰야 하나요?</summary><p>결과 카드에 표시된 항목부터 확인하세요. ‘확인·수정’ 버튼으로 이동해 값을 고친 뒤 ‘적용 가능성 확인’을 다시 누릅니다. 아직 모르는 정보는 EU 수입자나 담당 부서에 요청하세요. 다른 단계에서 자료 준비를 이어갈 수 있지만, 이 결과가 적용 여부를 확정한 것은 아닙니다.</p><Link href="/applicability">적용 가능성 화면 열기 →</Link></details>
         <details><summary>수입량을 모르는데 0을 입력해도 되나요?</summary><p>모르는 경우에는 비워두세요. 0은 실제 수입량이 0이라는 뜻입니다. 우리 회사의 수출량만으로 채우지 말고 EU 수입자의 모든 공급국·공급업체 대상 수입량 합계를 확인하세요.</p></details>
         <details><summary>CN 코드 검색 결과가 없거나 ‘유효성 미확인’이라고 나와요.</summary><p>검색 결과가 없다고 비대상이 확정되는 것은 아닙니다. 제품명·재질·형태를 구체적으로 입력하고, 실제 EU 통관 코드의 유효성은 EU 수입자·통관 담당자 또는 검색 화면의 EU TARIC 링크에서 확인하세요.</p></details>
-        <details><summary>‘준비됨’으로 답했는데 왜 미확보 자료가 나오나요?</summary><p>준비도 응답과 실제 증빙 확보 상태는 따로 관리합니다. 증빙자료 화면에서 실제로 확인한 자료의 상태를 기록하세요. ‘미확보·확인 전 자료만 보기’는 이 자료 상태를 기준으로 보여줍니다.</p><Link href="/evidence">증빙자료 화면 열기 →</Link></details>
+        <details><summary>진단 후 준비할 자료는 어디에서 보나요?</summary><p>검증 준비도 결과 화면의 ‘준비할 자료와 다음 조치’에서 볼 수 있습니다. 진단에서 일부 준비·미준비·미응답으로 남은 항목을 먼저 보여줍니다. ‘준비됨 항목까지 전체 자료 보기’를 선택하면 전체 목록을 볼 수 있습니다. 담당자·기한·자료 위치는 협조요청용 Excel에 정리하세요.</p><Link href="/readiness?view=results#required-materials">진단 결과와 준비할 자료 보기 →</Link></details>
         <details><summary>PDF·Excel을 받으면 상담이나 검증 신청도 접수되나요?</summary><p>문서 다운로드 시 입력한 연락처와 진단정보는 진단 접수 관리용으로 저장됩니다. 상담을 원하면 ‘진단 결과 상담 요청’을 별도로 누르세요. 검증을 신청하려면 ‘검증 신청’으로 이동하여 신청서 제출을 완료해야 합니다.</p><p>Excel에서 수정한 담당자·기한·진행상태는 앱으로 자동 반영되지 않습니다.</p></details>
         <details><summary>법적 근거 링크가 열리지 않아요.</summary><p>공식 규정 사이트의 일시적인 장애일 수 있습니다. 결과에 표시된 규정 번호·조항을 확인하고 EU 집행위원회 공식 안내에서 해당 규정을 찾아보세요.</p><a href="https://taxation-customs.ec.europa.eu/carbon-border-adjustment-mechanism/cbam-legislation-and-guidance_en" target="_blank" rel="noopener noreferrer">EU 집행위원회 공식 규정 안내 ↗</a></details>
       </div>
@@ -71,7 +71,7 @@ export default function UserGuide({ from }: { from?: string }) {
     <section id="guide-storage" className="guide-section" aria-labelledby="guide-storage-title">
       <p className="eyebrow">05 · 저장·개인정보</p><h2 id="guide-storage-title">작업을 이어가고 결과를 공유하는 방법</h2>
       <ul className="guide-storage-list">
-        <li><strong>같은 탭에서 이어가기</strong><p>제품·거래 정보, 준비도 응답과 자료 상태는 현재 탭에 자동 저장되어 새로고침 후 복원됩니다. 저장 불가 안내가 표시되면 브라우저 저장 기능을 확인하세요.</p></li>
+        <li><strong>같은 탭에서 이어가기</strong><p>제품·거래 정보와 준비도 응답은 현재 탭에 자동 저장되어 새로고침 후 복원됩니다. 진단을 완료한 뒤 다시 검증 준비도를 열면 결과 화면을 볼 수 있습니다. 저장 불가 안내가 표시되면 브라우저 저장 기능을 확인하세요.</p></li>
         <li><strong>다음에 다시 방문하기</strong><p>상단의 ‘이 기기에 7일 저장’을 선택하면 마지막 작업 후 7일 동안 같은 기기·브라우저에서 이어갈 수 있습니다. 브라우저 데이터를 삭제하면 복원되지 않으며 다른 기기와 자동 동기화되지 않습니다.</p></li>
         <li><strong>문서 다운로드·상담·신청 전 확인</strong><p>주요 검색·진단은 연락처 없이 이용할 수 있습니다. 문서 다운로드와 상담 요청에는 회사·담당자·연락처 입력 및 동의가 필요하며, 입력한 연락처와 진단정보가 서버에 접수됩니다. 문서용 연락처 입력란은 자동 저장 대상이 아니므로 화면을 떠나기 전에 필요한 작업을 완료하세요.</p></li>
       </ul>

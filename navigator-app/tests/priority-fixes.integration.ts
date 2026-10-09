@@ -85,22 +85,20 @@ try {
 
   await page.getByRole('navigation').getByRole('link', { name: /검증 준비도/ }).click();
   await page.locator('input[type="radio"]').first().check();
-  await page.getByRole('navigation').getByRole('link', { name: /증빙자료/ }).click();
-  const card = page.locator('.evidence-grid article').filter({ has: page.getByRole('heading', { name: 'CN 코드 목록', exact: true }) });
-  await expect(card).toContainText('자가진단 응답: 준비됨');
-  await card.getByRole('combobox').selectOption('missing');
-  await page.getByLabel('미확보·확인 전 자료만 보기', { exact: true }).check();
-  await expect(card).toBeVisible();
-  await card.getByRole('combobox').selectOption('partial');
-  await expect(card).toBeVisible();
-  await page.screenshot({ path: path.join(out, 'actual-evidence-filter.png'), fullPage: true });
-  await card.getByRole('combobox').selectOption('ready');
+  await page.goto(base + '/evidence');
+  await expect(page).toHaveURL(base + '/readiness?view=results#required-materials');
+  const card = page.locator('.material-item[data-question="S1"]');
   await expect(card).toHaveCount(0);
-  await page.getByLabel('미확보·확인 전 자료만 보기', { exact: true }).uncheck();
-  await card.getByRole('combobox').selectOption('not_applicable');
-  await page.getByLabel('미확보·확인 전 자료만 보기', { exact: true }).check();
-  await expect(card).toHaveCount(0);
-  console.log('PASS: actual missing/partial evidence remains visible despite ready self-assessment; confirmed and N/A evidence are filtered out');
+  await expect(page.locator('.required-materials select')).toHaveCount(0);
+  await page.getByLabel('준비됨 항목까지 전체 자료 보기', { exact: true }).check();
+  await expect(card).toContainText('준비됨');
+  await card.getByRole('button', { name: '진단 응답 수정' }).click();
+  await page.getByRole('radio', { name: /일부 준비/ }).check();
+  await page.getByRole('button', { name: '현재 응답으로 자료 준비 목록 보기' }).click();
+  await expect(card).toContainText('일부 준비');
+  await expect(page.getByRole('navigation', { name: '주요 기능' }).getByRole('link', { name: /증빙자료/ })).toHaveCount(0);
+  await page.screenshot({ path: path.join(out, 'unified-preparation-list.png'), fullPage: true });
+  console.log('PASS: old evidence route redirects to unified results; preparation follows original answers without a second status check');
 
   await page.goto(base + '/applicability');
   await page.getByLabel('EU로 반입되는 거래인가요?').selectOption('yes');
