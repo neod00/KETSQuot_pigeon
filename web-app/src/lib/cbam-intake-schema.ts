@@ -28,7 +28,7 @@ function text(value: unknown, max = 500) {
 }
 export function parseApplication(value: unknown, legacy = false): CbamApplicationInput {
   const v = object(value), out: Record<string, unknown> = {};
-  for (const key of Object.keys(TEXT_FIELDS)) out[key] = text(v[key] ?? '', key === 'notes' ? 2000 : 500);
+  for (const key of Object.keys(TEXT_FIELDS)) out[key] = text(v[key] ?? '', key === 'notes' ? 8000 : 500);
   for (const key of (legacy ? REQUIRED_TEXT.slice(0, 4) : REQUIRED_TEXT)) if (!out[key]) throw new Error('회사명, 담당자, 이메일, 전화번호, 생산국과 사업장을 확인해 주세요.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(out.email as string)) throw new Error('이메일 주소를 확인해 주세요.');
   for (const [key, spec] of Object.entries(CHOICE_FIELDS)) {

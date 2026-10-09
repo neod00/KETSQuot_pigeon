@@ -16,7 +16,7 @@ const draft: Draft = {
 };
 
 test('saved drafts restore free text, applicability, answers and question position; expired data is ignored', () => {
-  const raw = serializeDraft({ ...draft, contactName: 'must not persist', consent: true } as Draft, DEVICE_RETENTION, 1000);
+  const raw = serializeDraft({ ...draft, companyName: 'private company', contactName: 'private contact', email: 'private@example.invalid', phone: '000-0000-0000', consent: true } as Draft, DEVICE_RETENTION, 1000);
   const restored = readSavedDraft(raw, 2000)?.draft;
   assert.equal(restored?.productName, draft.productName);
   assert.equal(restored?.sites, draft.sites);
@@ -24,7 +24,7 @@ test('saved drafts restore free text, applicability, answers and question positi
   assert.equal(restored?.mass, '200');
   assert.equal(restored?.readinessIndex, 14);
   assert.deepEqual(restored?.answers, draft.answers);
-  assert.ok(!raw.includes('contactName') && !raw.includes('consent'));
+  for (const key of ['companyName','contactName','email','phone','consent']) assert.ok(!raw.includes(`"${key}"`));
   assert.equal(readSavedDraft(raw, 1000 + DEVICE_RETENTION), undefined);
   assert.equal(readSavedDraft('{broken'), undefined);
   assert.equal(readSavedDraft(JSON.stringify({ ...draft, readinessIndex: 100 }))?.draft.readinessIndex, 0);

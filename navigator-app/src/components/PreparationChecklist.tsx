@@ -5,13 +5,12 @@ import { RequiredMaterials } from './RequiredMaterials';
 import { QUESTIONS } from '@/shared/cbam-navigator';
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
-import { businessDocumentData, documentFilename, EMPTY_REPORT_DETAILS } from '@/lib/business-document-data';
+import { businessDocumentData, documentFilename } from '@/lib/business-document-data';
 import { LEAD_PRIVACY_VERSION, type LeadIntent } from '@/shared/cbam-lead';
 
 export function PreparationChecklist({ onReview }: { onReview: (id: string) => void }) {
-  const { draft, ready } = useNavigator();
-  const [details, setDetails] = useState({ ...EMPTY_REPORT_DETAILS });
-  const [contact, setContact] = useState({ phone:'', email:'', consultationMessage:'', consent:false });
+  const { draft, ready, application, setApplication, documentDetails: details, setDocumentDetails: setDetails, consultationMessage, setConsultationMessage } = useNavigator();
+  const [contact, setContact] = useState({ consent:false });
   const [privacy, setPrivacy] = useState({ retention:'', contact:'' });
   const formRef = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState<LeadIntent | null>(null);
@@ -34,9 +33,9 @@ export function PreparationChecklist({ onReview }: { onReview: (id: string) => v
   const actions = recommendedActions(draft).slice(0, 3);
   async function register(intent: LeadIntent) {
     const response = await fetch('/api/public/cbam/leads', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({
-      companyName:details.company, contactName:details.author, phone:contact.phone, email:contact.email,
+      ...application,
       recipient:details.recipient, reportingPeriod:details.reportingPeriod, deadline:details.deadline, decisionRequest:details.decisionRequest,
-      consultationMessage:contact.consultationMessage, consent:contact.consent, privacyNoticeVersion:LEAD_PRIVACY_VERSION, intent,
+      consultationMessage, consent:contact.consent, privacyNoticeVersion:LEAD_PRIVACY_VERSION, intent,
       sites:draft.sites, productionProcesses:draft.productionProcesses, productionRoute:draft.productionRoute, precursors:draft.precursors, country:draft.country,
       navigatorData:{ sessionId:draft.sessionId, productName:draft.productName, searchedCnCodes:[...new Set([draft.cnCode, ...draft.searchedCnCodes].filter(Boolean))], readinessAnswers:draft.answers, startedAt:draft.startedAt },
     }) });
@@ -50,7 +49,7 @@ export function PreparationChecklist({ onReview }: { onReview: (id: string) => v
       const reference = await register(kind);
       if (kind === 'consultation') { setNotice(`상담 요청이 접수되었습니다. 담당자가 입력하신 연락처로 연락드립니다. 접수번호: ${reference}`); return; }
       if (kind === 'csv') { download(); setNotice(`진단정보를 접수하고 원자료를 다운로드했습니다. 접수번호: ${reference}`); return; }
-      const data = businessDocumentData(draft, details);
+      const data = businessDocumentData(draft, { ...details, company: application.companyName || '', author: application.contactName || '' });
       let bytes: Uint8Array;
       if (kind === 'pdf') {
         const { buildBusinessReport } = await import('@/lib/business-report');
@@ -84,16 +83,16 @@ export function PreparationChecklist({ onReview }: { onReview: (id: string) => v
     <RequiredMaterials onReview={onReview} />
     <form className="business-documents" id="business-documents" ref={formRef} onSubmit={e => e.preventDefault()}>
       <h3>보고·협조요청 문서 만들기</h3>
-      <p className="muted">회사·담당자 정보를 입력하면 현재 진단을 반영한 문서를 받을 수 있습니다. 제출한 연락처와 진단정보는 LRQA의 진단 접수 관리와 요청사항 대응을 위해 저장됩니다.</p>
+      <p className="muted">회사·담당자 정보를 입력하면 현재 진단을 반영한 문서를 받을 수 있습니다. 입력한 회사명·담당자명·이메일·전화번호는 검증 신청 화면에도 자동 입력됩니다. 문서 다운로드나 상담 요청 시 제출한 연락처와 진단정보는 LRQA의 진단 접수 관리와 요청사항 대응을 위해 저장됩니다.</p>
       <div className="document-fields">
-        <label>회사명 *<input required autoComplete="organization" maxLength={160} value={details.company} onChange={e => setDetails({ ...details, company: e.target.value })} placeholder="예: 한국제조 주식회사" /></label>
-        <label>담당자명 *<input required autoComplete="name" maxLength={120} value={details.author} onChange={e => setDetails({ ...details, author: e.target.value })} placeholder="예: 홍길동" /></label>
-        <label>전화번호 *<input required type="tel" autoComplete="tel" maxLength={40} pattern="[+0-9][0-9 \(\)\-]{6,39}" value={contact.phone} onChange={e => setContact({ ...contact, phone:e.target.value })} placeholder="예: 010-1234-5678" /></label>
-        <label>이메일 *<input required type="email" autoComplete="email" maxLength={254} value={contact.email} onChange={e => setContact({ ...contact, email:e.target.value })} placeholder="예: name@company.com" /></label>
+        <label>회사명 *<input required autoComplete="organization" maxLength={160} value={application.companyName || ''} onChange={e => setApplication({ companyName: e.target.value })} placeholder="예: 한국제조 주식회사" /></label>
+        <label>담당자명 *<input required autoComplete="name" maxLength={120} value={application.contactName || ''} onChange={e => setApplication({ contactName: e.target.value })} placeholder="예: 홍길동" /></label>
+        <label>전화번호 *<input required type="tel" autoComplete="tel" maxLength={40} pattern="[+0-9][0-9 \(\)\-]{6,39}" value={application.phone || ''} onChange={e => setApplication({ phone:e.target.value })} placeholder="예: 010-1234-5678" /></label>
+        <label>이메일 *<input required type="email" autoComplete="email" maxLength={254} value={application.email || ''} onChange={e => setApplication({ email:e.target.value })} placeholder="예: name@company.com" /></label>
         <label>보고 대상·수신 부서<input maxLength={160} value={details.recipient} onChange={e => setDetails({ ...details, recipient: e.target.value })} placeholder="예: 팀장 / 생산·구매팀" /></label>
         <label>자료 대상기간<input maxLength={120} value={details.reportingPeriod} onChange={e => setDetails({ ...details, reportingPeriod: e.target.value })} placeholder="예: 2026.01.01 ~ 2026.12.31" /></label>
         <label>회신 요청기한<input type="date" value={details.deadline} onChange={e => setDetails({ ...details, deadline: e.target.value })} /></label>
-        <label className="document-request">지원·의사결정 요청<textarea rows={3} maxLength={1500} value={details.decisionRequest} onChange={e => setDetails({ ...details, decisionRequest: e.target.value })} placeholder="예: 부서별 자료 담당자 지정과 공급업체 배출량 자료 요청에 대한 협조가 필요합니다." /></label>
+        <label className="document-request">지원·의사결정 요청<textarea aria-label="지원·의사결정 요청" rows={3} maxLength={1500} value={details.decisionRequest} onChange={e => setDetails({ ...details, decisionRequest: e.target.value })} placeholder="예: 부서별 자료 담당자 지정과 공급업체 배출량 자료 요청에 대한 협조가 필요합니다." /></label>
       </div>
       <details className="lead-privacy"><summary>개인정보 수집·이용 안내</summary><p>수집 항목: 회사명, 담당자명, 전화번호, 이메일, 진단 응답 및 입력한 요청사항</p><p>이용 목적: 진단 접수 관리, 요청 문서 제공 및 상담 요청에 대한 연락</p><p>보유기간: {privacy.retention || '개인정보 안내 페이지 확인'}</p><p>문의: {privacy.contact || 'LRQA Korea'}</p><p>동의를 거부할 수 있으며, 거부 시 문서 제공과 상담 요청 접수가 제한됩니다. <Link href="/privacy" target="_blank">개인정보 안내 전체 보기</Link></p></details>
       <label className="lead-consent"><input required type="checkbox" checked={contact.consent} onChange={e => setContact({ ...contact, consent:e.target.checked })} /><span>개인정보 수집·이용에 동의하며, 연락처와 진단정보를 LRQA에 제출합니다. *</span></label>
@@ -101,7 +100,7 @@ export function PreparationChecklist({ onReview }: { onReview: (id: string) => v
         <div><strong>내부 보고용 PDF</strong><p>준비도 요약 · 우선 조치 · 지원 요청 · 전체 진단 내역</p><button type="button" className="button primary" disabled={!!busy || !ready} onClick={() => exportDocument('pdf')}>{busy === 'pdf' ? '접수·PDF 생성 중…' : '보고서 다운로드 (PDF)'}</button></div>
         <div><strong>타팀 협조요청용 Excel</strong><p>자료 요청 목록 · 담당자·기한 입력 · 진행상태 선택 · 전체 체크리스트</p><button type="button" className="button secondary" disabled={!!busy || !ready} onClick={() => exportDocument('xlsx')}>{busy === 'xlsx' ? '접수·Excel 생성 중…' : '협조요청서 다운로드 (Excel)'}</button></div>
       </div>
-      <div className="consultation-request"><h3>진단 결과 상담 요청</h3><p className="muted">진단 결과나 자료 준비에 대해 담당자와 상담하고 싶다면 요청을 남겨 주세요. 문서 다운로드만으로 상담 요청이 접수되지는 않습니다.</p><label>상담 요청 내용 (선택)<textarea rows={3} maxLength={1500} value={contact.consultationMessage} onChange={e => setContact({ ...contact, consultationMessage:e.target.value })} placeholder="예: 공급업체 배출량 자료 확보 방법과 검증 준비 일정을 상담하고 싶습니다." /></label><button type="button" className="button secondary" disabled={!!busy || !ready} onClick={() => exportDocument('consultation')}>{busy === 'consultation' ? '상담 요청 접수 중…' : '진단 결과 상담 요청'}</button></div>
+      <div className="consultation-request"><h3>진단 결과 상담 요청</h3><p className="muted">진단 결과나 자료 준비에 대해 담당자와 상담하고 싶다면 요청을 남겨 주세요. 문서 다운로드만으로 상담 요청이 접수되지는 않습니다.</p><label>상담 요청 내용 (선택)<textarea aria-label="상담 요청 내용 (선택)" rows={3} maxLength={1500} value={consultationMessage} onChange={e => setConsultationMessage(e.target.value)} placeholder="예: 공급업체 배출량 자료 확보 방법과 검증 준비 일정을 상담하고 싶습니다." /></label><button type="button" className="button secondary" disabled={!!busy || !ready} onClick={() => exportDocument('consultation')}>{busy === 'consultation' ? '상담 요청 접수 중…' : '진단 결과 상담 요청'}</button></div>
       <p className="muted document-note">같은 진단 세션과 이메일의 문서·상담 요청은 한 접수 기록에 반영합니다. 진단 미완료 시 최종 준비도 점수를 표시하지 않습니다. Excel 편집 내용은 앱에 자동 반영되지 않습니다.</p>
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status" className="lead-success">{notice}</p>}

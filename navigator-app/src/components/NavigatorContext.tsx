@@ -6,7 +6,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { CbamApplicationInput } from "@/shared/cbam-input";
+import type { ApplicantInfo } from "@/shared/cbam-handoff";
+import { EMPTY_REPORT_DETAILS, type ReportDetails } from '@/lib/business-document-data';
 import { TAB_STORAGE, DEVICE_STORAGE, DEVICE_RETENTION, readSavedDraft, serializeDraft } from '@/lib/draft-storage';
 import type {
   ReadinessAnswer,
@@ -62,8 +63,12 @@ type Context = {
   queueSearch: (value: SearchRequest | null) => void;
   draft: Draft;
   setDraft: (value: Partial<Draft>) => void;
-  application: Partial<CbamApplicationInput>;
-  setApplication: (value: Partial<CbamApplicationInput>) => void;
+  application: Partial<ApplicantInfo>;
+  setApplication: (value: Partial<ApplicantInfo>) => void;
+  documentDetails: ReportDetails;
+  setDocumentDetails: (value: Partial<ReportDetails>) => void;
+  consultationMessage: string;
+  setConsultationMessage: (value: string) => void;
   ready: boolean;
   error: string;
   track: (event: NavigatorEvent) => void;
@@ -77,7 +82,10 @@ const Context = createContext<Context | null>(null);
 export function NavigatorProvider({ children }: { children: ReactNode }) {
   const [draft, set] = useState<Draft>(empty);
   const [pendingSearch, queueSearch] = useState<SearchRequest | null>(null);
-  const [application, setForm] = useState<Partial<CbamApplicationInput>>({});
+  // Keep applicant information only in memory, separate from saved diagnostic drafts.
+  const [application, setForm] = useState<Partial<ApplicantInfo>>({});
+  const [documentDetails, setDocument] = useState({ ...EMPTY_REPORT_DETAILS });
+  const [consultationMessage, setConsultationMessage] = useState('');
   const [ready, setReady] = useState(false),
     [error, setError] = useState("");
   const [initialized, setInitialized] = useState(false);
@@ -150,6 +158,10 @@ export function NavigatorProvider({ children }: { children: ReactNode }) {
         setDraft: (v) => set((current) => ({ ...current, ...v })),
         application,
         setApplication: (v) => setForm((current) => ({ ...current, ...v })),
+        documentDetails,
+        setDocumentDetails: value => setDocument(current => ({ ...current, ...value })),
+        consultationMessage,
+        setConsultationMessage,
         ready,
         initialized,
         remember,
@@ -160,6 +172,8 @@ export function NavigatorProvider({ children }: { children: ReactNode }) {
         clear: () => {
           queueSearch(null);
           setForm({});
+          setDocument({ ...EMPTY_REPORT_DETAILS });
+          setConsultationMessage('');
           set((current) => ({
             ...empty,
             sessionId: current.sessionId,
