@@ -18,8 +18,8 @@ export function ApplicationLink({ children, className }: { children: ReactNode; 
   try {
     if (stamp) href = handoffUrl(applicationHandoff({ ...draft, sessionId: draft.sessionId || stamp.sessionId }, application, documentDetails, consultationMessage, stamp.createdAt));
   } catch (caught) { error = caught instanceof Error ? caught.message : '진단정보를 확인해 주세요.'; }
-  return <><a href={href} className={className} aria-disabled={!stamp || !!error} onClick={e => {
+  return <><a href={href} target="_blank" rel="noopener noreferrer" className={className} aria-disabled={!stamp || !!error} onClick={e => {
     if (!stamp || error) { e.preventDefault(); return; }
     track('LEAD_FORM_OPEN'); track('APPLICATION_STARTED');
-  }}>{children}</a>{error && <span role="alert">{error}</span>}</>;
+  }}>{children}<span className="sr-only"> (새 탭에서 열림)</span></a>{error && <span role="alert">{error}</span>}</>;
 }
