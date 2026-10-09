@@ -515,7 +515,7 @@ strong {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
-  background: #f6f9f9;
+  background: var(--surface-soft);
   padding: 20px;
   border-radius: 6px;
 }

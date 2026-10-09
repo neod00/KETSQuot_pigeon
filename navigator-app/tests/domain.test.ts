@@ -65,6 +65,26 @@ test("Korean and English discovery uses dictionary without credentials", () => {
   );
   assert.ok(searchProductCatalog({ productName: "시멘트" }).length > 1);
 });
+
+test('product discovery rejects incompatible materials while preserving matching candidates', () => {
+  for (const input of [
+    { productName: '플라스틱 볼트', material: '폴리프로필렌' },
+    { productName: 'bolt', material: 'nylon' },
+    { productName: '황동 볼트' },
+    { productName: '볼트', material: '알루미늄' },
+  ]) assert.ok(searchProductCatalog(input).every(c => c.assessment.sector !== '철강'));
+  assert.ok(searchProductCatalog({ productName: '스테인리스 볼트' }).some(c => c.code === '7318'));
+  const pipes = searchProductCatalog({ productName: 'tube', material: 'aluminium' });
+  assert.ok(pipes.length && pipes.every(c => c.assessment.sector === '알루미늄'));
+});
+
+test('scope prefix matches never claim that an eight-digit CN code exists', () => {
+  for (const code of ['99999999', '73189999', '73181590', '39269097']) {
+    assert.equal(assessCnCode(code).codeValidity, 'unverified');
+  }
+  assert.equal(assessCnCode('7318159000').codeValidity, 'invalid_format');
+  assert.match(assessApplicability({ euExport: 'yes', cnCode: '99999999', origin: 'KR', importer: 'operator', mass: '100', allImports: true }), /유효한 CN 코드와 실제 통관 분류를 확인/);
+});
 test("functional units follow article 4, including cement exception and electricity kWh", () => {
   assert.match(productStructure("25231000").unit, /클링커/);
   assert.match(productStructure("25233000").unit, /제품의 생산량/);

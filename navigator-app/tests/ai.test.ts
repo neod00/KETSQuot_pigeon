@@ -81,3 +81,20 @@ test("provider failures and invalid JSON are rejected so public handler can fall
     else process.env.OPENAI_API_KEY = oldKey;
   }
 });
+
+test('AI fallback cannot restore a steel candidate rejected by a plastic material', async () => {
+  const oldKey = process.env.OPENAI_API_KEY, oldFetch = globalThis.fetch;
+  process.env.OPENAI_API_KEY = 'synthetic-test-only';
+  globalThis.fetch = async () => new Response(JSON.stringify({ output_text: JSON.stringify({ candidates: [
+    { code: '7318', titleKo: '철강 볼트', titleEn: 'steel bolt', reasoning: 'candidate', confidence: 'high', missingInformation: [] },
+    { code: '39269097', titleKo: '플라스틱 제품', titleEn: 'plastic article', reasoning: 'candidate', confidence: 'medium', missingInformation: [] },
+  ] }) }), { status: 200 });
+  try {
+    const result = await searchWithAi({ kind: 'product', productName: '플라스틱 볼트', material: '폴리프로필렌' });
+    assert.deepEqual(result.candidates.map(c => c.code), ['39269097']);
+  } finally {
+    globalThis.fetch = oldFetch;
+    if (oldKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = oldKey;
+  }
+});

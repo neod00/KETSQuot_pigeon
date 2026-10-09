@@ -17,6 +17,10 @@ import {
   failure,
   HttpError,
 } from "@/lib/server";
+function assessmentWithStructure(code: string) {
+  const { sourceUrl: calculationSourceUrl, reference: calculationReference, ...structure } = productStructure(code);
+  return { ...assessCnCode(code), ...structure, calculationSourceUrl, calculationReference };
+}
 const cache = new Map<
   string,
   { expires: number; candidates: CbamProductCandidate[] }
@@ -37,10 +41,7 @@ export async function POST(request: NextRequest) {
       if (!codes.length || codes.length > 20)
         throw new HttpError(400, "CN 코드는 1~20개까지 조회할 수 있습니다.");
       return json({
-        assessments: codes.map((c) => ({
-          ...assessCnCode(c),
-          ...productStructure(c),
-        })),
+        assessments: codes.map(assessmentWithStructure),
         lastCheckedAt: REGULATORY_DATE,
       });
     }
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
         titleEn: c.titleEn,
         reasoning: c.reasoning,
         missingInformation: c.missingInformation,
-        assessment: { ...c.assessment, ...productStructure(c.code) },
+        assessment: assessmentWithStructure(c.code),
       })),
       lastCheckedAt: REGULATORY_DATE,
       message: candidates.length
