@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, useId, isValidElement, cloneElement, type ReactElement, type HTMLAttributes } from 'react';
 import {
   CBAM_GOODS,
   MANAGEMENT_SYSTEMS,
@@ -20,6 +20,7 @@ export default function CbamApplicationPage() {
   const [error, setError] = useState('');
   const [navigatorData, setNavigatorData] = useState<CbamNavigatorData>();
   const [handoffError, setHandoffError] = useState('');
+  const [applicantPrefilled, setApplicantPrefilled] = useState(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const encoded = params.get('navigator');
@@ -29,6 +30,7 @@ export default function CbamApplicationPage() {
     try {
       const data = decodeHandoff(encoded);
       setNavigatorData(data.navigatorData);
+      setApplicantPrefilled(['companyName', 'contactName', 'email', 'phone'].some(key => !!data.prefill[key as keyof typeof data.prefill]));
       setForm(current => ({ ...current, ...data.prefill, consent: false }));
     } catch { setHandoffError('진단정보를 불러오지 못했습니다. Navigator에서 검증 신청을 다시 눌러 주세요.'); }
   }, []);
@@ -115,9 +117,11 @@ export default function CbamApplicationPage() {
         {handoffError && <p role="alert" className="mb-6 text-red-700">{handoffError}</p>}
         {navigatorData && <section className="mb-7 rounded-2xl border border-teal-200 bg-teal-50 p-6" aria-label="Navigator 진단정보">
           <h2 className="text-xl font-bold">Navigator 진단정보가 연결되었습니다</h2><p className="mt-2 text-sm">진단 응답은 아래 신청 항목의 선택을 대신하지 않습니다. 실제 자료와 검증 범위를 확인해 선택해 주세요.</p>
+          {applicantPrefilled && <p className="mt-2 text-sm font-semibold">Navigator에서 입력한 신청자 정보를 자동 입력했습니다. 회사명·담당자명·이메일·전화번호를 확인하고 수정할 수 있습니다.</p>}
+          {form.notes && <p className="mt-2 text-sm">생산경로·전구물질·기간·요청사항 등 추가 입력내용은 아래 ‘추가 참고사항’에서 확인하세요. 자료 대상기간으로 자동 선택한 데이터 연도도 실제 검증 범위와 대조해 주세요.</p>}
           <p className="mt-2">제품: {navigatorData.productName || '미입력'} · CN 코드: {navigatorData.searchedCnCodes?.join(', ') || form.cnCodes || '미입력'}</p>
-          <p>준비도: {navigatorData.readinessScore === undefined ? '진단 미완료' : `${navigatorData.readinessScore}점`} · 미비항목: {navigatorData.gapCodes?.length ?? 0}개</p>
-          <details className="mt-3"><summary>진단 및 증빙자료 상세 보기</summary><ul className="mt-2 space-y-1">{QUESTIONS.filter(q => navigatorData.readinessAnswers?.[q.id] || navigatorData.evidenceStatus?.[q.id]).map(q => <li key={q.id}>{q.text} — {{ ready: '준비 완료', partial: '일부 준비', missing: '미준비' }[navigatorData.readinessAnswers?.[q.id] || 'missing']} / {q.evidence}: {navigatorData.evidenceStatus?.[q.id] || '미확인'}</li>)}</ul></details>
+          <p>{navigatorData.readinessScore === undefined ? `준비도: 진단 미완료 (${Object.keys(navigatorData.readinessAnswers || {}).length}/24개 응답)` : `준비도: ${navigatorData.readinessScore}점 · 미비항목: ${navigatorData.gapCodes?.length ?? 0}개`}</p>
+          <details className="mt-3"><summary>진단 응답·필요 자료 상세 보기</summary><ul className="mt-2 space-y-1">{QUESTIONS.filter(q => navigatorData.readinessAnswers?.[q.id]).map(q => <li key={q.id}>{q.text} — {{ ready: '준비됨', partial: '일부 준비', missing: '미준비 / 모름' }[navigatorData.readinessAnswers![q.id]]} / 필요 자료: {q.evidence}</li>)}</ul></details>
           <p className="mt-3 text-sm">아래 자동 입력된 내용을 확인해 주세요. 동의 후 제출하면 진단정보도 LRQA에 함께 접수됩니다.</p>
         </section>}
         <p className="mb-5 text-sm text-slate-600">* 표시는 필수 항목입니다. 선택 항목은 실제 자료와 상태를 확인해 직접 선택해 주세요.</p><div className="grid items-start gap-7 lg:grid-cols-[1fr_330px]">
@@ -148,7 +152,7 @@ export default function CbamApplicationPage() {
               <ChoiceGroup label="검증 대상 데이터 연도 *" options={['2024','2025','2026','2027','2028','2029','2030','2031']} selected={form.verificationYears} onToggle={value => toggleList('verificationYears', value)} />
               <div className="mt-6"><ChoiceGroup label="CBAM 상품 유형 *" options={CBAM_GOODS} selected={form.cbamGoods} onToggle={value => toggleList('cbamGoods', value)} /></div>
               <div className="mt-6 grid gap-5 sm:grid-cols-2">
-                <Field label="8자리 CN 코드"><textarea className={`${FIELD} min-h-24`} placeholder="예: 7213 10 00 (여러 개는 줄바꿈)" value={form.cnCodes} onChange={e => update('cnCodes', e.target.value)} /></Field>
+                <Field label="8자리 CN 코드"><textarea aria-label="8자리 CN 코드" className={`${FIELD} min-h-24`} placeholder="예: 7213 10 00 (여러 개는 줄바꿈)" value={form.cnCodes} onChange={e => update('cnCodes', e.target.value)} /></Field>
                 <Field label="예상 내재배출량 (ktCO₂e)"><input type="number" min="0" step="0.01" className={FIELD} value={form.embeddedEmissionsKt} onChange={e => update('embeddedEmissionsKt', e.target.value)} /></Field>
                 <Field label="관련 CBAM 상품 사업자 수"><input type="number" min="0" className={FIELD} value={form.operatorCount} onChange={e => update('operatorCount', e.target.value)} /></Field>
                 <Field label="관련 CBAM 상품 수"><input type="number" min="0" className={FIELD} value={form.goodsCount} onChange={e => update('goodsCount', e.target.value)} /></Field>
@@ -173,8 +177,8 @@ export default function CbamApplicationPage() {
                 <Field label="관할권 탄소가격 정보 관련 *"><select required className={FIELD} value={form.carbonPrice} onChange={e => update('carbonPrice', e.target.value as PublicCbamApplicationDraft['carbonPrice'])}><option value="" disabled>선택하세요</option><option value="no">아니요</option><option value="yes">예</option></select></Field>
                 <Field label="내재배출량 기존 인정 검증 *"><select required className={FIELD} value={form.previouslyVerified} onChange={e => update('previouslyVerified', e.target.value as PublicCbamApplicationDraft['previouslyVerified'])}><option value="" disabled>선택하세요</option><option value="no">아니요</option><option value="yes">예</option></select></Field>
                 <Field label="바이오매스 연료흐름 *"><select required className={FIELD} value={form.biomass} onChange={e => update('biomass', e.target.value as PublicCbamApplicationDraft['biomass'])}><option value="" disabled>선택하세요</option><option value="none">없음</option><option value="used_red_compliant">사용, RED II 기준 충족 자료 있음</option><option value="used_review_needed">사용, 기준 충족 검토 필요</option></select></Field>
-                <Field label="생산공정 설명"><textarea className={`${FIELD} min-h-28`} value={form.productionProcesses} onChange={e => update('productionProcesses', e.target.value)} /></Field>
-                <Field label="연료흐름 설명"><textarea className={`${FIELD} min-h-28`} value={form.fuelStreams} onChange={e => update('fuelStreams', e.target.value)} /></Field>
+                <Field label="생산공정 설명"><textarea aria-label="생산공정 설명" className={`${FIELD} min-h-28`} value={form.productionProcesses} onChange={e => update('productionProcesses', e.target.value)} /></Field>
+                <Field label="연료흐름 설명"><textarea aria-label="연료흐름 설명" className={`${FIELD} min-h-28`} value={form.fuelStreams} onChange={e => update('fuelStreams', e.target.value)} /></Field>
               </div>
               <div className="mt-5 flex flex-wrap gap-4">
                 <Check checked={form.chp} onChange={value => update('chp', value)} label="열병합발전(CHP) 포함" />
@@ -183,7 +187,7 @@ export default function CbamApplicationPage() {
             </FormSection>
 
             <FormSection number="05" title="추가 정보 및 동의" subtitle="Additional information & consent">
-              <Field label="추가 참고사항"><textarea className={`${FIELD} min-h-32`} value={form.notes} onChange={e => update('notes', e.target.value)} /></Field>
+              <Field label="추가 참고사항"><textarea aria-label="추가 참고사항" maxLength={8000} className={`${FIELD} min-h-32`} value={form.notes} onChange={e => update('notes', e.target.value)} /></Field>
               <div className="mt-6 rounded-xl bg-slate-100 p-4 text-sm leading-6 text-slate-700">접수된 정보는 CBAM 서비스 적격성 확인, 검증팀 구성, 예비 검증일수 및 견적 산정에 사용됩니다. 제출 자료가 불완전하거나 실제 범위가 다른 경우 검증일수와 비용이 변경될 수 있습니다.</div>
               <div className="mt-5"><Check checked={form.consent} onChange={value => update('consent', value)} label="개인정보 처리 및 신청정보의 업무상 이용에 동의합니다. *" /></div>
               {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{error}</p>}
@@ -217,7 +221,10 @@ function FormSection({ number, title, subtitle, children }: { number: string; ti
   return <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="flex items-start gap-4 border-b border-slate-200 px-6 py-5"><span className="text-2xl font-black text-teal-700">{number}</span><div><h2 className="text-xl font-black tracking-tight">{title}</h2><p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">{subtitle}</p></div></div><div className="p-6">{children}</div></section>;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className={LABEL}>{label}</span>{children}</label>; }
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const labelId = useId();
+  return <label className="block"><span id={labelId} className={LABEL}>{label}</span>{isValidElement(children) ? cloneElement(children as ReactElement<HTMLAttributes<HTMLElement>>, { 'aria-labelledby': labelId }) : children}</label>;
+}
 
 function ChoiceGroup({ label, options, selected, onToggle }: { label: string; options: string[]; selected: string[]; onToggle: (value: string) => void }) {
   return <fieldset><legend className={LABEL}>{label}</legend><div className="mt-3 flex flex-wrap gap-2">{options.map(option => <label key={option} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${selected.includes(option) ? 'border-teal-700 bg-teal-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-teal-500'}`}><input className="sr-only" type="checkbox" checked={selected.includes(option)} onChange={() => onToggle(option)} />{option}</label>)}</div></fieldset>;

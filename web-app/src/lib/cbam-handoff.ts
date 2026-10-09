@@ -3,11 +3,18 @@ import { object, parseNavigator, GOODS } from './cbam-intake-schema';
 import type { CbamNavigatorData } from './cbam-navigator';
 
 export const CBAM_APPLICATION_URL = 'https://ketsquot-pigeon.netlify.app/cbam';
+export type ApplicantInfo = Pick<CbamApplicationInput, 'companyName' | 'contactName' | 'email' | 'phone'>;
 export type NavigatorHandoff = { version: 1; createdAt: number; prefill: Partial<CbamApplicationInput>; navigatorData: CbamNavigatorData };
 function parse(value: unknown, now: number): NavigatorHandoff {
   const v = object(value), raw = object(v.prefill);
   if (v.version !== 1 || typeof v.createdAt !== 'number' || !Number.isFinite(v.createdAt) || v.createdAt > now + 60000 || now - v.createdAt > 30 * 60000) throw new Error('진단정보 연결이 만료되었습니다. Navigator에서 검증 신청을 다시 눌러 주세요.');
   const prefill: Partial<CbamApplicationInput> = {};
+  const contactLimits = { companyName: 160, contactName: 120, email: 254, phone: 40 } as const;
+  for (const key of Object.keys(contactLimits) as (keyof ApplicantInfo)[]) {
+    if (typeof raw[key] === 'string' && raw[key].length <= contactLimits[key] && raw[key].trim()) prefill[key] = raw[key].trim();
+  }
+  if (typeof raw.notes === 'string' && raw.notes.length <= 8000 && raw.notes.trim()) prefill.notes = raw.notes.trim();
+  if (Array.isArray(raw.verificationYears)) prefill.verificationYears = [...new Set(raw.verificationYears.filter((year): year is string => typeof year === 'string' && /^20(?:2[4-9]|3[01])$/.test(year)))];
   for (const key of ['country', 'sites', 'cnCodes', 'productionProcesses'] as const) {
     if (typeof raw[key] === 'string' && raw[key].length <= 500 && raw[key].trim()) prefill[key] = raw[key].trim();
   }
