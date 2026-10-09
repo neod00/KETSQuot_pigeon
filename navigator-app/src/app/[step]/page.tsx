@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Navigator from "@/components/Navigator";
+import UserGuide from "@/components/UserGuide";
 const steps = [
   "cn-search",
   "applicability",
@@ -9,6 +10,7 @@ const steps = [
   "application",
   "privacy",
   "legal",
+  "guide",
 ];
 export const dynamicParams = false;
 export const dynamic = "force-dynamic";
@@ -17,11 +19,17 @@ export function generateStaticParams() {
 }
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ step: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 }) {
   const { step } = await params;
   if (!steps.includes(step)) notFound();
+  if (step === 'guide') {
+    const { from } = await searchParams;
+    return <UserGuide from={typeof from === 'string' ? from : undefined} />;
+  }
   return (
     <Navigator
       step={step}

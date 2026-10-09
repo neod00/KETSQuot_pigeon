@@ -13,6 +13,7 @@ const allowed = [
   "/application",
   "/privacy",
   "/legal",
+  "/guide",
 ];
 const forbidden =
   /DEFAULT_CBAM_DAY_RATE|DEFAULT_CBAM_EXPENSES|automaticQuotedDays|manualQuotedDays|estimatedCost|pricingAdjustmentReason|P1173|ISO_ADMIN_PASSWORD|ISO_SESSION_SECRET/;

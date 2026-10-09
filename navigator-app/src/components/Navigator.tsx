@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigator, type SearchRequest } from "./NavigatorContext";
 import { PreparationChecklist } from './PreparationChecklist';
+import { GUIDE_STEPS, guideHref } from '@/lib/user-guide';
 import { QUESTION_GUIDANCE, ANSWER_LABELS, needsEvidenceFollowup } from '@/lib/readiness-guidance';
 import { buildApplicabilityGuidance, APPLICABILITY_FIELD_LABELS, type ApplicabilityGuidance, type ApplicabilityField } from '@/lib/applicability-guidance';
 import {
@@ -118,6 +119,7 @@ export default function Navigator({
         <p className="eyebrow">LRQA CBAM Navigator</p>
         <h1>{titles[step][0]}</h1>
         <p>{titles[step][1]}</p>
+        {GUIDE_STEPS.some(item => item.id === step) && <Link className="step-guide-link" href={guideHref(`/${step}`, step)}>이 단계는 어떻게 하나요? <span>사용 가이드 ↗</span></Link>}
       </div>
       {error && (
         <p role="alert" className="error">
@@ -191,6 +193,7 @@ function Home() {
             <span>공식 EU 규정 기반</span>
             <span>한국어 안내</span>
           </div>
+          <Link className="home-guide-link" href="/guide"><strong>처음 이용하시나요?</strong><span>준비물과 단계별 사용법 보기 →</span></Link>
         </div>
         <aside className="hero-map" aria-label="검증 준비 흐름">
           <span className="map-tag">검증을 향한 단계</span>
