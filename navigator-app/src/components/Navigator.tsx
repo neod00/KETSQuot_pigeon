@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { useNavigator, type SearchRequest } from "./NavigatorContext";
 import { PreparationChecklist } from './PreparationChecklist';
 import { QUESTION_GUIDANCE, ANSWER_LABELS, needsEvidenceFollowup } from '@/lib/readiness-guidance';
+import { buildApplicabilityGuidance, APPLICABILITY_FIELD_LABELS, type ApplicabilityGuidance, type ApplicabilityField } from '@/lib/applicability-guidance';
 import {
   CN_NOTICE,
   READINESS_NOTICE,
@@ -21,7 +22,6 @@ import {
 import {
   REGULATIONS,
   productStructure,
-  assessApplicability,
 } from "@/shared/cbam-regulatory";
 import { assessCnCode, TARIC_SOURCE, type CbamCnAssessment } from "@/shared/cbam-cn";
 type Privacy = { retention: string; contact: string };
@@ -479,24 +479,34 @@ const ORIGINS: Record<string, string> = {
 };
 function Applicability() {
   const { draft, setDraft, track } = useNavigator();
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<ApplicabilityGuidance | null>(null);
+  const issueDescription = (field: ApplicabilityField) => result?.issues.some(issue => issue.field === field) ? `applicability-issue-${field}` : undefined;
+  const focusField = (field: ApplicabilityField) => {
+    const input = document.getElementById(`applicability-${field}`);
+    input?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    input?.focus({ preventScroll: true });
+  };
   const update = (value: Parameters<typeof setDraft>[0]) => {
     setDraft(value);
-    setResult("");
+    setResult(null);
   };
   return (
     <>
       <form
         className="panel"
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          setResult(assessApplicability({ ...draft, origin: draft.country }));
+          setResult(buildApplicabilityGuidance({ ...draft, origin: draft.country }));
           track("APPLICABILITY_COMPLETE");
         }}
       >
         <div className="grid two">
           <Field label="EU로 반입되는 거래인가요?">
             <select
+              id="applicability-euExport"
+              aria-invalid={!!issueDescription('euExport') || undefined}
+              aria-describedby={issueDescription('euExport')}
               required
               value={draft.euExport}
               onChange={(e) => update({ euExport: e.target.value })}
@@ -509,6 +519,9 @@ function Applicability() {
           </Field>
           <Field label="검토할 CN 코드">
             <input
+              id="applicability-cnCode"
+              aria-invalid={!!issueDescription('cnCode') || undefined}
+              aria-describedby={issueDescription('cnCode')}
               maxLength={20}
               required
               value={draft.cnCode}
@@ -522,6 +535,9 @@ function Applicability() {
           </Field>
           <Field label="관세 원산지" hint="발송국과 원산지는 다를 수 있습니다.">
             <select
+              id="applicability-origin"
+              aria-invalid={!!issueDescription('origin') || undefined}
+              aria-describedby={issueDescription('origin')}
               required
               value={draft.country}
               onChange={(e) => update({ country: e.target.value })}
@@ -536,6 +552,9 @@ function Applicability() {
           </Field>
           <Field label="귀사의 역할">
             <select
+              id="applicability-importer"
+              aria-invalid={!!issueDescription('importer') || undefined}
+              aria-describedby={issueDescription('importer')}
               required
               value={draft.importer}
               onChange={(e) => update({ importer: e.target.value })}
@@ -550,6 +569,9 @@ function Applicability() {
             hint="시멘트·비료·철강·알루미늄의 합계. 모르면 비워두세요."
           >
             <input
+              id="applicability-mass"
+              aria-invalid={!!issueDescription('mass') || undefined}
+              aria-describedby={issueDescription('mass')}
               type="number"
               min="0"
               step="any"
@@ -566,6 +588,8 @@ function Applicability() {
         </div>
         <label className="check">
           <input
+            id="applicability-allImports"
+            aria-describedby={issueDescription('allImports')}
             type="checkbox"
             checked={draft.allImports}
             onChange={(e) => update({ allImports: e.target.checked })}
@@ -576,15 +600,23 @@ function Applicability() {
         <button className="button">적용 가능성 확인</button>
       </form>
       {result && (
-        <section className="panel accent" role="status">
-          <h2>{result}</h2>
+        <section className="panel accent applicability-result" role="status">
+          <h2>{result.heading}</h2>
+          <p>{result.summary}</p>
+          {result.issues.length > 0 && <ol className="applicability-issues">{result.issues.map(issue => <li key={issue.field} id={`applicability-issue-${issue.field}`}>
+            <h3>{issue.title}</h3>
+            <p>{issue.detail}</p>
+            <p><strong>다음 할 일: </strong>{issue.action}</p>
+            <button type="button" className="button secondary" onClick={() => focusField(issue.field)}>{APPLICABILITY_FIELD_LABELS[issue.field]} 확인·수정 ↑</button>
+            {issue.field === 'cnCode' && <a className="applicability-code-link" href={TARIC_SOURCE} target="_blank" rel="noopener noreferrer">EU TARIC에서 코드 확인 ↗</a>}
+          </li>)}</ol>}
           <p>
             제품과 거래의 추가 제외조건은 EU 수입자와 확인해야 합니다. 이 결과는
             법적 확정 판정이 아닙니다.
           </p>
-          <a href={REGULATIONS[1].sourceUrl}>
-            근거: 2025/2083 · 제2a조 및 Annex VII 개정 ↗
-          </a>
+          {result.references.length > 0 && <div className="applicability-references"><ul>{result.references.map(reference => <li key={reference.label}><a href={reference.url} target="_blank" rel="noopener noreferrer">근거: {reference.label} ↗</a></li>)}</ul>
+            <p className="muted">규정 원문 접속이 원활하지 않으면 <a href="https://taxation-customs.ec.europa.eu/carbon-border-adjustment-mechanism/cbam-legislation-and-guidance_en" target="_blank" rel="noopener noreferrer">EU 집행위원회 공식 규정 안내 ↗</a>에서도 관련 규정을 확인할 수 있습니다.</p>
+          </div>}
           <p className="muted">규정 데이터 기준일 {REGULATORY_DATE}</p>
         </section>
       )}

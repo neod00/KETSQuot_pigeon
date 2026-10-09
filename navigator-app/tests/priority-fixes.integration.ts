@@ -102,6 +102,75 @@ try {
   await expect(card).toHaveCount(0);
   console.log('PASS: actual missing/partial evidence remains visible despite ready self-assessment; confirmed and N/A evidence are filtered out');
 
+  await page.goto(base + '/applicability');
+  await page.getByLabel('EU로 반입되는 거래인가요?').selectOption('yes');
+  await page.getByLabel('검토할 CN 코드', { exact: true }).fill('72');
+  await page.getByLabel('관세 원산지').selectOption('KR');
+  await page.getByLabel('귀사의 역할').selectOption('operator');
+  await page.getByLabel('EU 수입자별 연간 대상 수입량 합계(t)').fill('20000');
+  await page.getByLabel('입력량은 해당 수입자의').check();
+  await page.getByRole('button', { name: '적용 가능성 확인', exact: true }).click();
+  await expect(page.locator('.applicability-issues li')).toHaveCount(1);
+  await expect(page.locator('.applicability-result')).toContainText('CN 코드 72만으로는 대상 여부를 구분할 수 없습니다');
+  await expect(page.locator('.applicability-result')).toContainText('실제 8자리 CN 코드');
+  await expect(page.locator('.applicability-references')).not.toContainText('Annex VII');
+  await page.getByRole('button', { name: 'CN 코드 확인·수정' }).click();
+  await expect(page.getByLabel('검토할 CN 코드', { exact: true })).toBeFocused();
+  await page.screenshot({ path: path.join(out, 'applicability-cn-blocker.png'), fullPage: true });
+  await page.getByLabel('검토할 CN 코드', { exact: true }).fill('73181590');
+  await expect(page.locator('.applicability-result')).toHaveCount(0);
+  await page.getByRole('button', { name: '적용 가능성 확인', exact: true }).click();
+  await expect(page.locator('.applicability-issues li')).toHaveCount(0);
+  await expect(page.locator('.applicability-result')).toContainText('20,000t은 50t 기준을 초과합니다');
+  await expect(page.getByRole('link', { name: /근거: 2023\/956 제2a조 · Annex VII/ })).toHaveAttribute('href', REGULATIONS[0].sourceUrl);
+  console.log('PASS: applicability identifies code 72 as the blocker, focuses its input, clears stale results, and explains the corrected 20,000t outcome');
+
+  await page.getByLabel('EU로 반입되는 거래인가요?').selectOption('unknown');
+  await page.getByLabel('검토할 CN 코드', { exact: true }).fill('72');
+  await page.getByRole('button', { name: '적용 가능성 확인', exact: true }).click();
+  await expect(page.locator('.applicability-issues li')).toHaveCount(2);
+  await page.getByRole('button', { name: 'EU 반입 여부 확인·수정' }).click();
+  await expect(page.getByLabel('EU로 반입되는 거래인가요?')).toBeFocused();
+  await page.getByLabel('EU로 반입되는 거래인가요?').selectOption('yes');
+  await page.getByLabel('검토할 CN 코드', { exact: true }).fill('73181590');
+  await page.getByLabel('EU 수입자별 연간 대상 수입량 합계(t)').fill('-1');
+  await page.getByRole('button', { name: '적용 가능성 확인', exact: true }).click();
+  await expect(page.locator('.applicability-issues li')).toHaveCount(1);
+  await expect(page.locator('.applicability-result')).toContainText('0 이상의 유한한 숫자');
+  await page.getByLabel('EU 수입자별 연간 대상 수입량 합계(t)').fill('20000');
+  await page.getByLabel('입력량은 해당 수입자의').uncheck();
+  await page.getByRole('button', { name: '적용 가능성 확인', exact: true }).click();
+  await expect(page.locator('.applicability-result')).toContainText('전체 합계인지 확인되지 않았습니다');
+  await page.getByRole('button', { name: '수입량 합산 여부 확인·수정' }).click();
+  await expect(page.getByLabel('입력량은 해당 수입자의')).toBeFocused();
+  console.log('PASS: unknown entry, invalid mass and unconfirmed aggregation show specific actions and accessible focus targets');
+
+  await page.getByLabel('EU로 반입되는 거래인가요?').selectOption('');
+  await page.getByLabel('검토할 CN 코드', { exact: true }).fill('');
+  await page.getByLabel('관세 원산지').selectOption('');
+  await page.getByLabel('귀사의 역할').selectOption('');
+  await page.getByRole('button', { name: '적용 가능성 확인', exact: true }).click();
+  await expect(page.locator('.applicability-issues li')).toHaveCount(4);
+  await page.getByRole('button', { name: '관세 원산지 확인·수정' }).click();
+  await expect(page.getByLabel('관세 원산지')).toBeFocused();
+  console.log('PASS: empty required fields show all four follow-up tasks instead of a generic or native validation message');
+
+  await page.getByLabel('EU로 반입되는 거래인가요?').selectOption('yes');
+  await page.getByLabel('관세 원산지').selectOption('KR');
+  await page.getByLabel('귀사의 역할').selectOption('operator');
+  await page.getByLabel('입력량은 해당 수입자의').check();
+  await page.getByLabel('검토할 CN 코드', { exact: true }).fill('72');
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.getByRole('button', { name: '적용 가능성 확인', exact: true }).click();
+    await expect(page.locator('.applicability-result')).toContainText('실제 8자리 CN 코드');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.getByRole('button', { name: 'CN 코드 확인·수정' }).click();
+    await expect(page.getByLabel('검토할 CN 코드', { exact: true })).toBeFocused();
+    await page.screenshot({ path: path.join(out, `applicability-guidance-${width}.png`), fullPage: true });
+  }
+  console.log('PASS: applicability reasons, actions and input focus work at 320px and 390px without overflow');
+
   for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto(base);
