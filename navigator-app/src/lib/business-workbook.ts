@@ -39,7 +39,7 @@ export async function buildBusinessWorkbook(data: BusinessDocumentData) {
   const summary = base('보고 요약', [18, 24, 24, 24]); title(summary, 'CBAM 검증 준비현황', 4);
   const info = [['보고자', data.details.author || '미입력'], ['보고 대상', data.details.recipient || '미입력'], ['대상기간', data.details.reportingPeriod || '미입력'], ['CN 코드', data.draft.cnCode || '미입력'], ['사업장', data.draft.sites || '미입력'], ['회신 요청기한', data.details.deadline || '미지정']];
   info.forEach(([label, value], i) => { summary.getCell(i + 5, 1).value = label; summary.mergeCells(i + 5, 2, i + 5, 4); summary.getCell(i + 5, 2).value = value; summary.getCell(i + 5, 2).alignment = { wrapText: true, vertical: 'middle' }; summary.getRow(i + 5).height = Math.max(26, Math.ceil(value.length / 45) * 17 + 10); });
-  line(summary, 12, `자가진단: ${data.scoreLabel} (${data.scored.answered}/24 응답) / 증빙 준비 완료: ${data.readyEvidence}건 / 해당 없음: ${data.notApplicable}건`, 4, 11, PALE);
+  line(summary, 12, `자가진단: ${data.scoreLabel} (${data.scored.answered}/24 응답) / 준비됨 응답: ${data.readyAnswers}개 / 추가 준비·미응답: ${data.actions.length}개`, 4, 11, PALE);
   table(summary, ['진단 영역', '응답 수', '자가진단 준비도', '비고'], data.categories.map(c => [c.label, c.answered, c.answered === 4 ? c.score / 100 : null, c.answered === 4 ? '자가진단 기준' : '진단 미완료']), 14, 'CategorySummary', data.categories.map(() => 30));
   summary.views = [{ showGridLines: false }];
   for (let r = 15; r <= 20; r++) summary.getCell(r, 3).numFmt = '0%';
@@ -48,7 +48,7 @@ export async function buildBusinessWorkbook(data: BusinessDocumentData) {
   const chunks = requestText.match(/[\s\S]{1,300}/g) || [''];
   chunks.forEach((chunk, i) => line(summary, 23 + i, chunk, 4));
   const after = 23 + chunks.length;
-  line(summary, after + 1, '업무 진행: 자료 협조요청 시트에서 부서·담당자·기한을 지정하고, 회신자료 위치와 진행상태를 갱신하세요. 진단과 증빙 상태는 다운로드 시점의 기록입니다.', 4);
+  line(summary, after + 1, '업무 진행: 자료 협조요청 시트에서 부서·담당자·기한을 지정하고, 회신자료 위치와 진행상태를 갱신하세요. 진단 응답은 다운로드 시점의 기록이며 Excel 수정 내용은 앱에 자동 반영되지 않습니다.', 4);
   line(summary, after + 3, READINESS_NOTICE, 4); line(summary, after + 4, '자료 예시·확인 부서는 참고사항입니다. 해당 없음의 근거는 별도로 확인해야 합니다.', 4);
   summary.pageSetup.printArea = `A1:D${after + 4}`;
   const request = base('자료 협조요청', [6, 10, 18, 32, 24, 14, 12, 12, 13, 22], true); title(request, 'CBAM 자료 협조요청서', 10);
@@ -65,10 +65,10 @@ export async function buildBusinessWorkbook(data: BusinessDocumentData) {
       request.getCell(r, 8).dataValidation = { type: 'date', operator: 'between', allowBlank: true, formulae: [new Date('2000-01-01'), new Date('2100-12-31')], showErrorMessage: true, error: '날짜를 입력해 주세요.' };
     }
     request.addConditionalFormatting({ ref: `I9:I${8 + rows.length}`, rules: [{ type: 'containsText', operator: 'containsText', text: '확보 완료', priority: 1, style: { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DDF7EE' } } } }] });
-  } else line(request, 8, '현재 기록 기준으로 추가 자료 요청 대상이 없습니다. 해당 없음의 근거와 검증 범위는 담당자와 확인하세요.', 10);
-  const checklist = base('전체 진단·증빙', [7, 20, 14, 37, 17, 24, 25, 40], true); title(checklist, '전체 진단·증빙 체크리스트', 8);
-  line(checklist, 5, '자가진단 응답과 실제 자료 확보상태를 구분했습니다. 이 시트는 다운로드 시점의 기록이며, 협조요청 시트의 진행상태를 수정해도 진단 결과는 변경되지 않습니다.', 8);
-  table(checklist, ['ID', '영역', '우선순위', '진단 질문', '자가진단 응답', '필요 자료', '자료 확보상태', '자료 예시'], data.rows.map(r => [r.id, r.categoryLabel, r.priority, r.text, r.answer, r.evidence, r.status, r.example]), 7, 'DiagnosticSnapshot', data.rows.map(r => Math.max(72, Math.ceil(r.text.length / 22) * 15 + 15, Math.ceil(r.example.length / 25) * 15 + 15)));
+  } else line(request, 8, '진단 응답 기준으로 추가 자료 요청 대상이 없습니다. 검증 범위와 제출 일정은 담당자와 확인하세요.', 10);
+  const checklist = base('전체 진단·자료', [7, 20, 14, 37, 17, 24, 40], true); title(checklist, '전체 진단·자료 체크리스트', 7);
+  line(checklist, 5, '진단 응답과 필요한 자료를 연결했습니다. 다운로드 시점의 기록이며, 자료 협조요청 시트에서 담당자·기한·진행상태를 관리할 수 있습니다. Excel 수정 내용은 앱에 자동 반영되지 않습니다.', 7);
+  table(checklist, ['ID', '영역', '우선순위', '진단 질문', '진단 응답', '필요 자료', '자료 예시'], data.rows.map(r => [r.id, r.categoryLabel, r.priority, r.text, r.answer, r.evidence, r.example]), 7, 'DiagnosticSnapshot', data.rows.map(r => Math.max(72, Math.ceil(r.text.length / 22) * 15 + 15, Math.ceil(r.example.length / 25) * 15 + 15)));
   summary.eachRow(r => r.eachCell(c => { c.font = { name: '맑은 고딕', size: 11, color: { argb: INK }, ...c.font }; }));
   return new Uint8Array(await wb.xlsx.writeBuffer());
 }

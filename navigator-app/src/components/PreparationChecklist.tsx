@@ -1,13 +1,14 @@
 "use client";
 import { useNavigator } from './NavigatorContext';
-import { buildChecklistCsv, recommendedActions, QUESTION_GUIDANCE, ANSWER_LABELS, EVIDENCE_LABELS } from '@/lib/readiness-guidance';
+import { buildChecklistCsv, recommendedActions, QUESTION_GUIDANCE, ANSWER_LABELS } from '@/lib/readiness-guidance';
+import { RequiredMaterials } from './RequiredMaterials';
 import { QUESTIONS } from '@/shared/cbam-navigator';
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { businessDocumentData, documentFilename, EMPTY_REPORT_DETAILS } from '@/lib/business-document-data';
 import { LEAD_PRIVACY_VERSION, type LeadIntent } from '@/shared/cbam-lead';
 
-export function PreparationChecklist() {
+export function PreparationChecklist({ onReview }: { onReview: (id: string) => void }) {
   const { draft, ready } = useNavigator();
   const [details, setDetails] = useState({ ...EMPTY_REPORT_DETAILS });
   const [contact, setContact] = useState({ phone:'', email:'', consultationMessage:'', consent:false });
@@ -37,7 +38,7 @@ export function PreparationChecklist() {
       recipient:details.recipient, reportingPeriod:details.reportingPeriod, deadline:details.deadline, decisionRequest:details.decisionRequest,
       consultationMessage:contact.consultationMessage, consent:contact.consent, privacyNoticeVersion:LEAD_PRIVACY_VERSION, intent,
       sites:draft.sites, productionProcesses:draft.productionProcesses, productionRoute:draft.productionRoute, precursors:draft.precursors, country:draft.country,
-      navigatorData:{ sessionId:draft.sessionId, productName:draft.productName, searchedCnCodes:[...new Set([draft.cnCode, ...draft.searchedCnCodes].filter(Boolean))], readinessAnswers:draft.answers, evidenceStatus:draft.evidence, startedAt:draft.startedAt },
+      navigatorData:{ sessionId:draft.sessionId, productName:draft.productName, searchedCnCodes:[...new Set([draft.cnCode, ...draft.searchedCnCodes].filter(Boolean))], readinessAnswers:draft.answers, startedAt:draft.startedAt },
     }) });
     const result = await response.json(); if (!response.ok) throw new Error(result.message || '진단 접수를 저장하지 못했습니다.');
     return result.reference as string;
@@ -77,10 +78,11 @@ export function PreparationChecklist() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return <section className="panel preparation-checklist">
-    <div className="checklist-heading"><div><p className="eyebrow">다음 업무로 이어가기</p><h3>우선 조치 3개</h3></div></div>
-    <p className="muted">자료 확보상태와 진단 응답을 참고해 정리했습니다. 확인 부서는 예시이며, 실제 담당자와 기한은 체크리스트에 작성해 주세요.</p>
-    {actions.length ? <ol className="action-list">{actions.map(action => <li key={action.id}><span className="badge">{action.confirmOnly ? '증빙 확인' : action.priority}</span><strong>{action.confirmOnly ? `${action.evidence}의 실제 확보 여부를 확인하세요.` : action.action}</strong><p>확인할 부서: {action.owner}</p><small>자료 예시: {action.example}</small></li>)}</ol> : <p>기록된 자료 상태를 기준으로 추가 조치가 없습니다. 검증 범위와 일정을 담당자와 확인해 주세요.</p>}
-    <form className="business-documents" ref={formRef} onSubmit={e => e.preventDefault()}>
+    <div className="checklist-heading" id="priority-actions"><div><p className="eyebrow">다음 업무로 이어가기</p><h3>먼저 진행할 조치{actions.length > 0 && ` ${actions.length}개`}</h3></div></div>
+    <p className="muted">진단 응답과 중요도를 기준으로 정리했습니다. 확인 부서는 예시이며, 담당자와 기한은 협조요청서에 작성해 주세요.</p>
+    {actions.length ? <ol className="action-list">{actions.map(action => <li key={action.id}><span className="badge">{action.priority}</span><strong>{action.action}</strong><p>확인할 부서: {action.owner}</p><small>자료 예시: {action.example}</small></li>)}</ol> : <p>진단 응답 기준으로 추가 조치가 없습니다. 검증 범위와 일정을 담당자와 확인해 주세요.</p>}
+    <RequiredMaterials onReview={onReview} />
+    <form className="business-documents" id="business-documents" ref={formRef} onSubmit={e => e.preventDefault()}>
       <h3>보고·협조요청 문서 만들기</h3>
       <p className="muted">회사·담당자 정보를 입력하면 현재 진단을 반영한 문서를 받을 수 있습니다. 제출한 연락처와 진단정보는 LRQA의 진단 접수 관리와 요청사항 대응을 위해 저장됩니다.</p>
       <div className="document-fields">
@@ -93,7 +95,7 @@ export function PreparationChecklist() {
         <label>회신 요청기한<input type="date" value={details.deadline} onChange={e => setDetails({ ...details, deadline: e.target.value })} /></label>
         <label className="document-request">지원·의사결정 요청<textarea rows={3} maxLength={1500} value={details.decisionRequest} onChange={e => setDetails({ ...details, decisionRequest: e.target.value })} placeholder="예: 부서별 자료 담당자 지정과 공급업체 배출량 자료 요청에 대한 협조가 필요합니다." /></label>
       </div>
-      <details className="lead-privacy"><summary>개인정보 수집·이용 안내</summary><p>수집 항목: 회사명, 담당자명, 전화번호, 이메일, 진단 응답·자료 확보상태 및 입력한 요청사항</p><p>이용 목적: 진단 접수 관리, 요청 문서 제공 및 상담 요청에 대한 연락</p><p>보유기간: {privacy.retention || '개인정보 안내 페이지 확인'}</p><p>문의: {privacy.contact || 'LRQA Korea'}</p><p>동의를 거부할 수 있으며, 거부 시 문서 제공과 상담 요청 접수가 제한됩니다. <Link href="/privacy" target="_blank">개인정보 안내 전체 보기</Link></p></details>
+      <details className="lead-privacy"><summary>개인정보 수집·이용 안내</summary><p>수집 항목: 회사명, 담당자명, 전화번호, 이메일, 진단 응답 및 입력한 요청사항</p><p>이용 목적: 진단 접수 관리, 요청 문서 제공 및 상담 요청에 대한 연락</p><p>보유기간: {privacy.retention || '개인정보 안내 페이지 확인'}</p><p>문의: {privacy.contact || 'LRQA Korea'}</p><p>동의를 거부할 수 있으며, 거부 시 문서 제공과 상담 요청 접수가 제한됩니다. <Link href="/privacy" target="_blank">개인정보 안내 전체 보기</Link></p></details>
       <label className="lead-consent"><input required type="checkbox" checked={contact.consent} onChange={e => setContact({ ...contact, consent:e.target.checked })} /><span>개인정보 수집·이용에 동의하며, 연락처와 진단정보를 LRQA에 제출합니다. *</span></label>
       <div className="document-downloads">
         <div><strong>내부 보고용 PDF</strong><p>준비도 요약 · 우선 조치 · 지원 요청 · 전체 진단 내역</p><button type="button" className="button primary" disabled={!!busy || !ready} onClick={() => exportDocument('pdf')}>{busy === 'pdf' ? '접수·PDF 생성 중…' : '보고서 다운로드 (PDF)'}</button></div>
@@ -106,6 +108,6 @@ export function PreparationChecklist() {
       <details className="document-raw"><summary>원자료 내보내기</summary><button type="button" disabled={!!busy || !ready} className="button secondary" onClick={() => exportDocument('csv')}>원자료 다운로드 (CSV)</button></details>
     </form>
     <p className="print-summary">제품: {draft.productName || '미입력'} · CN 코드: {draft.cnCode || '미입력'} · 사업장: {draft.sites || '미입력'}</p>
-    <table className="print-only"><caption>검증 준비자료 전체 체크리스트</caption><thead><tr><th>자료 / 우선순위</th><th>자가진단 / 자료 상태</th><th>확인할 부서 · 다음 조치</th><th>담당자 / 기한</th></tr></thead><tbody>{QUESTIONS.map(q => <tr key={q.id}><td>{q.evidence}<br />{q.priority}</td><td>{ANSWER_LABELS[draft.answers[q.id]] || '미응답'}<br />{EVIDENCE_LABELS[draft.evidence[q.id]] || '확인 전'}</td><td>{QUESTION_GUIDANCE[q.id].owner}<br />{QUESTION_GUIDANCE[q.id].action}</td><td>담당자:<br /><br />기한:</td></tr>)}</tbody></table>
+    <table className="print-only"><caption>검증 준비자료 전체 체크리스트</caption><thead><tr><th>자료 / 우선순위</th><th>진단 응답</th><th>확인할 부서 · 다음 조치</th><th>담당자 / 기한</th></tr></thead><tbody>{QUESTIONS.map(q => <tr key={q.id}><td>{q.evidence}<br />{q.priority}</td><td>{ANSWER_LABELS[draft.answers[q.id]] || '미응답'}</td><td>{QUESTION_GUIDANCE[q.id].owner}<br />{draft.answers[q.id] === 'ready' ? '제출 전 자료의 최신성과 범위를 검토하세요.' : QUESTION_GUIDANCE[q.id].action}</td><td>담당자:<br /><br />기한:</td></tr>)}</tbody></table>
   </section>;
 }

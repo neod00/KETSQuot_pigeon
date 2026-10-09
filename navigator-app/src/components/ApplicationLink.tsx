@@ -22,7 +22,7 @@ export function ApplicationLink({ children, className }: { children: ReactNode; 
         sites: draft.sites, productionProcesses: draft.productionProcesses,
         clientType: draft.importer === 'importer' ? 'importer' : draft.importer === 'operator' ? 'operator' : undefined },
       navigatorData: { sessionId: draft.sessionId || stamp.sessionId, productName: draft.productName,
-        searchedCnCodes: draft.searchedCnCodes, readinessAnswers: draft.answers, evidenceStatus: draft.evidence, startedAt: draft.startedAt },
+        searchedCnCodes: draft.searchedCnCodes, readinessAnswers: draft.answers, startedAt: draft.startedAt },
     });
   } catch (caught) { error = caught instanceof Error ? caught.message : '진단정보를 확인해 주세요.'; }
   return <><a href={href} className={className} aria-disabled={!stamp || !!error} onClick={e => {

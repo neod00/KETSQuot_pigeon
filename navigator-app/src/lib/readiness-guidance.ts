@@ -1,4 +1,4 @@
-import { QUESTIONS, CATEGORY_LABELS, READINESS_NOTICE, scoreReadiness, type ReadinessAnswer, type EvidenceStatus } from '@/shared/cbam-navigator';
+import { QUESTIONS, CATEGORY_LABELS, READINESS_NOTICE, scoreReadiness, type ReadinessAnswer } from '@/shared/cbam-navigator';
 import type { Draft } from '@/components/NavigatorContext';
 
 type Guidance = { explanation: string; example: string; owner: string; action: string };
@@ -29,17 +29,15 @@ export const QUESTION_GUIDANCE: Record<string, Guidance> = {
   V4: { explanation: '자료를 준비·제출할 시점과 현장 확인에 대응할 일정을 검토합니다.', example: '자료 준비, 내부 검토, 제출, 현장 확인을 표시한 일정표', owner: 'CBAM·사업장 담당', action: '자료 제출과 현장 대응 일정을 관련 부서와 협의하세요.' },
 };
 export const ANSWER_LABELS: Record<ReadinessAnswer, string> = { ready: '준비됨', partial: '일부 준비', missing: '미준비 / 모름' };
-export const EVIDENCE_LABELS: Record<EvidenceStatus, string> = { ready: '준비 완료', partial: '일부 준비', missing: '미준비', not_applicable: '해당 없음 (근거 확인 필요)' };
-
-export function needsEvidenceFollowup(status: EvidenceStatus | undefined) {
-  return status !== 'ready' && status !== 'not_applicable';
+export function needsPreparation(answer: ReadinessAnswer | undefined) {
+  return answer !== 'ready';
 }
 
-export function recommendedActions(draft: Pick<Draft, 'answers' | 'evidence'>) {
+export function recommendedActions(draft: Pick<Draft, 'answers'>) {
   const priority = { '중요': 0, '보완 필요': 1, '확인 권장': 2 };
-  return QUESTIONS.filter(q => needsEvidenceFollowup(draft.evidence[q.id]))
-    .map(q => ({ ...q, ...QUESTION_GUIDANCE[q.id], confirmOnly: draft.answers[q.id] === 'ready' && !draft.evidence[q.id] }))
-    .sort((a, b) => Number(a.confirmOnly) - Number(b.confirmOnly) || priority[a.priority] - priority[b.priority] || Number(draft.answers[b.id] === 'missing') - Number(draft.answers[a.id] === 'missing'));
+  return QUESTIONS.filter(q => needsPreparation(draft.answers[q.id]))
+    .map(q => ({ ...q, ...QUESTION_GUIDANCE[q.id], action: draft.answers[q.id] ? QUESTION_GUIDANCE[q.id].action : `${q.evidence}에 관한 진단 질문에 응답하고 필요한 준비를 확인하세요.` }))
+    .sort((a, b) => priority[a.priority] - priority[b.priority] || Number(draft.answers[b.id] === 'missing') - Number(draft.answers[a.id] === 'missing'));
 }
 
 // Excel may interpret user-entered cells as formulas. Always quote CSV cells
@@ -56,8 +54,8 @@ export function buildChecklistCsv(draft: Draft, now = new Date()) {
     ['제품', draft.productName], ['CN 코드', draft.cnCode], ['사업장', draft.sites],
     ['자가진단', scored.complete ? `${scored.readinessScore}%` : `${scored.answered}/24개 응답 · 미완료`],
     ['안내', READINESS_NOTICE], ['자료 예시·확인 부서는 준비를 위한 참고사항이며 제품과 검증 범위에 따라 달라집니다.'], [],
-    ['질문 ID', '영역', '우선순위', '질문', '자가진단 응답', '증빙자료', '자료 확보상태', '자료 예시', '확인할 부서 (예시)', '다음 조치', '담당자 (작성)', '기한 (작성)', '진행 메모 (작성)'],
-    ...QUESTIONS.map(q => [q.id, CATEGORY_LABELS[q.category], q.priority, q.text, ANSWER_LABELS[draft.answers[q.id]] || '미응답', q.evidence, EVIDENCE_LABELS[draft.evidence[q.id]] || '확인 전', QUESTION_GUIDANCE[q.id].example, QUESTION_GUIDANCE[q.id].owner, QUESTION_GUIDANCE[q.id].action, '', '', '']),
+    ['질문 ID', '영역', '우선순위', '질문', '진단 응답', '필요 자료', '자료 예시', '확인할 부서 (예시)', '다음 조치', '담당자 (작성)', '기한 (작성)', '진행 메모 (작성)'],
+    ...QUESTIONS.map(q => [q.id, CATEGORY_LABELS[q.category], q.priority, q.text, ANSWER_LABELS[draft.answers[q.id]] || '미응답', q.evidence, QUESTION_GUIDANCE[q.id].example, QUESTION_GUIDANCE[q.id].owner, needsPreparation(draft.answers[q.id]) ? QUESTION_GUIDANCE[q.id].action : '응답 기준으로 준비됨 · 제출 전 자료의 최신성·범위를 검토하세요.', '', '', '']),
   ];
   return '\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n');
 }

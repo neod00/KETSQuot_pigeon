@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readSavedDraft, serializeDraft, DEVICE_RETENTION } from '../src/lib/draft-storage';
-import { buildChecklistCsv, recommendedActions, needsEvidenceFollowup } from '../src/lib/readiness-guidance';
+import { buildChecklistCsv, recommendedActions, needsPreparation } from '../src/lib/readiness-guidance';
 import type { Draft } from '../src/components/NavigatorContext';
 import { createPublicCbamApplication } from '../../web-app/src/lib/cbam-application-draft';
 import { parseApplication } from '../src/shared/cbam-intake-schema';
@@ -47,19 +47,23 @@ test('CSV preserves Korean, quotes and line breaks while neutralizing untrusted 
   assert.equal(csv.split('\r\n').filter(line => /^"[SMPRDV][1-4]",/.test(line)).length, 24);
 });
 
-test('confirmed evidence is removed from action requests; unconfirmed self-reported readiness remains a confirmation task', () => {
+test('preparation tasks use diagnosis answers once and exclude ready answers without a second confirmation', () => {
   const actions = recommendedActions(draft);
   assert.ok(!actions.some(action => action.id === 'S1'));
-  assert.equal(actions.find(action => action.id === 'R3')?.confirmOnly, false);
-  const confirmed = recommendedActions({ answers: { S1: 'ready' }, evidence: {} }).find(action => action.id === 'S1');
-  assert.equal(confirmed?.confirmOnly, true);
+  assert.ok(actions.some(action => action.id === 'R3'));
+  assert.ok(actions.some(action => action.id === 'M1'));
+  assert.equal(recommendedActions({ answers: { S1: 'ready' } }).some(action => action.id === 'S1'), false);
 });
 
-test('evidence follow-up uses actual records even when the self-assessment says ready', () => {
-  assert.equal(needsEvidenceFollowup('missing'), true);
-  assert.equal(needsEvidenceFollowup('partial'), true);
-  assert.equal(needsEvidenceFollowup(undefined), true);
-  assert.equal(needsEvidenceFollowup('ready'), false);
-  assert.equal(needsEvidenceFollowup('not_applicable'), false);
-  assert.ok(recommendedActions({ answers: { S1: 'ready' }, evidence: { S1: 'missing' } }).some(q => q.id === 'S1'));
+test('legacy evidence records do not contradict current diagnosis answers or hide preparation tasks', () => {
+  assert.equal(needsPreparation('missing'), true);
+  assert.equal(needsPreparation('partial'), true);
+  assert.equal(needsPreparation(undefined), true);
+  assert.equal(needsPreparation('ready'), false);
+  const existing = { answers: { S1: 'ready', R3: 'missing' } as Draft['answers'], evidence: { S1: 'missing', R3: 'ready' } as Draft['evidence'] };
+  const actions = recommendedActions(existing);
+  assert.ok(!actions.some(q => q.id === 'S1'));
+  assert.ok(actions.some(q => q.id === 'R3'));
+  assert.deepEqual(readSavedDraft(serializeDraft({ ...draft, ...existing }, DEVICE_RETENTION))?.draft.evidence, existing.evidence);
+  assert.ok(!buildChecklistCsv({ ...draft, ...existing }).includes('자료 확보상태'));
 });

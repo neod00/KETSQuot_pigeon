@@ -1,17 +1,16 @@
 import type { Draft } from '@/components/NavigatorContext';
 import { QUESTIONS, CATEGORY_LABELS, scoreReadiness } from '@/shared/cbam-navigator';
-import { ANSWER_LABELS, EVIDENCE_LABELS, QUESTION_GUIDANCE, recommendedActions } from './readiness-guidance';
+import { ANSWER_LABELS, QUESTION_GUIDANCE, recommendedActions } from './readiness-guidance';
 
 export type ReportDetails = { company: string; author: string; reportingPeriod: string; recipient: string; deadline: string; decisionRequest: string };
 export const EMPTY_REPORT_DETAILS: ReportDetails = { company: '', author: '', reportingPeriod: '', recipient: '', deadline: '', decisionRequest: '' };
 export function businessDocumentData(draft: Draft, details: ReportDetails, now = new Date()) {
   const scored = scoreReadiness(draft.answers);
   const date = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-  const rows = QUESTIONS.map(q => ({ ...q, categoryLabel: CATEGORY_LABELS[q.category], ...QUESTION_GUIDANCE[q.id], answer: ANSWER_LABELS[draft.answers[q.id]] || '미응답', status: EVIDENCE_LABELS[draft.evidence[q.id]] || '확인 전' }));
-  const actions = recommendedActions(draft).map(q => ({ ...rows.find(r => r.id === q.id)!, action: q.confirmOnly ? `${q.evidence}의 실제 확보 여부를 확인하세요.` : q.action }));
+  const rows = QUESTIONS.map(q => ({ ...q, categoryLabel: CATEGORY_LABELS[q.category], ...QUESTION_GUIDANCE[q.id], answer: ANSWER_LABELS[draft.answers[q.id]] || '미응답' }));
+  const actions = recommendedActions(draft).map(q => ({ ...rows.find(r => r.id === q.id)!, action: q.action }));
   return { draft, details, date, scored, rows, actions,
-    readyEvidence: rows.filter(r => draft.evidence[r.id] === 'ready').length,
-    notApplicable: rows.filter(r => draft.evidence[r.id] === 'not_applicable').length,
+    readyAnswers: rows.filter(r => draft.answers[r.id] === 'ready').length,
     scoreLabel: scored.complete ? `${scored.readinessScore}%` : '진단 미완료',
     categories: Object.entries(CATEGORY_LABELS).map(([key, label]) => ({ label, score: scored.readinessCategories[key as keyof typeof CATEGORY_LABELS], answered: QUESTIONS.filter(q => q.category === key && draft.answers[q.id]).length })),
   };

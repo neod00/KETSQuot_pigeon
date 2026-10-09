@@ -14,7 +14,6 @@ const navigation = [
   ["/applicability", "적용 가능성"],
   ["/product-map", "제품·공정"],
   ["/readiness", "검증 준비도"],
-  ["/evidence", "증빙자료"],
   ["/application", "검증 신청"],
 ] as const;
 
