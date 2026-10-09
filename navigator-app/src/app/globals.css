@@ -1046,6 +1046,17 @@ h2 { font-size: clamp(26px, 2.8vw, 39px); line-height: 1.3; letter-spacing: -.04
 .page-heading { margin-bottom: 35px; }
 .page-heading > p:last-child { color: #d3d9e9; }
 .panel.accent { background: #20334b; border-color: rgba(15,242,178,.5); }
+.applicability-result h2 { font-size: clamp(24px, 3vw, 32px); word-break: keep-all; }
+.applicability-issues { list-style: none; padding: 0; display: grid; gap: 18px; margin: 24px 0; }
+.applicability-issues li { padding: 20px; border: 1px solid var(--line); background: var(--surface-soft); }
+.applicability-issues h3 { font-size: 18px; line-height: 1.5; word-break: keep-all; margin: 0 0 12px; }
+.applicability-issues p { font-size: 14px; margin-bottom: 14px; }
+.applicability-code-link { display: inline-block; margin: 12px 0 0 16px; }
+.applicability-references { border-top: 1px solid var(--line); padding-top: 18px; }
+.applicability-references ul { padding-left: 20px; }
+.applicability-references li { margin-bottom: 10px; }
+.applicability-references a, .applicability-code-link { overflow-wrap: anywhere; }
+.field [aria-invalid="true"] { border: 2px solid #e998ae; }
 .field input, .field select, .field textarea { color-scheme: light; color: #111534; border-radius: 0; }
 .field input[readonly] { background: #e7ecf3; }
 .tabs button { color: var(--ink); background: #252a4d; border-radius: 0; }
