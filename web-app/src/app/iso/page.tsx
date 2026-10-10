@@ -156,6 +156,7 @@ export default function ISOQuotePage() {
   const [teamAbility, setTeamAbility] = useState('0');
   const [durationAdjustments, setDurationAdjustments] = useState<AuditDurationAdjustment[]>([]);
   const [auditCalculationAppliedAt, setAuditCalculationAppliedAt] = useState('');
+  const [auditDayDifferenceReason, setAuditDayDifferenceReason] = useState('');
   const [expenses, setExpenses] = useState(DEFAULT_EXPENSES.toLocaleString());
   const [certFee, setCertFee] = useState(DEFAULT_CERT_FEE.toLocaleString());
   const [discount, setDiscount] = useState('0');
@@ -248,6 +249,7 @@ export default function ISOQuotePage() {
         setTeamAbility(toInputNumber(importedAudit.integration?.teamAbility, '0'));
         setDurationAdjustments(imported.auditCalculation?.adjustments || []);
         setAuditCalculationAppliedAt(imported.auditCalculation?.appliedAt || '');
+        setAuditDayDifferenceReason(imported.auditCalculation?.dayDifferenceReason || '');
       }
 
       if (importedCustomStandard) {
@@ -490,6 +492,7 @@ export default function ISOQuotePage() {
     });
     const appliedAt = new Date().toISOString();
     setAuditCalculationAppliedAt(appliedAt);
+    setAuditDayDifferenceReason('');
     setDraftMessage(
       auditDurationResult.status === 'calculated'
         ? '자동 산정값을 규격별 심사일수에 적용했습니다.'
@@ -542,6 +545,7 @@ export default function ISOQuotePage() {
       input: auditDurationInput,
       result: auditDurationResult,
       appliedAt: auditDurationValuesApplied ? auditCalculationAppliedAt || undefined : undefined,
+      dayDifferenceReason: !auditDurationValuesApplied ? auditDayDifferenceReason.trim() || undefined : undefined,
       multiSiteEvidence: normalisedMultiSiteEvidence,
       adjustments: durationAdjustments,
     },
@@ -634,6 +638,14 @@ export default function ISOQuotePage() {
     const payload = await parseResponse(response);
     if (!response.ok) throw new Error(payload.error || '생성 문서를 내부 문서함에 저장하지 못했습니다.');
   };
+  const confirmAuditDayDifference = () => {
+    if (auditDurationResult.perStandard.length === 0 || auditDurationValuesApplied) return true;
+    if (!auditDayDifferenceReason.trim()) {
+      alert('자동 산정일수와 견적 적용일수가 다릅니다. 산정값을 적용하거나 직접 조정 사유를 입력하세요.');
+      return false;
+    }
+    return window.confirm(`자동 산정일수와 문서 적용일수가 다릅니다.\n조정 사유: ${auditDayDifferenceReason.trim()}\n현재 적용 일수로 문서를 생성하시겠습니까?`);
+  };
   const handleDownloadWord = async () => {
     if (standardCostRows.length === 0) {
       alert('ISO 표준을 선택하거나 기타 표준을 입력해주세요.');
@@ -647,6 +659,7 @@ export default function ISOQuotePage() {
       alert('신청서 연결 문서는 내부 승인 완료 후 생성할 수 있습니다.');
       return;
     }
+    if (!confirmAuditDayDifference()) return;
 
     try {
       const firstRow = standardCostRows[0];
@@ -817,7 +830,7 @@ export default function ISOQuotePage() {
     }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => { if (confirmAuditDayDifference()) window.print(); };
   const totalNote = hasExpenses ? `VAT ${vatType}` : `제경비/VAT ${vatType}`;
   const futureAuditColumn = futureAuditHeader(auditType);
   return (
@@ -1156,7 +1169,36 @@ export default function ISOQuotePage() {
               </div>
             )}
 
-            {auditDurationValuesApplied && <p className="mt-4 text-xs font-semibold text-teal-700">현재 산정값이 규격별 입력란에 적용되어 있습니다.</p>}
+            {auditDurationResult.perStandard.length > 0 && (
+              <div className="mt-5 rounded-md border border-slate-200 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-sm font-bold text-slate-800">자동 산정 ↔ 견적 적용</h4>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${auditDurationValuesApplied ? 'bg-teal-50 text-teal-800' : 'bg-amber-100 text-amber-900'}`}>
+                    {auditDurationValuesApplied ? '산정값 적용 완료' : auditDayDifferenceReason.trim() ? '직접 조정 · 사유 입력됨' : auditCalculationAppliedAt ? '입력 변경 · 재검토 필요' : '산정값 미적용'}
+                  </span>
+                </div>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[480px] text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-600"><tr><th className="p-2">규격</th><th className="p-2">자동 산정 최초심사</th><th className="p-2">견적 적용 최초심사</th></tr></thead>
+                    <tbody>{auditDurationResult.perStandard.map(row => {
+                      const current = standardInputs[row.standard] || defaultCostInput();
+                      const calculated = row.stage1Days + row.stage2Days;
+                      const applied = parseDays(current.stage1Days) + parseDays(current.stage2Days);
+                      return <tr key={row.standard} className="border-t border-slate-200"><td className="p-2 font-semibold">{row.standard}</td><td className="p-2">{formatDays(calculated)}</td><td className={`p-2 ${calculated !== applied ? 'font-bold text-amber-800' : ''}`}>{formatDays(applied)}</td></tr>;
+                    })}</tbody>
+                  </table>
+                </div>
+                {!auditDurationValuesApplied && (
+                  <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-sm font-semibold text-amber-900">자동 산정값과 현재 문서에 적용될 일수가 다릅니다.</p>
+                    <p className="mt-1 text-xs text-amber-800">산정값을 적용하거나 직접 조정 사유를 기록하세요. 문서 생성 직전에 다시 확인합니다.</p>
+                    <label className="mt-3 block text-xs font-semibold text-slate-700" htmlFor="iso-day-difference-reason">직접 조정 사유</label>
+                    <textarea id="iso-day-difference-reason" value={auditDayDifferenceReason} onChange={(event) => setAuditDayDifferenceReason(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2 text-sm" rows={2} placeholder="예: 심사 범위 검토에 따른 담당자 조정" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="mt-4">
             <AuditDurationSummary result={auditDurationResult} />
