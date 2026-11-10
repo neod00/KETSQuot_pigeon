@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const reference = `P827-${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     const application: StoredP827Application = {
-      ...input, ...defaultRisk(), ...calculation, reference, submittedAt: now.toISOString(), status: '신규 접수',
+      ...input, serviceType: input.serviceType === 'lca_solution' ? 'lca_solution' : 'p827',
+      ...defaultRisk(), ...calculation, reference, submittedAt: now.toISOString(), status: '신규 접수',
       dayRate: DEFAULT_P827_DAY_RATE, applicationFee: DEFAULT_P827_APPLICATION_FEE, expenses: DEFAULT_P827_EXPENSES, pricingAdjustmentReason: '',
       estimatedCost: estimateP827Cost(calculation.quotedDays),
     };
@@ -87,7 +88,7 @@ export async function PUT(request: NextRequest) {
     const expenses = payload.pricing?.expenses ?? current.expenses;
     if (![finalDays, dayRate, applicationFee, expenses].every(value => Number.isFinite(value) && value >= 0) || finalDays <= 0) return NextResponse.json({ message: '심사일수와 비용 조건을 확인해 주세요.' }, { status: 400 });
     const application: StoredP827Application = {
-      ...current, ...payload.application, ...calculation, ...(payload.risk || {}),
+      ...current, ...payload.application, serviceType: current.serviceType, ...calculation, ...(payload.risk || {}),
       automaticQuotedDays: calculation.quotedDays,
       manualQuotedDays: payload.pricing?.quotedDays ?? current.manualQuotedDays,
       quotedDays: finalDays, dayRate, applicationFee, expenses,

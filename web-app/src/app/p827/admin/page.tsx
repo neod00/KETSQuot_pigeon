@@ -3,9 +3,14 @@
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  calculateP827Days, estimateP827Cost, p827ComplexityLabel, p827EngagementLabel,
+  calculateP827Days, estimateP827Cost, isLcaSolutionApplication, LCA_SOLUTION_FORM_URL, needsManualLcaQuote,
+  p827ComplexityLabel, p827EngagementLabel, P827_CUSTOMER_FORM_PATH,
   type P827ApplicationInput, type P827RiskAssessment, type StoredP827Application,
 } from '@/lib/p827-application';
+
+type ServiceView = 'all' | 'p827' | 'lca';
+const VIEWS: { key: ServiceView; label: string }[] = [{ key: 'all', label: '전체' }, { key: 'p827', label: 'P827 일반' }, { key: 'lca', label: 'LCA 솔루션' }];
+const inView = (item: StoredP827Application, view: ServiceView) => view === 'all' || (view === 'lca') === isLcaSolutionApplication(item);
 
 const EDIT = 'mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-100';
 const money = (value: number) => `${Math.round(value).toLocaleString('ko-KR')}원`;
@@ -18,6 +23,7 @@ export default function P827AdminPage() {
   const [editing, setEditing] = useState(false);
   const [riskEditing, setRiskEditing] = useState(false);
   const [pricingEditing, setPricingEditing] = useState(false);
+  const [view, setView] = useState<ServiceView>('all');
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -32,12 +38,23 @@ export default function P827AdminPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const stats = useMemo(() => ({
-    total: applications.length,
-    newCount: applications.filter(item => item.status === '신규 접수').length,
-    days: applications.reduce((sum, item) => sum + item.quotedDays, 0),
-    value: applications.reduce((sum, item) => sum + item.estimatedCost, 0),
-  }), [applications]);
+  const visible = useMemo(() => applications.filter(item => inView(item, view)), [applications, view]);
+  const counts = useMemo(() => ({ all: applications.length, p827: applications.filter(item => !isLcaSolutionApplication(item)).length, lca: applications.filter(isLcaSolutionApplication).length }), [applications]);
+  // LCA requests without a manual quote are excluded from day and value totals.
+  const stats = useMemo(() => {
+    const quoted = visible.filter(item => !needsManualLcaQuote(item));
+    return {
+      total: visible.length,
+      newCount: visible.filter(item => item.status === '신규 접수').length,
+      days: quoted.reduce((sum, item) => sum + item.quotedDays, 0),
+      value: quoted.reduce((sum, item) => sum + item.estimatedCost, 0),
+      unquoted: visible.length - quoted.length,
+    };
+  }, [visible]);
+  const changeView = (next: ServiceView) => {
+    setView(next);
+    setSelected(current => current && inView(current, next) ? current : applications.find(item => inView(item, next)) || null);
+  };
 
   const save = async (application: P827ApplicationInput, risk?: P827RiskAssessment, pricing?: { quotedDays: number; dayRate: number; applicationFee: number; expenses: number; reason: string }) => {
     if (!selected) return;
@@ -79,11 +96,11 @@ export default function P827AdminPage() {
   };
 
   return <main className="min-h-screen bg-[#f3f6f8] text-slate-950">
-    <header className="bg-[#071526] text-white"><div className="mx-auto max-w-[1500px] px-5 py-7"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-300">Internal review workspace</p><h1 className="mt-1 text-2xl font-black">P827 신청·견적 관리</h1></div><div className="flex gap-2"><Link href="/p827" className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold">고객 신청서 열기</Link><Link href="/system" className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-950">견적·계약 생성기</Link></div></div><div className="mt-7 grid gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-4"><Stat label="전체 신청" value={`${stats.total}건`} /><Stat label="신규 접수" value={`${stats.newCount}건`} /><Stat label="예상 검증일" value={`${stats.days.toFixed(1)}일`} /><Stat label="예상 공급가" value={money(stats.value)} /></div></div></header>
+    <header className="bg-[#071526] text-white"><div className="mx-auto max-w-[1500px] px-5 py-7"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-300">Internal review workspace</p><h1 className="mt-1 text-2xl font-black">P827 신청·견적 관리</h1></div><div className="flex flex-wrap gap-2"><Link href={P827_CUSTOMER_FORM_PATH} className="rounded-lg border border-white/20 px-3 py-2 text-sm font-bold">P827 신청서 열기</Link><a href={LCA_SOLUTION_FORM_URL} target="_blank" rel="noreferrer" className="rounded-lg border border-emerald-300/60 px-3 py-2 text-sm font-bold text-emerald-200">LCA 솔루션 신청서 열기 ↗</a><Link href="/system" className="rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-950">견적·계약 생성기</Link></div></div><div className="mt-7 grid gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-4"><Stat label="전체 신청" value={`${stats.total}건`} /><Stat label="신규 접수" value={`${stats.newCount}건`} /><Stat label="예상 검증일" value={`${stats.days.toFixed(1)}일`} note={stats.unquoted ? `LCA 별도 산정 ${stats.unquoted}건 제외` : undefined} /><Stat label="예상 공급가" value={money(stats.value)} note={stats.unquoted ? `LCA 별도 산정 ${stats.unquoted}건 제외` : undefined} /></div></div></header>
     <div className="mx-auto max-w-[1500px] px-5 py-7">
       {error && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</p>}
       <div className="grid items-start gap-6 xl:grid-cols-[1.15fr_.85fr]">
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b p-5"><div><h2 className="text-lg font-black">접수된 P827 신청서</h2><p className="mt-1 text-sm text-slate-500">업체를 선택하면 신청내용·산정근거·내부 위험분석을 확인할 수 있습니다.</p></div><button type="button" onClick={load} className="rounded-lg border px-3 py-2 text-sm font-bold">새로고침</button></div><div className="overflow-x-auto"><table className="min-w-[820px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs text-slate-500"><tr><Th>접수번호 / 일시</Th><Th>업체</Th><Th>업무</Th><Th>복잡도</Th><Th>검증일수</Th><Th>예상비용</Th><Th>상태</Th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">불러오는 중...</td></tr> : applications.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">접수된 신청서가 없습니다.</td></tr> : applications.map(item => <tr key={item.reference} onClick={() => setSelected(item)} className={`cursor-pointer border-t hover:bg-blue-50 ${selected?.reference === item.reference ? 'bg-blue-50' : ''}`}><Td><strong>{item.reference}</strong><span className="mt-1 block text-xs text-slate-500">{formatDate(item.submittedAt)}</span></Td><Td><strong>{item.organisationName}</strong><span className="mt-1 block text-xs text-slate-500">{item.contactName}</span></Td><Td>{p827EngagementLabel(item.engagementType)}</Td><Td><Badge>{p827ComplexityLabel(item.complexity)}</Badge></Td><Td><strong>{item.quotedDays.toFixed(1)}일</strong></Td><Td className="font-bold">{money(item.estimatedCost)}</Td><Td><Badge>{item.status}</Badge></Td></tr>)}</tbody></table></div></section>
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b p-5"><div><h2 className="text-lg font-black">접수된 신청서</h2><p className="mt-1 text-sm text-slate-500">업체를 선택하면 신청내용·산정근거·내부 위험분석을 확인할 수 있습니다.</p></div><button type="button" onClick={load} className="rounded-lg border px-3 py-2 text-sm font-bold">새로고침</button></div><div role="tablist" aria-label="신청 구분" className="flex gap-1 border-b bg-slate-50 px-5 pt-3">{VIEWS.map(item => <button key={item.key} type="button" role="tab" aria-selected={view === item.key} onClick={() => changeView(item.key)} className={`-mb-px rounded-t-lg border px-4 py-2 text-sm font-black ${view === item.key ? 'border-slate-200 border-b-white bg-white text-slate-950' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{item.label} <span className="ml-1 text-xs font-bold text-slate-400">{counts[item.key]}</span></button>)}</div><div className="overflow-x-auto"><table className="min-w-[820px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs text-slate-500"><tr><Th>접수번호 / 일시</Th><Th>업체</Th><Th>업무</Th><Th>복잡도</Th><Th>검증일수</Th><Th>예상비용</Th><Th>상태</Th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">불러오는 중...</td></tr> : visible.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">{view === 'lca' ? '접수된 LCA 솔루션 신청서가 없습니다.' : '접수된 신청서가 없습니다.'}</td></tr> : visible.map(item => <tr key={item.reference} onClick={() => setSelected(item)} className={`cursor-pointer border-t hover:bg-blue-50 ${selected?.reference === item.reference ? 'bg-blue-50' : ''}`}><Td><strong>{item.reference}</strong><span className="mt-1 block text-xs text-slate-500">{formatDate(item.submittedAt)}</span></Td><Td><strong>{item.organisationName}</strong><span className="mt-1 block text-xs text-slate-500">{item.contactName}</span></Td><Td>{isLcaSolutionApplication(item) ? <LcaBadge /> : p827EngagementLabel(item.engagementType)}</Td><Td>{isLcaSolutionApplication(item) ? <span className="text-xs font-bold text-slate-400">해당 없음</span> : <Badge>{p827ComplexityLabel(item.complexity)}</Badge>}</Td><Td>{needsManualLcaQuote(item) ? <span className="text-xs font-black text-amber-700">별도 산정</span> : <strong>{item.quotedDays.toFixed(1)}일</strong>}</Td><Td className="font-bold">{needsManualLcaQuote(item) ? <span className="text-xs font-black text-amber-700">별도 산정</span> : money(item.estimatedCost)}</Td><Td><Badge>{item.status}</Badge></Td></tr>)}</tbody></table></div></section>
         <aside className="xl:sticky xl:top-5">{selected ? <div className="space-y-5"><DetailCard application={selected} onEdit={() => setEditing(true)} onRisk={() => setRiskEditing(true)} onPricing={() => setPricingEditing(true)} onGenerate={openGenerator} /></div> : <div className="rounded-2xl border border-dashed bg-white p-10 text-center text-slate-500">신청서를 선택해 주세요.</div>}</aside>
       </div>
     </div>
@@ -94,12 +111,25 @@ export default function P827AdminPage() {
 }
 
 function DetailCard({ application, onEdit, onRisk, onPricing, onGenerate }: { application: StoredP827Application; onEdit: () => void; onRisk: () => void; onPricing: () => void; onGenerate: () => void }) {
+  if (isLcaSolutionApplication(application)) return <LcaDetailCard application={application} onEdit={onEdit} onRisk={onRisk} onPricing={onPricing} />;
   const calc = calculateP827Days(application);
   return <>
     <section className="overflow-hidden rounded-2xl border bg-white shadow-sm"><div className="border-b p-5"><p className="text-xs font-black uppercase tracking-wider text-blue-700">{application.reference}</p><h2 className="mt-2 text-2xl font-black">{application.organisationName}</h2><p className="mt-1 text-sm text-slate-500">{application.contactName} · {application.email} · {application.phone}</p><button onClick={onEdit} className="mt-4 w-full rounded-xl border px-4 py-2.5 text-sm font-black">신청서 열람·수정</button></div><div className="p-5"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">예비 검증일수</h3><div className="mt-3 grid grid-cols-4 gap-2 text-center"><Day label="Stage 1" value={application.stage1Days} /><Day label="Stage 2" value={application.stage2Days} /><Day label="Stage 3" value={application.stage3Days} /><Day label="견적" value={application.quotedDays} accent /></div><div className="mt-4 rounded-xl bg-slate-950 p-4 text-white"><div className="flex items-end justify-between"><div><p className="text-xs text-slate-400">복잡도 / 원시일수</p><p className="mt-1 font-black">{p827ComplexityLabel(application.complexity)} · {application.rawDays.toFixed(2)}일</p></div><p className="text-lg font-black text-emerald-300">{application.quotedDays.toFixed(1)}일</p></div></div><h3 className="mt-5 text-xs font-black uppercase tracking-wider text-slate-500">산정근거</h3><ol className="mt-2 space-y-2">{calc.basis.map((item,index) => <li key={`${item}-${index}`} className="flex gap-2 rounded-lg bg-slate-50 p-3 text-xs leading-5"><strong className="text-blue-700">{String(index + 1).padStart(2,'0')}</strong><span>{item}</span></li>)}</ol></div></section>
     <section className="rounded-2xl border bg-white p-5 shadow-sm"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">신청 범위</h3><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><Info label="목적" value={application.objective || '-'} /><Info label="검증기준" value={application.criteria || '-'} /><Info label="대상기간" value={application.reportingPeriod || '-'} /><Info label="사업장" value={application.locations || '-'} /><Info label="보증수준" value={application.assuranceLevel === 'limited' ? '제한적' : '합리적'} /><Info label="Scope" value={[application.scope1 && '1',application.scope2 && '2',application.scope3 && '3'].filter(Boolean).join(', ') || '-'} /></dl></section>
     <section className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Business Risk Analysis</h3><button onClick={onRisk} className="text-xs font-black text-blue-700">평가·수정</button></div><div className="mt-3 grid grid-cols-3 gap-2 text-center"><Risk label="상업" value={application.commercialLevel} /><Risk label="평판" value={application.reputationalLevel} /><Risk label="책임" value={application.liabilityLevel} /></div></section>
     <section className="rounded-2xl border bg-white p-5 shadow-sm"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">비용·문서 생성</h3><div className="mt-3 rounded-xl bg-emerald-50 p-4"><p className="text-xs font-bold text-emerald-800">{application.quotedDays.toFixed(1)} MD × {money(application.dayRate)} + 신청비 {money(application.applicationFee)} + 제경비 {money(application.expenses)}</p><p className="mt-1 text-xl font-black text-emerald-950">{money(application.estimatedCost)}</p></div><button onClick={onPricing} className="mt-3 w-full rounded-xl border border-emerald-700 px-4 py-3 text-sm font-black text-emerald-800">심사일수·단가·제경비 조정</button><button onClick={onGenerate} className="mt-3 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white">견적·계약 생성기로 보내기</button></section>
+  </>;
+}
+
+function LcaDetailCard({ application, onEdit, onRisk, onPricing }: { application: StoredP827Application; onEdit: () => void; onRisk: () => void; onPricing: () => void }) {
+  const manual = needsManualLcaQuote(application);
+  return <>
+    <section className="overflow-hidden rounded-2xl border bg-white shadow-sm"><div className="border-b p-5"><div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-wider text-blue-700">{application.reference}</p><LcaBadge /></div><h2 className="mt-2 text-2xl font-black">{application.organisationName}</h2><p className="mt-1 text-sm text-slate-500">{application.contactName} · {application.email} · {application.phone}</p><button onClick={onEdit} className="mt-4 w-full rounded-xl border px-4 py-2.5 text-sm font-black">신청서 열람·수정</button></div>
+      <div className="p-5"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">검증일수</h3><div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">{manual ? <>LCA 산정 솔루션 검증은 P827 자동 산정 대상이 아닙니다. 아래 신청 내용을 검토한 뒤 <strong>심사일수·단가·제경비 조정</strong>에서 견적을 입력해 주세요.</> : <>입력된 견적 일수 <strong>{application.quotedDays.toFixed(1)}일</strong>{application.pricingAdjustmentReason ? ` · ${application.pricingAdjustmentReason}` : ''}</>}</div>
+        <h3 className="mt-5 text-xs font-black uppercase tracking-wider text-slate-500">LCA 신청 내용</h3><pre className="mt-2 max-h-[420px] overflow-y-auto whitespace-pre-wrap rounded-xl bg-slate-50 p-4 font-sans text-xs leading-6 text-slate-800">{application.additionalInfo || '-'}</pre></div></section>
+    <section className="rounded-2xl border bg-white p-5 shadow-sm"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">신청 요약</h3><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><Info label="솔루션" value={application.objective.replace('[LCA 산정 솔루션 검증] ', '') || '-'} /><Info label="적용 표준" value={application.criteria || '-'} /><Info label="검증 대상 버전" value={application.reportingPeriod.replace(/^검증 대상 버전:\s*/, '') || '-'} /><Info label="현장 검증 장소" value={application.locations || '-'} /><Info label="범위" value={application.activitiesProcesses || '-'} /><Info label="희망 발행 시기" value={application.deadline || '-'} /></dl></section>
+    <section className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Business Risk Analysis</h3><button onClick={onRisk} className="text-xs font-black text-blue-700">평가·수정</button></div><div className="mt-3 grid grid-cols-3 gap-2 text-center"><Risk label="상업" value={application.commercialLevel} /><Risk label="평판" value={application.reputationalLevel} /><Risk label="책임" value={application.liabilityLevel} /></div></section>
+    <section className="rounded-2xl border bg-white p-5 shadow-sm"><h3 className="text-xs font-black uppercase tracking-wider text-slate-500">비용</h3>{manual ? <p className="mt-3 rounded-xl bg-slate-100 p-4 text-sm font-bold text-slate-600">견적 미입력</p> : <div className="mt-3 rounded-xl bg-emerald-50 p-4"><p className="text-xs font-bold text-emerald-800">{application.quotedDays.toFixed(1)} MD × {money(application.dayRate)} + 신청비 {money(application.applicationFee)} + 제경비 {money(application.expenses)}</p><p className="mt-1 text-xl font-black text-emerald-950">{money(application.estimatedCost)}</p></div>}<button onClick={onPricing} className="mt-3 w-full rounded-xl border border-emerald-700 px-4 py-3 text-sm font-black text-emerald-800">심사일수·단가·제경비 {manual ? '입력' : '조정'}</button><p className="mt-3 text-xs leading-5 text-slate-500">P827 견적·계약 생성기는 온실가스 검증 양식이라 LCA 건은 연결하지 않았습니다.</p></section>
   </>;
 }
 
@@ -126,7 +156,8 @@ function PricingEditor({ application,onClose,onSave }:{ application:StoredP827Ap
 function Modal({title,reference,onClose,children}:{title:string;reference:string;onClose:()=>void;children:React.ReactNode}){return <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 p-4 sm:p-8"><div className="mx-auto max-w-4xl rounded-2xl bg-white shadow-2xl"><header className="flex items-start justify-between border-b p-6"><div><p className="text-xs font-black uppercase tracking-wider text-blue-700">{reference}</p><h2 className="mt-1 text-2xl font-black">{title}</h2></div><button onClick={onClose} className="rounded-lg border px-3 py-2 text-sm font-bold">닫기</button></header>{children}</div></div>}
 function Footer({error,children}:{error:string;children:React.ReactNode}){return <div className="flex items-center justify-between gap-3 border-t p-6">{error?<p className="text-sm font-bold text-red-700">{error}</p>:<span />}{children}</div>}
 function Edit({label,children}:{label:string;children:React.ReactNode}){return <label className="block text-sm font-bold text-slate-700">{label}{children}</label>}
-function Stat({label,value}:{label:string;value:string}){return <div className="bg-white/5 p-5"><p className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p><p className="mt-2 text-2xl font-black">{value}</p></div>}
+function Stat({label,value,note}:{label:string;value:string;note?:string}){return <div className="bg-white/5 p-5"><p className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p><p className="mt-2 text-2xl font-black">{value}</p>{note && <p className="mt-1 text-xs font-bold text-amber-300">{note}</p>}</div>}
+function LcaBadge(){return <span className="inline-flex whitespace-nowrap rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-800">LCA 산정 솔루션 검증</span>}
 function Th({children}:{children:React.ReactNode}){return <th className="whitespace-nowrap px-4 py-3 font-black">{children}</th>}
 function Td({children,className=''}:{children:React.ReactNode;className?:string}){return <td className={`px-4 py-4 align-top ${className}`}>{children}</td>}
 function Badge({children}:{children:React.ReactNode}){return <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-xs font-black text-blue-800">{children}</span>}

@@ -14,7 +14,7 @@ test('Edge access gate preserves public intake and signed-session protection', a
     return `${payload}.${createHmac('sha256', secret).update(payload).digest('base64url')}`;
   };
   try {
-    for (const path of ['/p827', '/hyundai-ghg/existing', '/hyundai-ghg/new', '/iso/login', '/iso/apply']) assert.equal((await middleware(request(path))).headers.get('x-middleware-next'), '1');
+    for (const path of ['/p827', '/p827/lca-apply', '/hyundai-ghg/existing', '/hyundai-ghg/new', '/iso/login', '/iso/apply']) assert.equal((await middleware(request(path))).headers.get('x-middleware-next'), '1');
     for (const path of ['/api/p827/applications', '/api/hyundai-ghg/applications', '/api/iso/compliance-applications']) {
       assert.equal((await middleware(request(path, 'POST'))).headers.get('x-middleware-next'), '1');
       assert.equal((await middleware(request(path))).status, 401);

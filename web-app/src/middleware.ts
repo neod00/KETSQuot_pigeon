@@ -69,6 +69,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/hyundai-ghg/new' ||
     (pathname === '/api/hyundai-ghg/applications' && request.method === 'POST') ||
     pathname === '/p827' ||
+    pathname === '/p827/lca-apply' ||
     pathname === '/iso/apply' ||
     (pathname === '/api/iso/compliance-applications' && request.method === 'POST') ||
     (pathname === '/api/p827/applications' && request.method === 'POST') ||
