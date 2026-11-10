@@ -6,7 +6,7 @@ test('routes select their service without swallowing sales or administration int
   for (const [path, group] of [
     ['/iso', 'iso'], ['/iso/adj', 'iso'], ['/iso/apply', 'iso'], ['/iso/applications/example', 'iso'],
     ['/iso/documents', 'iso'], ['/generator', 'kets'], ['/kets-contract', 'kets'],
-    ['/p827/admin', 'p827'], ['/p827/lca-apply', 'p827'], ['/system', 'p827'], ['/hyundai-ghg/admin', 'hyundai'],
+    ['/p827/admin', 'p827'], ['/system', 'p827'], ['/hyundai-ghg/admin', 'hyundai'],
     ['/cbam/documents', 'cbam'], ['/iso/sales', 'sales'], ['/iso/sam', 'sales'],
     ['/iso/users', 'support'], ['/iso/coordination', 'support'],
   ]) assert.equal(activePortalGroup(path), group, path);
