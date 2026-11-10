@@ -20,6 +20,8 @@ export const P827_GHG_GASES = ['CO2', 'CH4', 'N2O', 'HFCs', 'PFCs', 'SF6'] as co
 
 export type P827RiskLevel = 'low' | 'medium' | 'high' | 'unassessed';
 export type P827EngagementType = 'organisation_verification' | 'project_validation' | 'project_verification' | 'project_validation_verification';
+/** 'lca_solution' marks quote requests relayed from the customer LCA solution verification form. */
+export type P827ServiceType = 'p827' | 'lca_solution';
 
 export type P827ApplicationInput = {
   organisationName: string;
@@ -54,6 +56,7 @@ export type P827ApplicationInput = {
   deadline: string;
   additionalInfo: string;
   consent: boolean;
+  serviceType?: P827ServiceType;
 };
 
 export type P827RiskAssessment = {
@@ -151,3 +154,14 @@ export function calculateP827Days(input: P827ApplicationInput): P827Calculation 
 export const estimateP827Cost = (days: number, dayRate = DEFAULT_P827_DAY_RATE, applicationFee = DEFAULT_P827_APPLICATION_FEE, expenses = DEFAULT_P827_EXPENSES) => Math.round(days * dayRate + applicationFee + expenses);
 export const p827ComplexityLabel = (value: StoredP827Application['complexity']) => ({ simple: '단순', medium: '중간', complex: '복잡', very_complex: '매우 복잡' }[value]);
 export const p827EngagementLabel = (value: P827EngagementType) => ({ organisation_verification: '조직 데이터·정보 검증', project_validation: '프로젝트 타당성평가', project_verification: '프로젝트 검증', project_validation_verification: '프로젝트 타당성평가 및 검증' }[value]);
+
+export const P827_CUSTOMER_FORM_PATH = '/p827';
+export const LCA_SOLUTION_FORM_URL = 'https://lrqa-iso-application.netlify.app/lcasolution/';
+const LCA_OBJECTIVE_PREFIX = '[LCA 산정 솔루션 검증]';
+// Requests sent before serviceType existed are recognised by the relay's objective prefix.
+export const isLcaSolutionApplication = (value: Pick<P827ApplicationInput, 'objective' | 'serviceType'>) =>
+  value.serviceType === 'lca_solution' || value.objective.startsWith(LCA_OBJECTIVE_PREFIX);
+export const p827ServiceLabel = (value: Pick<P827ApplicationInput, 'objective' | 'serviceType' | 'engagementType'>) =>
+  isLcaSolutionApplication(value) ? 'LCA 산정 솔루션 검증' : p827EngagementLabel(value.engagementType);
+// The P827 day formula is built for GHG engagements, so LCA requests are quoted manually.
+export const needsManualLcaQuote = (value: StoredP827Application) => isLcaSolutionApplication(value) && value.manualQuotedDays === undefined;

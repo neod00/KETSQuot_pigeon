@@ -46,7 +46,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const [session, setSession] = useState<SessionSummary | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const isAuthPage = pathname === '/iso/login' || pathname === '/iso/setup' || pathname === '/iso/request-access';
-  const isPublicPage = pathname.startsWith('/outlook/') || pathname === '/iso/apply' || pathname === '/cbam' || pathname === '/p827' || pathname === '/hyundai-ghg/existing' || pathname === '/hyundai-ghg/new';
+  const isPublicPage = pathname.startsWith('/outlook/') || pathname === '/iso/apply' || pathname === '/cbam' || pathname === '/p827' || pathname === '/p827/lca-apply' || pathname === '/hyundai-ghg/existing' || pathname === '/hyundai-ghg/new';
 
   useEffect(() => {
     if (pathname.startsWith('/outlook/')) return;
