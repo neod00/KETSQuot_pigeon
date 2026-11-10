@@ -8,3 +8,9 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[[headers]]
+  for = "/outlook/sam-outlook.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Content-Disposition = 'attachment; filename="sam-outlook.xml"'

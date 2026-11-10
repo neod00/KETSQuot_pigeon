@@ -4,6 +4,7 @@ import AuditDurationSummary from '@/components/AuditDurationSummary';
 import ApplicationAdjDownloadButton from './ApplicationAdjDownloadButton';
 import ApplicationAuditAssistant from './ApplicationAuditAssistant';
 import IsoApplicationFormReplica from '@/components/IsoApplicationFormReplica';
+import IsoComplianceApplicationForm from '@/components/IsoComplianceApplicationForm';
 import { calculateAuditDuration } from '@/lib/auditDurationEngine';
 import { getIsoAuditAnalysis } from '@/lib/isoAuditAnalysis';
 import { findIsoApplication, toAuditDurationInput } from '@/lib/isoApplications';
@@ -65,7 +66,9 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
         <span className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-600">읽기 전용</span>
       </div>
 
-      <IsoApplicationFormReplica application={application} />
+      {application.complianceApplication
+        ? <IsoComplianceApplicationForm submitted={application.complianceApplication} />
+        : <IsoApplicationFormReplica application={application} />}
 
       <section className="mt-6 border-t border-slate-200 pt-5">
         <h3 className="text-base font-bold text-slate-900">견적 초안 이력</h3>

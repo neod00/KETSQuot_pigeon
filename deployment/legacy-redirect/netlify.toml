@@ -1,0 +1,15 @@
+[build]
+  base = "."
+  publish = "public"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://lrqa-korea-portal.netlify.app/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "https://lrqa-korea-portal.netlify.app/:splat"
+  status = 301
+  force = true

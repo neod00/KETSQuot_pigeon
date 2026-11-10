@@ -45,7 +45,7 @@ export const generateDocx = async (data: any, templatePath: string = "/templates
             });
 
             // 파일 이름 생성 (LRQA_Service Agreement_GHG Protocol_기업명_2026.docx)
-            const fileName = `LRQA_Service Agreement_GHG Protocol_${data.company_name || "기업명"}_2026.docx`.replace(/[/\\?%*:|"<>]/g, '-');
+            const fileName = `LRQA_Service Agreement_GHG Protocol_${data.company_name || "기업명"}_${data.verification_year || "2026"}.docx`.replace(/[/\\?%*:|"<>]/g, '-');
             saveAs(out, fileName);
         });
     } catch (e) {

@@ -15,6 +15,10 @@
 }
 
 .rail {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow-y: auto;
     display: flex;
     min-height: 100vh;
     flex-direction: column;
@@ -504,6 +508,9 @@
     }
 
     .rail {
+        position: relative;
+        height: auto;
+        overflow: visible;
         display: block;
         min-height: auto;
     }
