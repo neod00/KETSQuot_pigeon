@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import PortalNavigation from './PortalNavigation';
+import PortalAccountMenu from './PortalAccountMenu';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import FeedbackSidebar from './FeedbackSidebar';
@@ -16,19 +18,6 @@ interface SessionSummary {
 
 const DESIGN_STORAGE_KEY = 'lrqa_portal_design';
 
-const NAV_ITEMS = [
-  { label: '업무 대시보드', href: '/' },
-  { label: 'ISO 견적·계약', href: '/iso' },
-  { label: '신청서 접수함', href: '/iso/applications' },
-  { label: '생성 문서', href: '/iso/documents' },
-  { label: '세일즈 현황·D365', href: '/iso/sales' },
-  { label: 'K-ETS 견적', href: '/generator' },
-  { label: 'K-ETS 계약', href: '/kets-contract' },
-  { label: 'P827 견적·계약', href: '/system' },
-  { label: 'P827 신청관리', href: '/p827/admin' },
-  { label: 'CBAM 관리', href: '/cbam/admin' },
-];
-
 const pageTitle = (pathname: string) => {
   if (pathname === '/iso') return 'ISO 견적·계약서 생성기';
   if (pathname === '/iso/applications') return '신청서 접수함';
@@ -36,7 +25,7 @@ const pageTitle = (pathname: string) => {
   if (pathname === '/iso/documents') return '생성 문서';
   if (pathname === '/iso/sales') return '세일즈 현황 및 D365 생성';
   if (pathname === '/iso/coordination') return '개인 조정 에이전트';
-  if (pathname === '/iso/sam') return "SAM's Business";
+  if (pathname === '/iso/sam') return '전략고객 관리 (SAM)';
   if (pathname === '/iso/users') return '팀원 계정 관리';
   if (pathname === '/iso/adj') return 'ADJ 작성';
   if (pathname === '/generator') return 'K-ETS 검증 견적서 생성기';
@@ -44,16 +33,11 @@ const pageTitle = (pathname: string) => {
   if (pathname === '/system') return 'P827 견적·계약서 생성기';
   if (pathname === '/p827/admin') return 'P827 신청·견적 관리';
   if (pathname === '/p827') return 'P827 검증 신청';
+  if (pathname === '/hyundai-ghg/admin') return '현대차 협력사 GHG검증';
   if (pathname === '/cbam/admin') return 'CBAM 관리';
   if (pathname === '/cbam/documents') return 'CBAM 견적·계약 문서 생성';
   if (pathname === '/cbam') return 'CBAM 서비스 신청';
   return 'LRQA Korea 업무 포털';
-};
-
-const isNavActive = (pathname: string, href: string) => {
-  if (href === '/') return false;
-  if (href === '/iso') return pathname === '/iso' || pathname === '/iso/adj';
-  return pathname === href || pathname.startsWith(`${href}/`);
 };
 
 export default function PortalShell({ children }: { children: React.ReactNode }) {
@@ -62,9 +46,10 @@ export default function PortalShell({ children }: { children: React.ReactNode })
   const [session, setSession] = useState<SessionSummary | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const isAuthPage = pathname === '/iso/login' || pathname === '/iso/setup' || pathname === '/iso/request-access';
-  const isPublicPage = pathname === '/cbam' || pathname === '/p827';
+  const isPublicPage = pathname.startsWith('/outlook/') || pathname === '/iso/apply' || pathname === '/cbam' || pathname === '/p827' || pathname === '/hyundai-ghg/existing' || pathname === '/hyundai-ghg/new';
 
   useEffect(() => {
+    if (pathname.startsWith('/outlook/')) return;
     const syncDesign = () => {
       const saved = localStorage.getItem(DESIGN_STORAGE_KEY);
       setDesign(saved === 'legacy' ? 'legacy' : 'modern');
@@ -147,39 +132,12 @@ export default function PortalShell({ children }: { children: React.ReactNode })
           </span>
         </Link>
 
-        <nav className={styles.nav} aria-label="업무 메뉴">
-          {NAV_ITEMS.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isNavActive(pathname, item.href) ? 'page' : undefined}
-              className={`${styles.navLink} ${isNavActive(pathname, item.href) ? styles.navLinkActive : ''}`}
-            >
-              {item.label}
-            </Link>
-          ))}
-          {session?.role === 'admin' && (
-            <Link href="/iso/sam" aria-current={pathname === '/iso/sam' ? 'page' : undefined} className={`${styles.navLink} ${pathname === '/iso/sam' ? styles.navLinkActive : ''}`}>SAM&apos;s Business</Link>
-          )}
-          {session?.coordinationOwner && (
-            <Link
-              href="/iso/coordination"
-              aria-current={pathname === '/iso/coordination' ? 'page' : undefined}
-              className={`${styles.navLink} ${pathname === '/iso/coordination' ? styles.navLinkActive : ''}`}
-            >
-              조정 에이전트
-            </Link>
-          )}
-          {session?.role === 'admin' && (
-            <Link
-              href="/iso/users"
-              aria-current={pathname === '/iso/users' ? 'page' : undefined}
-              className={`${styles.navLink} ${pathname === '/iso/users' ? styles.navLinkActive : ''}`}
-            >
-              팀원 관리
-            </Link>
-          )}
-        </nav>
+        <PortalNavigation
+          key={session?.username ?? 'pending'}
+          isAdmin={session?.role === 'admin'}
+          coordinationOwner={session?.coordinationOwner}
+          onFeedback={() => setFeedbackOpen(true)}
+        />
 
         <div className={styles.railFooter}>
           <strong>LRQA Korea</strong>
@@ -195,17 +153,7 @@ export default function PortalShell({ children }: { children: React.ReactNode })
           </div>
           <div className={styles.topActions}>
             {session && <span className={styles.account}>{session.username} · {session.role === 'admin' ? '관리자' : '팀원'}</span>}
-            <button type="button" className={styles.secondaryButton} onClick={() => setFeedbackOpen(true)}>
-              팀원 피드백
-            </button>
-            <button type="button" className={styles.secondaryButton} onClick={() => changeDesign('legacy')}>
-              이전 디자인
-            </button>
-            {session && (
-              <form action="/api/iso/auth/logout" method="post">
-                <button type="submit" className={styles.logoutButton}>로그아웃</button>
-              </form>
-            )}
+            <PortalAccountMenu onUseLegacy={() => changeDesign('legacy')} username={session?.username} />
           </div>
         </header>
 

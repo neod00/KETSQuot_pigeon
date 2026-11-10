@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LRQA CBAM Navigator — 디자인 목업</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --navy: #101330;
+      --navy-deep: #0b0e28;
+      --surface: #191d3d;
+      --surface-soft: #151938;
+      --line: rgba(215, 223, 244, .19);
+      --white: #f7f9ff;
+      --muted: #b7bfd6;
+      --mint: #0ff2b2;
+      --mint-soft: #9fffe1;
+      --amber: #ffd785;
+      --shadow: 0 24px 70px rgba(2, 6, 29, .24);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--navy); color: var(--white); font-family: "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--mint); outline-offset: 4px; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+    .side { background: var(--navy-deep); border-right: 1px solid var(--line); padding: 34px 26px 26px; display: flex; flex-direction: column; gap: 48px; }
+    .brand { display: flex; flex-direction: column; gap: 8px; }
+    .brand-mark { font-weight: 850; font-size: 55px; letter-spacing: -.105em; line-height: .9; padding-right: 10px; width: fit-content; }
+    .brand-mark span { color: var(--mint); }
+    .brand-sub { color: #e8ebf9; font-size: 11px; font-weight: 650; line-height: 1.35; letter-spacing: -.01em; }
+    .brand-product { color: var(--mint-soft); margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 750; letter-spacing: .07em; }
+    .side-nav { display: grid; gap: 8px; }
+    .nav-button { width: 100%; display: flex; align-items: center; gap: 14px; padding: 13px 12px; text-align: left; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--muted); font-size: 14px; }
+    .nav-button .num { font-size: 11px; color: var(--mint); font-weight: 800; letter-spacing: .08em; }
+    .nav-button:hover, .nav-button[aria-current="page"] { color: var(--white); background: #202746; border-color: var(--line); }
+    .side-note { margin-top: auto; padding-top: 24px; border-top: 1px solid var(--line); color: #a1acc8; font-size: 12px; line-height: 1.65; }
+    .main { min-width: 0; }
+    .topbar { min-height: 82px; display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 1px solid var(--line); padding: 20px clamp(28px, 5vw, 76px); }
+    .topbar-left { font-size: 13px; font-weight: 750; letter-spacing: .11em; color: var(--mint-soft); text-transform: uppercase; }
+    .topbar-right { display: flex; align-items: center; gap: 17px; color: var(--muted); font-size: 12px; }
+    .preview-pill { border: 1px solid rgba(15, 242, 178, .5); color: var(--mint); padding: 6px 9px; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .screen { display: none; min-height: calc(100vh - 82px); }
+    .screen.active { display: block; }
+    .content { max-width: 1250px; margin: 0 auto; padding: clamp(40px, 5.5vw, 78px) clamp(28px, 5vw, 76px) 65px; }
+    .eyebrow { margin: 0 0 26px; color: var(--mint); font-size: 13px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(40px, 4.5vw, 68px); line-height: 1.15; font-weight: 650; letter-spacing: -.055em; }
+    h2 { font-size: clamp(27px, 2.9vw, 42px); line-height: 1.3; font-weight: 650; letter-spacing: -.04em; }
+    h3 { font-size: 19px; letter-spacing: -.02em; }
+    .lead { color: #d3d9e9; font-size: clamp(16px, 1.45vw, 19px); line-height: 1.75; }
+    .muted { color: var(--muted); }
+    .mint { color: var(--mint); }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: clamp(40px, 6vw, 95px); align-items: center; }
+    .hero-copy { max-width: 770px; }
+    .hero-copy h1 { max-width: 760px; margin-bottom: 28px; }
+    .hero-copy .lead { max-width: 680px; margin-bottom: 38px; }
+    .search-label { display: block; margin-bottom: 12px; font-size: 14px; font-weight: 700; }
+    .search-box { display: flex; max-width: 740px; min-height: 68px; border: 1px solid rgba(255,255,255,.38); background: #fff; padding: 6px; box-shadow: var(--shadow); }
+    .search-box input { flex: 1; min-width: 0; border: 0; background: #fff; color: #101330; padding: 0 18px; font-size: 15px; outline: 0; }
+    .search-box input::placeholder { color: #69738b; }
+    .primary { border: 0; background: var(--mint); color: #071529; min-height: 56px; padding: 14px 23px; font-weight: 800; font-size: 16px; white-space: nowrap; transition: background .15s, transform .15s; }
+    .primary:hover { background: #61ffcb; transform: translateY(-2px); }
+    .primary .arrow { padding-left: 20px; font-size: 25px; line-height: 0; vertical-align: -2px; font-weight: 400; }
+    .micro { font-size: 12px; color: #b5c1d2; line-height: 1.65; }
+    .checkline { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 17px; color: var(--mint-soft); font-size: 12px; }
+    .journey { padding: 27px 30px; border: 1px solid var(--line); background: var(--surface-soft); box-shadow: var(--shadow); }
+    .journey-label { color: var(--mint); font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; margin-bottom: 29px; }
+    .journey-step { position: relative; display: grid; grid-template-columns: 35px 1fr; gap: 13px; padding-bottom: 30px; }
+    .journey-step:last-of-type { padding-bottom: 0; }
+    .journey-step:not(:last-of-type):before { content: ""; position: absolute; left: 16px; top: 34px; width: 1px; height: calc(100% - 30px); background: rgba(15,242,178,.45); }
+    .journey-step .badge { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(15,242,178,.55); color: var(--mint); font-size: 11px; }
+    .journey-step strong { display: block; font-size: 16px; margin-bottom: 6px; }
+    .journey-step small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .journey-foot { margin-top: 28px; padding-top: 21px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.6; color: var(--muted); }
+    .bottom-strip { margin-top: 72px; border-top: 1px solid var(--line); padding-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .bottom-strip div { padding-left: 18px; border-left: 2px solid var(--mint); }
+    .bottom-strip strong { display: block; font-size: 15px; margin-bottom: 8px; }
+    .bottom-strip span { display: block; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .section-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+    .counter { color: var(--mint); font-size: 15px; font-weight: 700; white-space: nowrap; }
+    .progress-track { width: 100%; height: 5px; background: #343b5a; margin: 25px 0 48px; }
+    .progress-fill { width: 38%; height: 100%; background: var(--mint); }
+    .assessment-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .7fr); gap: clamp(35px, 5vw, 78px); }
+    .question-panel h2 { max-width: 720px; margin-bottom: 20px; }
+    .question-hint { color: var(--muted); margin-bottom: 35px; font-size: 15px; line-height: 1.65; }
+    .option-list { display: grid; gap: 12px; max-width: 720px; }
+    .choice { width: 100%; min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 15px; text-align: left; border: 1px solid #5b6585; background: #171b3b; color: var(--white); padding: 18px 22px; font-size: 17px; font-weight: 650; }
+    .choice:hover, .choice[aria-pressed="true"] { border-color: var(--mint); background: #20334b; }
+    .choice[aria-pressed="true"] .choice-dot { border-color: var(--mint); background: var(--mint); box-shadow: inset 0 0 0 5px #20334b; }
+    .choice-dot { width: 21px; height: 21px; border: 2px solid #9ca8c3; border-radius: 50%; flex: none; }
+    .actions { display: flex; align-items: center; gap: 14px; margin-top: 40px; }
+    .secondary { min-height: 56px; border: 1px solid #74809c; color: var(--white); background: transparent; padding: 12px 22px; font-size: 15px; font-weight: 650; }
+    .secondary:hover { border-color: var(--mint); }
+    .aside-card { padding: 28px; background: var(--surface-soft); border: 1px solid var(--line); }
+    .aside-card h3 { margin-bottom: 22px; }
+    .domain-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+    .domain-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+    .domain-list li:last-child { border-bottom: 0; }
+    .domain-list li.current { color: var(--mint); font-weight: 800; }
+    .domain-list span { color: #a9b1ca; font-size: 12px; }
+    .aside-foot { margin-top: 24px; color: var(--muted); line-height: 1.65; font-size: 12px; }
+    .results-head { display: grid; grid-template-columns: 1fr auto; gap: 26px; align-items: end; border-bottom: 1px solid var(--line); padding-bottom: 38px; }
+    .results-head h1 { margin-bottom: 16px; }
+    .results-head .lead { max-width: 750px; margin-bottom: 0; }
+    .score { font-size: clamp(74px, 9vw, 142px); color: var(--mint); letter-spacing: -.08em; line-height: .9; font-weight: 700; }
+    .score span { font-size: .42em; }
+    .results-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 30px; margin-top: 34px; }
+    .result-box { background: var(--surface-soft); border: 1px solid var(--line); padding: 28px 30px; }
+    .result-box h3 { margin-bottom: 26px; }
+    .bar-row { display: grid; grid-template-columns: 155px 1fr 42px; align-items: center; gap: 15px; margin-bottom: 19px; font-size: 13px; }
+    .bar-row:last-child { margin-bottom: 0; }
+    .bar-row .bar { height: 9px; background: #353c5d; }
+    .bar-row .bar i { display: block; height: 100%; width: var(--value); background: var(--mint); }
+    .bar-row strong { color: var(--mint); text-align: right; }
+    .gap-item { display: grid; grid-template-columns: 27px 1fr; gap: 12px; padding: 15px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.55; }
+    .gap-item:first-of-type { padding-top: 0; }
+    .gap-item:last-of-type { border-bottom: 0; padding-bottom: 0; }
+    .gap-item b { color: var(--amber); font-size: 12px; }
+    .results-actions { display: flex; gap: 13px; flex-wrap: wrap; margin-top: 34px; }
+    .application-grid { display: grid; grid-template-columns: 1fr .85fr; gap: clamp(35px, 5vw, 78px); align-items: start; }
+    .application-grid h1 { max-width: 760px; }
+    .data-card { margin-top: 35px; border: 1px solid var(--line); background: var(--surface-soft); padding: 28px 30px; }
+    .data-card-head { display: flex; align-items: center; gap: 11px; color: var(--mint); font-size: 14px; font-weight: 800; margin-bottom: 14px; }
+    .data-card dl { display: grid; grid-template-columns: 125px 1fr; gap: 15px; margin: 0; padding: 13px 0; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+    .data-card dt { color: var(--muted); }
+    .data-card dd { margin: 0; font-weight: 650; }
+    .form-card { padding: 30px; background: #f7f9fc; color: #111534; box-shadow: var(--shadow); }
+    .form-card h3 { margin-bottom: 8px; }
+    .form-card p { color: #526078; font-size: 13px; line-height: 1.65; margin-bottom: 23px; }
+    .form-card label { display: block; margin: 17px 0 7px; font-size: 13px; font-weight: 700; }
+    .form-card input { width: 100%; height: 48px; border: 1px solid #b8c2d2; color: #111534; background: white; padding: 0 13px; }
+    .form-card .checkbox { display: flex; align-items: flex-start; gap: 11px; margin: 19px 0; font-size: 12px; font-weight: 500; line-height: 1.5; }
+    .form-card .checkbox input { width: 18px; height: 18px; flex: none; margin: 0; accent-color: #007f77; }
+    .form-card .primary { width: 100%; }
+    .form-card .primary:disabled { opacity: .8; cursor: not-allowed; transform: none; }
+    .form-card .footnote { margin: 12px 0 0; font-size: 11px; }
+    .screen-footer { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 62px; color: #94a0bb; font-size: 11px; line-height: 1.65; }
+    @media (max-width: 1050px) {
+      .app { grid-template-columns: 195px minmax(0,1fr); }
+      .side { padding-left: 18px; padding-right: 18px; }
+      .hero-grid, .assessment-grid, .results-grid, .application-grid { grid-template-columns: 1fr; }
+      .journey { max-width: 650px; }
+      .results-head { align-items: start; }
+    }
+    @media (max-width: 720px) {
+      .app { display: block; }
+      .side { padding: 18px 20px; gap: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+      .brand { flex-direction: row; align-items: center; gap: 14px; }
+      .brand-mark { font-size: 35px; }
+      .brand-sub { display: none; }
+      .brand-product { margin: 0; padding: 0 0 0 14px; border-top: 0; border-left: 1px solid var(--line); font-size: 11px; }
+      .side-nav { display: flex; gap: 6px; margin-top: 17px; overflow-x: auto; }
+      .nav-button { width: auto; flex: none; padding: 9px 10px; font-size: 12px; gap: 8px; }
+      .side-note { display: none; }
+      .topbar { min-height: 52px; padding: 12px 20px; }
+      .topbar-left { font-size: 10px; }
+      .topbar-right { gap: 8px; font-size: 10px; }
+      .content { padding: 40px 20px 45px; }
+      .eyebrow { margin-bottom: 20px; font-size: 11px; }
+      h1 { font-size: 40px; }
+      h2 { font-size: 29px; }
+      .hero-copy .lead { margin-bottom: 28px; }
+      .search-box { display: grid; background: transparent; padding: 0; border: 0; box-shadow: none; gap: 10px; }
+      .search-box input { min-height: 54px; }
+      .primary { width: 100%; }
+      .bottom-strip { grid-template-columns: 1fr; margin-top: 42px; gap: 21px; }
+      .journey { padding: 22px; }
+      .section-top { display: block; }
+      .progress-track { margin: 21px 0 35px; }
+      .choice { min-height: 70px; font-size: 15px; }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .secondary { width: 100%; }
+      .results-head { grid-template-columns: 1fr; }
+      .score { font-size: 90px; }
+      .bar-row { grid-template-columns: 105px 1fr 35px; gap: 8px; font-size: 11px; }
+      .result-box, .data-card, .form-card { padding: 23px; }
+      .results-actions { display: grid; }
+      .data-card dl { grid-template-columns: 100px 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="side" aria-label="목업 화면 탐색">
+      <div class="brand">
+        <div class="brand-mark" aria-label="LRQA">LRQ<span>A</span></div>
+        <div class="brand-sub">Your Risk Management<br>Advantage</div>
+        <div class="brand-product">CBAM NAVIGATOR</div>
+      </div>
+      <nav class="side-nav" aria-label="화면 선택">
+        <button class="nav-button" data-screen="home" aria-current="page"><span class="num">01</span> 시작</button>
+        <button class="nav-button" data-screen="assessment"><span class="num">02</span> 준비도 진단</button>
+        <button class="nav-button" data-screen="results"><span class="num">03</span> 진단 결과</button>
+        <button class="nav-button" data-screen="application"><span class="num">04</span> 검증 신청</button>
+      </nav>
+      <div class="side-note">LRQA ISO 자가진단 도구의 시각 언어를 참고한 CBAM Navigator 디자인 시안입니다.<br><br>실제 고객 정보 저장·제출 기능은 없습니다.</div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">LRQA Korea <span class="muted">/</span> CBAM readiness</div>
+        <div class="topbar-right"><span class="preview-pill">Design preview</span><span>2026 · 한국어</span></div>
+      </header>
+
+      <section class="screen active" id="home" aria-label="시작 화면">
+        <div class="content">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <p class="eyebrow">WELCOME TO CBAM NAVIGATOR</p>
+              <h1>CBAM 검증 준비,<br><span class="mint">지금 어디쯤인가요?</span></h1>
+              <p class="lead">우리 제품의 적용 가능성을 살펴보고, 24개 질문으로 검증 준비상태를 확인하세요. 필요한 증빙자료와 다음 단계를 한곳에서 정리할 수 있습니다.</p>
+              <label class="search-label" for="product">제품명 또는 8자리 CN 코드</label>
+              <div class="search-box">
+                <input id="product" placeholder="예: 철강 볼트 또는 73181590" autocomplete="off">
+                <button class="primary" type="button" data-go="assessment">대상 확인 시작 <span class="arrow">→</span></button>
+              </div>
+              <div class="checkline"><span>✓ 개인정보 없이 시작</span><span>✓ EU 규정 근거 안내</span><span>✓ 진단정보 신청서 연결</span></div>
+            </div>
+            <div class="journey">
+              <div class="journey-label">Your path to verification</div>
+              <div class="journey-step"><span class="badge">01</span><div><strong>우리 제품은 대상인가요?</strong><small>제품명·CN 코드 및 적용 가능성 확인</small></div></div>
+              <div class="journey-step"><span class="badge">02</span><div><strong>무엇을 준비해야 하나요?</strong><small>6개 영역, 24개 질문으로 현재 상태 진단</small></div></div>
+              <div class="journey-step"><span class="badge">03</span><div><strong>어떤 자료가 부족한가요?</strong><small>미비사항·증빙자료 확인 후 검증 신청</small></div></div>
+              <div class="journey-foot">진단은 무료로 시작할 수 있습니다. 연락처는 LRQA 검증 신청 단계에서만 입력합니다.</div>
+            </div>
+          </div>
+          <div class="bottom-strip">
+            <div><strong>01 · 명확한 출발점</strong><span>제품과 CN 코드를 바탕으로 대상 여부를 검토합니다.</span></div>
+            <div><strong>02 · 한 질문씩 집중</strong><span>복잡한 준비 항목을 짧은 단계로 나누어 안내합니다.</span></div>
+            <div><strong>03 · 행동 가능한 결과</strong><span>점수보다 우선 준비할 증빙자료를 먼저 보여줍니다.</span></div>
+          </div>
+          <div class="screen-footer">디자인 목업입니다. CBAM 분류 및 검증 판단은 실제 자료와 적용 규정에 따라 확인해야 합니다.</div>
+        </div>
+      </section>
+
+      <section class="screen" id="assessment" aria-label="준비도 진단 화면">
+        <div class="content">
+          <div class="section-top">
+            <div><p class="eyebrow">SELF-ASSESSMENT / MONITORING</p><h1>검증 준비도 진단</h1></div>
+            <div class="counter">09 / 24 QUESTIONS</div>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="진단 진행률" aria-valuenow="38" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill"></div></div>
+          <div class="assessment-grid">
+            <div class="question-panel">
+              <p class="eyebrow">02 / 06 · 모니터링</p>
+              <h2>연료 사용량과 해당되는 공정배출 자료를 준비했나요?</h2>
+              <p class="question-hint">현재 준비상태를 선택하세요. 정확한 결과를 위해 확인된 자료를 기준으로 응답해 주세요.</p>
+              <div class="option-list" role="group" aria-label="준비상태">
+                <button class="choice" type="button" aria-pressed="false"><span>준비 완료 <small class="muted">· 자료와 근거를 제시할 수 있음</small></span><span class="choice-dot"></span></button>
+                <button class="choice" type="button" aria-pressed="true"><span>일부 준비 <small class="muted">· 추가 정리 또는 확인이 필요함</small></span><span class="choice-dot"></span></button>
+                <button class="choice" type="button" aria-pressed="false"><span>미준비 <small class="muted">· 아직 관련 자료가 없음</small></span><span class="choice-dot"></span></button>
+              </div>
+              <div class="actions"><button class="secondary" type="button" data-go="home">← 이전</button><button class="primary" type="button" data-go="results">결과 미리보기 <span class="arrow">→</span></button></div>
+            </div>
+            <aside class="aside-card">
+              <h3>진단 영역</h3>
+              <ul class="domain-list">
+                <li>대상 및 경계 <span>4문항</span></li>
+                <li class="current">모니터링 <span>4문항</span></li>
+                <li>생산 및 데이터 귀속 <span>4문항</span></li>
+                <li>전구물질 <span>4문항</span></li>
+                <li>데이터 관리 <span>4문항</span></li>
+                <li>검증 준비 <span>4문항</span></li>
+              </ul>
+              <p class="aside-foot">실제 Navigator의 6개 영역과 24개 질문을 바탕으로 구성했습니다. 이 시안에서는 대표 질문 한 개를 보여줍니다.</p>
+            </aside>
+          </div>
+          <div class="screen-footer">목업 화면: 답변은 이 브라우저에서만 선택되며 저장되지 않습니다.</div>
+        </div>
+      </section>
+
+      <section class="screen" id="results" aria-label="진단 결과 화면">
+        <div class="content">
+          <p class="eyebrow">YOUR READINESS RESULT</p>
+          <div class="results-head"><div><h1>현재 준비상태를<br><span class="mint">한눈에 확인하세요.</span></h1><p class="lead">영역별 준비도와 먼저 보완할 자료를 함께 보여줍니다. 아래 숫자는 화면 구성 예시이며 실제 진단 결과가 아닙니다.</p></div><div class="score">68<span>%</span></div></div>
+          <div class="results-grid">
+            <section class="result-box"><h3>6개 영역 준비도</h3>
+              <div class="bar-row"><span>대상 및 경계</span><div class="bar"><i style="--value:88%"></i></div><strong>88</strong></div>
+              <div class="bar-row"><span>모니터링</span><div class="bar"><i style="--value:63%"></i></div><strong>63</strong></div>
+              <div class="bar-row"><span>생산·데이터 귀속</span><div class="bar"><i style="--value:75%"></i></div><strong>75</strong></div>
+              <div class="bar-row"><span>전구물질</span><div class="bar"><i style="--value:50%"></i></div><strong>50</strong></div>
+              <div class="bar-row"><span>데이터 관리</span><div class="bar"><i style="--value:75%"></i></div><strong>75</strong></div>
+              <div class="bar-row"><span>검증 준비</span><div class="bar"><i style="--value:63%"></i></div><strong>63</strong></div>
+            </section>
+            <section class="result-box"><h3>먼저 준비할 자료</h3>
+              <div class="gap-item"><b>01</b><span>연료·공정배출 데이터의 출처와 집계 근거</span></div>
+              <div class="gap-item"><b>02</b><span>전구물질 사용량 및 공급업체 배출량 자료</span></div>
+              <div class="gap-item"><b>03</b><span>계산파일 변경이력과 내부 검토기록</span></div>
+            </section>
+          </div>
+          <div class="results-actions"><button class="secondary" type="button" data-go="assessment">← 응답 다시 보기</button><button class="secondary" type="button" data-go="application">증빙자료와 신청 정보 보기</button><button class="primary" type="button" data-go="application">LRQA 검증 신청 <span class="arrow">→</span></button></div>
+          <div class="screen-footer">자가진단은 검증 완료 또는 EU CBAM 적용 여부에 대한 최종 판단을 의미하지 않습니다.</div>
+        </div>
+      </section>
+
+      <section class="screen" id="application" aria-label="검증 신청 연결 화면">
+        <div class="content">
+          <div class="application-grid">
+            <div>
+              <p class="eyebrow">NEXT STEP / LRQA VERIFICATION</p>
+              <h1>진단 결과를 가지고<br><span class="mint">검증 신청으로.</span></h1>
+              <p class="lead">제품, CN 코드, 사업장, 준비도와 증빙 상태를 신청서에 미리 채워 고객이 같은 내용을 반복 입력하지 않도록 합니다.</p>
+              <div class="data-card">
+                <div class="data-card-head">✓ &nbsp; Navigator 진단정보가 연결되었습니다</div>
+                <dl><dt>제품</dt><dd>철강 볼트 · 예시 데이터</dd></dl>
+                <dl><dt>CN 코드</dt><dd>73181590</dd></dl>
+                <dl><dt>검증 준비도</dt><dd>68% · 주요 미비항목 3개</dd></dl>
+                <dl><dt>증빙자료</dt><dd>연료·공정배출 데이터 외 2개 우선 확인</dd></dl>
+              </div>
+              <p class="micro" style="margin-top:18px">실제 서비스에서는 고객이 내용을 확인하고 개인정보 처리에 동의한 뒤 제출하면 진단정보가 LRQA 신청 내역에 함께 저장됩니다.</p>
+            </div>
+            <div class="form-card">
+              <h3>CBAM 검증 신청</h3>
+              <p>디자인 미리보기입니다. 아래 항목은 실제로 저장되거나 전송되지 않습니다.</p>
+              <label for="company">회사명</label><input id="company" placeholder="회사명을 입력하세요">
+              <label for="name">담당자명</label><input id="name" placeholder="담당자명을 입력하세요">
+              <label for="email">이메일</label><input id="email" type="email" placeholder="name@company.com">
+              <label class="checkbox"><input type="checkbox"><span>개인정보 처리 및 신청정보 제공에 동의합니다.</span></label>
+              <button class="primary" type="button" disabled>신청서 제출 <span class="arrow">→</span></button>
+              <p class="footnote">목업에서는 제출 버튼이 비활성화되어 있습니다.</p>
+            </div>
+          </div>
+          <div class="screen-footer">이 화면은 LRQA Korea CBAM Navigator의 향후 디자인 검토용 시안입니다.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(function (screen) {
+        screen.classList.toggle("active", screen.id === id);
+      });
+      document.querySelectorAll(".nav-button").forEach(function (button) {
+        if (button.dataset.screen === id) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    document.querySelectorAll("[data-screen], [data-go]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        showScreen(button.dataset.screen || button.dataset.go);
+      });
+    });
+    document.querySelectorAll(".choice").forEach(function (button) {
+      button.addEventListener("click", function () {
+        document.querySelectorAll(".choice").forEach(function (choice) { choice.setAttribute("aria-pressed", "false"); });
+        button.setAttribute("aria-pressed", "true");
+      });
+    });
+  </script>
+</body>
+</html>

@@ -375,9 +375,12 @@ try {
     await ap.goto(
       internal + `/cbam/documents?ref=${app.reference}&type=${type}`,
     );
-    await ap.locator("article.cbam-document").waitFor();
+    const document = type === 'quote'
+      ? ap.frameLocator('iframe[title="Word 견적서 주요 내용"]').locator('body')
+      : ap.locator('article.cbam-document');
+    await document.getByText('Navigator Test Company', { exact: true }).first().waitFor();
     assert.match(
-      await ap.locator("article.cbam-document").innerText(),
+      await document.innerText(),
       /Navigator Test Company/,
     );
     const downloading = ap.waitForEvent("download");

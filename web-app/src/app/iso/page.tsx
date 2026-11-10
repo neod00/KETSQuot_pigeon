@@ -41,14 +41,14 @@ const DEFAULT_RATE = 1300000;
 const DEFAULT_EXPENSES = 300000;
 const DEFAULT_CERT_FEE = 450000;
 
-type StandardKey = 'ISO 9001' | 'ISO 14001' | 'ISO 45001' | 'ISO 27001' | 'ISO 50001';
+type StandardKey = 'ISO 9001' | 'ISO 14001' | 'ISO 45001' | 'ISO 27001' | 'ISO 50001' | 'ISO 37001' | 'ISO 37301';
 type DocumentType = 'quote' | 'contract';
 type VatType = '별도' | '포함';
 type CostField = 'stage1Days' | 'stage2Days' | 'surveillanceDays' | 'recertDays' | 'dayRate';
 
 type StandardCostInput = Record<CostField, string>;
 
-const ISO_STANDARDS: StandardKey[] = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 27001', 'ISO 50001'];
+const ISO_STANDARDS: StandardKey[] = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 27001', 'ISO 50001', 'ISO 37001', 'ISO 37301'];
 
 const STANDARD_VERSION: Record<StandardKey, string> = {
   'ISO 9001': 'ISO 9001:2015',
@@ -56,6 +56,8 @@ const STANDARD_VERSION: Record<StandardKey, string> = {
   'ISO 45001': 'ISO 45001:2018',
   'ISO 27001': 'ISO 27001:2022',
   'ISO 50001': 'ISO 50001:2018',
+  'ISO 37001': 'ISO 37001',
+  'ISO 37301': 'ISO 37301',
 };
 
 const getStandardDisplay = (standard: string) =>
@@ -69,9 +71,14 @@ const defaultCostInput = (): StandardCostInput => ({
   dayRate: DEFAULT_RATE.toLocaleString(),
 });
 
+const defaultStandardCostInput = (standard: StandardKey): StandardCostInput =>
+  standard === 'ISO 37001' || standard === 'ISO 37301'
+    ? { ...defaultCostInput(), stage1Days: '0', stage2Days: '0', surveillanceDays: '0', recertDays: '0' }
+    : defaultCostInput();
+
 const createDefaultStandardInputs = () =>
   ISO_STANDARDS.reduce((acc, standard) => {
-    acc[standard] = defaultCostInput();
+    acc[standard] = defaultStandardCostInput(standard);
     return acc;
   }, {} as Record<StandardKey, StandardCostInput>);
 
@@ -270,10 +277,10 @@ export default function ISOQuotePage() {
             ? imported.standardCosts.find((item) => item.standard === standard)
             : undefined;
           next[standard] = {
-            stage1Days: toInputNumber(importedCost?.stage1Days, '1.0'),
-            stage2Days: toInputNumber(importedCost?.stage2Days, '2.0'),
-            surveillanceDays: toInputNumber(importedCost?.surveillanceDays, '1.0'),
-            recertDays: toInputNumber(importedCost?.recertDays, '2.0'),
+            stage1Days: toInputNumber(importedCost?.stage1Days, defaultStandardCostInput(standard).stage1Days),
+            stage2Days: toInputNumber(importedCost?.stage2Days, defaultStandardCostInput(standard).stage2Days),
+            surveillanceDays: toInputNumber(importedCost?.surveillanceDays, defaultStandardCostInput(standard).surveillanceDays),
+            recertDays: toInputNumber(importedCost?.recertDays, defaultStandardCostInput(standard).recertDays),
             dayRate: toInputNumber(importedCost?.dayRate, DEFAULT_RATE.toLocaleString()),
           };
         });
@@ -1168,6 +1175,7 @@ export default function ISOQuotePage() {
               return (
                 <div key={standard} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <h3 className="text-sm font-bold text-blue-700">{getStandardDisplay(standard)}</h3>
+                  {(standard === 'ISO 37001' || standard === 'ISO 37301') && <p className="mt-2 text-xs leading-6 text-amber-800">자동 산정 대상 규격이 아닙니다. 추가양식을 검토한 뒤 담당자가 심사일수를 입력해 주세요.</p>}
                   <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
                     <NumberInput label="Stage 1 일수" value={input.stage1Days} onChange={value => updateStandardInput(standard, 'stage1Days', value)} />
                     <NumberInput label="Stage 2 일수" value={input.stage2Days} onChange={value => updateStandardInput(standard, 'stage2Days', value)} />

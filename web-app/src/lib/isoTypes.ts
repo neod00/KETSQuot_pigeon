@@ -1,6 +1,7 @@
 import type { AuditDurationInput, AuditDurationResult } from './auditDurationEngine';
 import type { AuditDurationAdjustment } from './auditDurationAdjustments';
 import type { IsoMultiSiteEvidence } from './isoMultiSiteEvidence';
+import type { IsoComplianceApplicationInput } from './isoComplianceApplication';
 
 export type IsoApplicationStatus = 'new' | 'in_review' | 'needs_information' | 'quote_ready' | 'completed';
 
@@ -37,6 +38,7 @@ export interface IsoApplication {
   sourceFields: Record<string, string>;
   missingFields: string[];
   quoteReady: boolean;
+  complianceApplication?: IsoComplianceApplicationInput;
 }
 
 export type IsoAuditAnalysisStatus = 'proposed' | 'approved';

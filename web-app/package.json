@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@kenjiuno/msgreader": "^1.29.0",
     "@netlify/blobs": "^10.0.0",
     "@netlify/functions": "^5.0.0",
     "docxtemplater": "^3.67.0",
@@ -16,12 +17,15 @@
     "jszip": "^3.10.1",
     "next": "^16.3.7",
     "pizzip": "^3.2.0",
+    "postal-mime": "^4.2.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
+    "@types/office-js": "^1.0.616",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",

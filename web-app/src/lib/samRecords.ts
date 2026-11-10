@@ -5,6 +5,7 @@ import { getIsoBinary, getIsoJson, setIsoBinary, updateIsoJson } from '@/lib/iso
 import { initialSamAccounts } from '@/lib/samSeed';
 import { mergeOfficialAffiliateCatalog } from '@/lib/samAffiliateCatalog';
 import { listSalesRecords } from '@/lib/salesRecords';
+import { newSamMailMessageRefs, persistUniqueSamMailDraft } from '@/lib/samMailUpload';
 import type {
   SamAccount,
   SamAccountInput,
@@ -285,10 +286,9 @@ export async function findSamMailDraft(accountId: string, draftId: string) {
   return (await listSamMailDrafts(accountId)).find((draft) => draft.id === draftId) || null;
 }
 
-export async function hasNewSamMailMessageRefs(messageRefs: SamMailMessageRef[]) {
-  const knownIds = new Set((await getIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY) || [])
-    .flatMap((draft) => draft.messageRefs.map((message) => message.id)));
-  return messageRefs.some((message) => message.id && !knownIds.has(message.id));
+export async function hasNewSamMailMessageRefs(messageRefs: SamMailMessageRef[], accountId?: string) {
+  const drafts = await getIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY) || [];
+  return newSamMailMessageRefs(drafts, messageRefs, accountId).length > 0;
 }
 
 export async function createSamMailDraft({
@@ -304,23 +304,17 @@ export async function createSamMailDraft({
   analysis: SamOrganizedProgress;
   username: string;
 }) {
-  const knownDrafts = await getIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY) || [];
-  const knownIds = new Set(knownDrafts.flatMap((draft) => draft.messageRefs.map((message) => message.id)));
-  const newRefs = messageRefs.filter((message) => message.id && !knownIds.has(message.id));
-  if (!newRefs.length) return { draft: null, duplicate: true };
-
   const draft: SamMailDraft = {
     id: randomUUID(),
     accountId,
     source,
     status: 'pending',
-    messageRefs: newRefs,
+    messageRefs,
     analysis,
     createdAt: new Date().toISOString(),
     createdBy: username,
   };
-  await updateIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY, (current) => [draft, ...(current || [])]);
-  return { draft, duplicate: false };
+  return persistUniqueSamMailDraft(draft, (updater) => updateIsoJson<SamMailDraft[]>(STORE, MAIL_DRAFT_KEY, updater));
 }
 
 export async function setSamMailDraftStatus({
