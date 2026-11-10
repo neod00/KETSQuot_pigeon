@@ -2,7 +2,7 @@ import type { CbamApplicationInput } from './cbam-input';
 import { object, parseNavigator, GOODS } from './cbam-intake-schema';
 import type { CbamNavigatorData } from './cbam-navigator';
 
-export const CBAM_APPLICATION_URL = 'https://ketsquot-pigeon.netlify.app/cbam';
+export const CBAM_APPLICATION_URL = 'https://lrqa-korea-portal.netlify.app/cbam';
 export type ApplicantInfo = Pick<CbamApplicationInput, 'companyName' | 'contactName' | 'email' | 'phone'>;
 export type NavigatorHandoff = { version: 1; createdAt: number; prefill: Partial<CbamApplicationInput>; navigatorData: CbamNavigatorData };
 function parse(value: unknown, now: number): NavigatorHandoff {

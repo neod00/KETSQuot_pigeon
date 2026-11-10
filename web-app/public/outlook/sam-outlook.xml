@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xsi:type="MailApp">
+  <Id>61c1bd4a-82e8-4957-bfaa-215af1e6939d</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>LRQA Korea Portal</ProviderName>
+  <DefaultLocale>ko-KR</DefaultLocale>
+  <DisplayName DefaultValue="SAM" />
+  <Description DefaultValue="Account별 메일을 끌어 넣어 SAM 업무 초안으로 정리합니다." />
+  <IconUrl DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-64.png" />
+  <HighResolutionIconUrl DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-128.png" />
+  <SupportUrl DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/sam" />
+  <AppDomains>
+    <AppDomain>https://lrqa-korea-portal.netlify.app</AppDomain>
+  </AppDomains>
+  <Hosts><Host Name="Mailbox" /></Hosts>
+  <Requirements><Sets><Set Name="Mailbox" MinVersion="1.5" /></Sets></Requirements>
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/sam" />
+        <RequestedHeight>450</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+  <Permissions>ReadItem</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
+  </Rule>
+  <DisableEntityHighlighting>true</DisableEntityHighlighting>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Requirements><bt:Sets DefaultMinVersion="1.5"><bt:Set Name="Mailbox" /></bt:Sets></Requirements>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <FunctionFile resid="Commands.Url" />
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="Sam.ReadGroup">
+                <Label resid="Group.Label" />
+                <Control xsi:type="Button" id="Sam.OpenPane">
+                  <Label resid="Pane.Label" />
+                  <Supertip><Title resid="Pane.Label" /><Description resid="Pane.Description" /></Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16" />
+                    <bt:Image size="32" resid="Icon.32" />
+                    <bt:Image size="80" resid="Icon.80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane"><SourceLocation resid="Pane.Url" /></Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-16.png" />
+        <bt:Image id="Icon.32" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-32.png" />
+        <bt:Image id="Icon.80" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Commands.Url" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/commands.html" />
+        <bt:Url id="Pane.Url" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/sam" />
+      </bt:Urls>
+      <bt:ShortStrings><bt:String id="Group.Label" DefaultValue="SAM" /><bt:String id="Pane.Label" DefaultValue="SAM 열기" /></bt:ShortStrings>
+      <bt:LongStrings><bt:String id="Pane.Description" DefaultValue="메일을 끌어 넣고 Account별 SAM 업무 초안을 만듭니다." /></bt:LongStrings>
+    </Resources>
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <Requirements><bt:Sets DefaultMinVersion="1.5"><bt:Set Name="Mailbox" /></bt:Sets></Requirements>
+      <Hosts>
+        <Host xsi:type="MailHost">
+          <DesktopFormFactor>
+            <FunctionFile resid="Commands.Url" />
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="Sam.ReadGroup">
+                  <Label resid="Group.Label" />
+                  <Control xsi:type="Button" id="Sam.OpenPane">
+                    <Label resid="Pane.Label" />
+                    <Supertip><Title resid="Pane.Label" /><Description resid="Pane.Description" /></Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="Icon.16" />
+                      <bt:Image size="32" resid="Icon.32" />
+                      <bt:Image size="80" resid="Icon.80" />
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane"><SourceLocation resid="Pane.Url" /><SupportsPinning>true</SupportsPinning></Action>
+                  </Control>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+      <Resources>
+        <bt:Images>
+          <bt:Image id="Icon.16" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-16.png" />
+          <bt:Image id="Icon.32" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-32.png" />
+          <bt:Image id="Icon.80" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/icon-80.png" />
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="Commands.Url" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/commands.html" />
+          <bt:Url id="Pane.Url" DefaultValue="https://lrqa-korea-portal.netlify.app/outlook/sam" />
+        </bt:Urls>
+        <bt:ShortStrings><bt:String id="Group.Label" DefaultValue="SAM" /><bt:String id="Pane.Label" DefaultValue="SAM 열기" /></bt:ShortStrings>
+        <bt:LongStrings><bt:String id="Pane.Description" DefaultValue="메일을 끌어 넣고 Account별 SAM 업무 초안을 만듭니다." /></bt:LongStrings>
+      </Resources>
+    </VersionOverrides>
+  </VersionOverrides>
+</OfficeApp>

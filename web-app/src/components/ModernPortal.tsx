@@ -3,26 +3,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import FeedbackSidebar from './FeedbackSidebar';
+import PortalNavigation from './PortalNavigation';
+import PortalAccountMenu from './PortalAccountMenu';
 import type { HistoryRecord } from './GenerationHistory';
 import styles from './ModernPortal.module.css';
 
 interface ModernPortalProps {
     onUseLegacy: () => void;
     isAdminAccount: boolean;
+    coordinationOwner?: boolean;
+    username?: string;
 }
-
-const NAV_ITEMS = [
-    { label: '업무 대시보드', href: '/', active: true },
-    { label: 'ISO 견적·계약', href: '/iso' },
-    { label: '신청서 접수함', href: '/iso/applications' },
-    { label: '생성 문서', href: '/iso/documents' },
-    { label: '세일즈 현황·D365', href: '/iso/sales' },
-    { label: 'K-ETS 견적', href: '/generator' },
-    { label: 'K-ETS 계약', href: '/kets-contract' },
-    { label: 'P827 견적·계약', href: '/system' },
-    { label: 'P827 신청관리', href: '/p827/admin' },
-    { label: 'CBAM 관리', href: '/cbam/admin' },
-];
 
 const QUICK_ACTIONS = [
     { code: 'ISO', label: 'ISO 견적 작성', detail: '견적서와 계약서 생성', href: '/iso' },
@@ -46,7 +37,7 @@ const formatDate = (iso: string) => {
     return `${date.getMonth() + 1}.${date.getDate()}`;
 };
 
-export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPortalProps) {
+export default function ModernPortal({ onUseLegacy, isAdminAccount, coordinationOwner, username }: ModernPortalProps) {
     const [history, setHistory] = useState<HistoryRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -98,27 +89,7 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                         </div>
                     </div>
 
-                    <nav className={styles.nav} aria-label="포털 메뉴">
-                        {NAV_ITEMS.map(item => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className={`${styles.navLink} ${item.active ? styles.navLinkActive : ''}`}
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
-                        {isAdminAccount && (
-                            <Link href="/iso/sam" className={styles.navLink}>
-                                SAM&apos;s Business
-                            </Link>
-                        )}
-                        {isAdminAccount && (
-                            <Link href="/iso/users" className={styles.navLink}>
-                                팀원 관리
-                            </Link>
-                        )}
-                    </nav>
+                    <PortalNavigation key={username ?? 'pending'} isAdmin={isAdminAccount} coordinationOwner={coordinationOwner} onFeedback={() => setFeedbackOpen(true)} />
 
                     <div className={styles.railFooter}>
                         <div className={styles.railTitle}>LRQA Korea</div>
@@ -133,12 +104,7 @@ export default function ModernPortal({ onUseLegacy, isAdminAccount }: ModernPort
                             <div className={styles.topMeta}>Commercial operations portal</div>
                         </div>
                         <div className={styles.topActions}>
-                            <button type="button" onClick={() => setFeedbackOpen(true)} className={styles.button}>
-                                팀원 피드백
-                            </button>
-                            <button type="button" onClick={onUseLegacy} className={styles.buttonPrimary}>
-                                이전 디자인
-                            </button>
+                            <PortalAccountMenu onUseLegacy={onUseLegacy} username={username} />
                         </div>
                     </header>
 

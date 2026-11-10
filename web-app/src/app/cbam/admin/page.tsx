@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   clientTypeLabel,
   calculateCbamDays,
@@ -17,12 +18,24 @@ import { QUESTIONS } from '@/lib/cbam-navigator';
 import NavigatorLeads from './NavigatorLeads';
 
 export default function CbamAdminPage() {
+  return <Suspense fallback={<p className="p-6">관리 화면을 불러오는 중입니다.</p>}><CbamAdminContent /></Suspense>;
+}
+
+function CbamAdminContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedView = searchParams.get('view');
+  const view = requestedView === 'cn-checker' || requestedView === 'leads' ? requestedView : 'applications';
+  const setView = (next: 'applications' | 'cn-checker' | 'leads') => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', next);
+    router.push(`/cbam/admin?${params.toString()}`, { scroll: false });
+  };
   const [applications, setApplications] = useState<StoredCbamApplication[]>([]);
   const [selected, setSelected] = useState<StoredCbamApplication | null>(null);
   const [adminKey, setAdminKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'applications' | 'cn-checker' | 'leads'>('applications');
   const [editing, setEditing] = useState<StoredCbamApplication | null>(null);
   const [pricingEditing, setPricingEditing] = useState<StoredCbamApplication | null>(null);
 
@@ -44,7 +57,6 @@ export default function CbamAdminPage() {
   }, [adminKey]);
 
   useEffect(() => { const savedKey = sessionStorage.getItem('cbamAdminKey') || ''; setAdminKey(savedKey); load(savedKey); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (new URLSearchParams(window.location.search).get('view') === 'leads') setView('leads'); }, []);
 
   const stats = useMemo(() => ({
     total: applications.length,

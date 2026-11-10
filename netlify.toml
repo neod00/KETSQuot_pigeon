@@ -2,9 +2,19 @@
   # Netlify가 작업할 기본 폴더를 web-app으로 강제 지정
   base = "web-app"
   # 실행할 명령어
-  command = "npm install && npm run build"
+  command = "npm run build"
   # 결과물이 나오는 폴더 (Next.js 기본값)
   publish = ".next"
 
+[functions]
+  directory = "netlify/functions"
+  included_files = ["templates/ADJ_v3.xlsx"]
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[[headers]]
+  for = "/outlook/sam-outlook.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Content-Disposition = 'attachment; filename="sam-outlook.xml"'

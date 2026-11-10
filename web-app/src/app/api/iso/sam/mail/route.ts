@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getIsoRequestSession } from '@/lib/isoAuth';
+import { getSamOutlookSession } from '@/lib/samOutlookAuth';
 import {
   createSamMailDraft,
   findSamAccount,
@@ -13,7 +14,7 @@ import {
   verifySamMailSyncKey,
 } from '@/lib/samRecords';
 import { organizeSamProgressUpdate, SamOrganiseError } from '@/lib/samUpdateOrganiser';
-import type { SamMailMessageRef } from '@/lib/samTypes';
+import { parseSamMailInput, SamMailInputError } from '@/lib/samMailUpload';
 
 export const runtime = 'nodejs';
 
@@ -23,23 +24,14 @@ const clientSession = (request: Request) => getIsoRequestSession(request)?.role 
 
 const syncKey = (request: Request) => request.headers.get('x-sam-sync-key');
 
-const trimRef = (value: unknown): SamMailMessageRef | null => {
-  const record = value && typeof value === 'object' ? value as Record<string, unknown> : {};
-  const id = String(record.id ?? '').trim().slice(0, 500);
-  if (!id) return null;
-  return {
-    id,
-    conversationId: String(record.conversationId ?? '').trim().slice(0, 500) || undefined,
-    subject: String(record.subject ?? '').trim().slice(0, 1000),
-    from: String(record.from ?? '').trim().slice(0, 500),
-    to: String(record.to ?? '').trim().slice(0, 1000),
-    receivedAt: String(record.receivedAt ?? '').trim().slice(0, 100),
-    webLink: String(record.webLink ?? '').trim().slice(0, 2000) || undefined,
-  };
-};
-
 export async function GET(request: Request) {
   const session = clientSession(request);
+  const outlookSession = getSamOutlookSession(request);
+  if (outlookSession && !session) {
+    const accountId = new URL(request.url).searchParams.get('accountId');
+    if (!accountId) return NextResponse.json({ error: 'Account를 선택해 주세요.' }, { status: 400 });
+    return NextResponse.json({ drafts: await listSamMailDrafts(accountId) }, { headers: { 'Cache-Control': 'no-store' } });
+  }
   const isSyncRequest = await verifySamMailSyncKey(syncKey(request));
   if (!session && !isSyncRequest) return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
   if (isSyncRequest && !session) {
@@ -84,26 +76,23 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   const isSyncRequest = await verifySamMailSyncKey(syncKey(request));
-  const session = clientSession(request);
+  const session = clientSession(request) || getSamOutlookSession(request);
   if (!session && !isSyncRequest) return NextResponse.json({ error: '권한이 필요합니다.' }, { status: 403 });
 
-  const body = await request.json().catch(() => ({})) as {
-    accountId?: unknown;
-    source?: unknown;
-    messages?: unknown;
-    content?: unknown;
-  };
-  const accountId = String(body.accountId ?? '').trim();
-  const source = body.source === 'outlook-web' ? 'outlook-web' : 'eml-upload';
+  let input: ReturnType<typeof parseSamMailInput>;
+  try {
+    input = parseSamMailInput(await request.json().catch(() => null));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '메일 요청 형식이 올바르지 않습니다.';
+    return NextResponse.json({ error: message }, { status: error instanceof SamMailInputError ? error.status : 400 });
+  }
+  const { accountId, source, messages, content } = input;
   if (isSyncRequest && source !== 'outlook-web') {
     return NextResponse.json({ error: '로컬 수집기는 Outlook Web 메일 초안만 만들 수 있습니다.' }, { status: 400 });
   }
-  const messages = Array.isArray(body.messages) ? body.messages.map(trimRef).filter((item): item is SamMailMessageRef => Boolean(item)) : [];
-  const content = String(body.content ?? '').trim().slice(0, 24000);
-  const account = accountId ? await findSamAccount(accountId) : null;
+  const account = await findSamAccount(accountId);
   if (!account) return NextResponse.json({ error: 'Account를 찾을 수 없습니다.' }, { status: 404 });
-  if (!messages.length || !content) return NextResponse.json({ error: '분석할 메일 내용이 없습니다.' }, { status: 400 });
-  if (!await hasNewSamMailMessageRefs(messages)) {
+  if (!await hasNewSamMailMessageRefs(messages, source === 'eml-upload' ? accountId : undefined)) {
     await recordSamMailSyncStatus({
       accountId,
       source,

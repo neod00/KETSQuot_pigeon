@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createHash } from 'node:crypto';
 import { listDeletedIsoApplicationIds } from './isoApplicationInbox';
+import { getIsoJson, listIsoJson } from './isoStorage';
 import {
   calculateAuditDuration,
   createDefaultAuditDurationInput,
@@ -139,23 +140,41 @@ export const normalizeLegacyApplication = (sourceRecord: LegacyRecord): IsoAppli
   };
 };
 
-export async function fetchIsoApplications(): Promise<IsoApplication[]> {
+async function fetchLegacyIsoApplications(): Promise<IsoApplication[]> {
   const apiUrl = process.env.ISO_APPLICATIONS_API_URL ||
     'https://lrqa-iso-application.netlify.app/.netlify/functions/get-applications';
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (process.env.ISO_APPLICATIONS_API_KEY) headers['x-internal-api-key'] = process.env.ISO_APPLICATIONS_API_KEY;
-  const response = await fetch(apiUrl, { headers, cache: 'no-store' });
+  const response = await fetch(apiUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new Error(`신청서 API 응답 오류: ${response.status}`);
   const payload = await response.json() as { data?: { applications?: LegacyRecord[] }; applications?: LegacyRecord[] };
   const records = payload.data?.applications || payload.applications || [];
-  const deletedIds = await listDeletedIsoApplicationIds();
-  return records
-    .map(normalizeLegacyApplication)
-    .filter((application) => !deletedIds.has(application.id))
-    .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+  return records.map(normalizeLegacyApplication);
+}
+
+export async function loadIsoApplicationInbox(): Promise<{ applications: IsoApplication[]; legacyUnavailable: boolean }> {
+  const [native, deletedIds, legacy] = await Promise.all([
+    listIsoJson<IsoApplication>('iso-applications', 'applications'),
+    listDeletedIsoApplicationIds(),
+    fetchLegacyIsoApplications().then(applications => ({ applications, error: null }), (error: unknown) => ({ applications: [] as IsoApplication[], error })),
+  ]);
+  if (legacy.error && native.length === 0) throw legacy.error;
+  if (legacy.error) console.error('Legacy ISO applications unavailable', legacy.error);
+  const merged = new Map([...legacy.applications, ...native].map(application => [application.id, application]));
+  return {
+    applications: [...merged.values()].filter(application => !deletedIds.has(application.id)).sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || '')),
+    legacyUnavailable: Boolean(legacy.error),
+  };
+}
+
+export async function fetchIsoApplications(): Promise<IsoApplication[]> {
+  return (await loadIsoApplicationInbox()).applications;
 }
 
 export async function findIsoApplication(applicationId: string) {
+  if (!/^APP-[A-F0-9]{16}$/.test(applicationId)) return null;
+  const native = await getIsoJson<IsoApplication>('iso-applications', `applications/${applicationId}.json`);
+  if (native) return (await listDeletedIsoApplicationIds()).has(applicationId) ? null : native;
   const applications = await fetchIsoApplications();
   return applications.find((application) => application.id === applicationId) || null;
 }
@@ -189,7 +208,7 @@ export const toAuditDurationInput = (application: IsoApplication): AuditDuration
 };
 
 export const toIsoQuoteInput = (application: IsoApplication, auditInputOverride?: AuditDurationInput): IsoQuoteInput => {
-  const supported = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 27001', 'ISO 50001'];
+  const supported = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 27001', 'ISO 50001', 'ISO 37001', 'ISO 37301'];
   const standards = application.standards.filter((standard) => supported.includes(standard));
   const distinctOtherStandard = application.otherStandards.trim() !== application.scope.trim() ? application.otherStandards : '';
   const customStandard = application.standards.find((standard) => !supported.includes(standard)) || distinctOtherStandard;
@@ -211,14 +230,19 @@ export const toIsoQuoteInput = (application: IsoApplication, auditInputOverride?
     postalCode: application.postalCode,
     businessRegistrationNumber: application.businessRegistrationNumber,
     billingAddress: application.siteAddress,
-    standardCosts: auditResult.perStandard.map((result) => ({
-      standard: result.standard,
-      stage1Days: result.stage1Days,
-      stage2Days: result.stage2Days,
-      surveillanceDays: result.surveillanceDays,
-      recertDays: result.recertDays,
-      dayRate: 1_300_000,
-    })),
+    standardCosts: [
+      ...auditResult.perStandard.map((result) => ({
+        standard: result.standard,
+        stage1Days: result.stage1Days,
+        stage2Days: result.stage2Days,
+        surveillanceDays: result.surveillanceDays,
+        recertDays: result.recertDays,
+        dayRate: 1_300_000,
+      })),
+      ...standards.filter(standard => standard === 'ISO 37001' || standard === 'ISO 37301').map(standard => ({
+        standard, stage1Days: 0, stage2Days: 0, surveillanceDays: 0, recertDays: 0, dayRate: 1_300_000,
+      })),
+    ],
     auditCalculation: {
       input: auditInput,
       result: auditResult,

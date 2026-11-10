@@ -9,12 +9,18 @@ import ModernPortal from '../components/ModernPortal';
 
 export default function LandingPage() {
     const [isAdminAccount, setIsAdminAccount] = useState(false);
+    const [coordinationOwner, setCoordinationOwner] = useState(false);
+    const [username, setUsername] = useState<string>();
     const [portalView, setPortalView] = useState<'modern' | 'legacy'>('modern');
 
     useEffect(() => {
         fetch('/api/iso/auth/session', { cache: 'no-store' })
             .then(response => response.ok ? response.json() : null)
-            .then(session => setIsAdminAccount(session?.role === 'admin'))
+            .then(session => {
+                setIsAdminAccount(session?.role === 'admin');
+                setCoordinationOwner(session?.coordinationOwner === true);
+                setUsername(session?.username);
+            })
             .catch(() => setIsAdminAccount(false));
     }, []);
 
@@ -31,7 +37,7 @@ export default function LandingPage() {
     };
 
     if (portalView === 'modern') {
-        return <ModernPortal isAdminAccount={isAdminAccount} onUseLegacy={() => changePortalView('legacy')} />;
+        return <ModernPortal username={username} coordinationOwner={coordinationOwner} isAdminAccount={isAdminAccount} onUseLegacy={() => changePortalView('legacy')} />;
     }
 
     return <LegacyLandingPage isAdminAccount={isAdminAccount} onUseModern={() => changePortalView('modern')} />;

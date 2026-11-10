@@ -16,7 +16,7 @@ export async function requestLeadNotification(reference: string) {
       product:lead.navigatorData.productName || '', cn_codes:lead.navigatorData.searchedCnCodes?.join(', ') || '', sites:lead.sites,
       readiness:scored.complete ? `${scored.readinessScore}%` : `진단 미완료 (${scored.answered}/24)`,
       message:lead.consultationMessage || lead.decisionRequest || '진단 결과 상담을 요청합니다.',
-      admin_url:`https://ketsquot-pigeon.netlify.app/cbam/admin?view=leads&lead=${encodeURIComponent(lead.reference)}` });
+      admin_url:`https://lrqa-korea-portal.netlify.app/cbam/admin?view=leads&lead=${encodeURIComponent(lead.reference)}` });
     const response = await fetch('https://lrqa-cbam-navigator.netlify.app/__forms.html', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:form.toString(), signal:AbortSignal.timeout(12000), redirect:'error' });
     if (!response.ok) throw new Error('Form notification rejected');
     await mutateLead(reference, old => old ? { ...old, notificationStatus:'requested', notificationRequestedAt:new Date().toISOString() } : null);
