@@ -26,7 +26,6 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
   ] },
   { id: 'p827', label: 'P827 검증', section: '업무 분야', items: [
     { label: '신청서 관리', href: '/p827/admin' },
-    { label: 'LCA 솔루션 신청서', href: '/p827/lca-apply' },
     { label: '견적·계약 작성', href: '/system' },
   ] },
   { id: 'hyundai', label: '현대차 협력사 GHG', section: '업무 분야', href: '/hyundai-ghg/admin', items: [] },
