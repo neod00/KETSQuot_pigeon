@@ -57,6 +57,7 @@
 .success button { margin-top: 20px; }
 .allFields:disabled input, .allFields:disabled select, .allFields:disabled textarea { opacity: 1; color: #183147; -webkit-text-fill-color: #183147; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.printText { display: none; }
 /* Match the reference application's current ux-improvements.css. */
 .formWrap { --navy: #0f1232; --mint: #0ff2b2; --line: #cbd2d9; background: #fff; border-top: 6px solid var(--mint); padding: 0 32px 32px; box-shadow: 0 12px 32px #0f123214; color: #202536; font-family: Pretendard, 'Noto Sans KR', 'Malgun Gothic', Arial, sans-serif; font-size: 15px; line-height: 1.55; }
 .toolbar { min-height: 68px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); padding: 12px 0; }
@@ -145,9 +146,32 @@
 @media print {
   .section[hidden], .header[hidden] { display: block; }
   .toolbar, .progress, .wizardNav { display: none; }
-  .formWrap { box-shadow: none; border: 0; padding: 0; }
+  .formWrap { box-shadow: none; border: 0; padding: 0; font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .form { padding: 0; background: white; }
-  .section { break-inside: auto; border: 0; padding: 10px 0; }
+  .section { break-inside: auto; border: 0; padding: 4px 0; margin-bottom: 10px; }
+  .sectionHeader { padding: 6px 10px; margin-bottom: 8px; }
+  .sectionHeader h2 { font-size: 14px; }
+  .field { gap: 8px; margin-bottom: 5px; }
+  .field label { flex-basis: 215px; padding-top: 4px; font-size: 12px; }
+  .field input, .field select, .field textarea { min-height: 26px; padding: 3px 5px; font-size: 12px; }
+  .field input:not([type='radio']):not([type='checkbox']), .field select, .field textarea { display: none; }
+  .field .printText { display: block; flex: 1; min-width: 0; min-height: 26px; padding: 3px 5px; border: 1px solid #cbd2d9; font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .field textarea { min-height: 45px; }
+  .field:has(textarea) label { margin-bottom: 3px; }
+  .options { min-height: 26px; }
+  .options input, .standard input, .consent input { width: 16px; height: 16px; min-height: 16px; flex-basis: 16px; }
+  .standard { padding: 3px 0; }
+  .standard strong, .standard small, .help { font-size: 12px; }
+  .help { margin: 5px 0; }
+  .site h3 { margin: 5px 0 8px; }
+  .site + .site { margin-top: 10px; padding-top: 10px; }
+  .total { margin: 10px 0; }
+  .personnel { margin-top: 10px; }
+  .personnel h3 { font-size: 12px; }
+  .personnel th, .personnel td { padding: 4px; font-size: 11px; }
+  .personnel input { min-height: 22px; padding: 2px; font-size: 11px; }
+  .review { padding: 8px 10px; margin-bottom: 10px; font-size: 12px; }
+  .consent { margin: 10px 0; font-size: 12px; }
   .sectionHeader, .field, .personnel tr { break-inside: avoid; }
   .submitArea, .actions { display: none; }
   .tableScroll { overflow: visible; }

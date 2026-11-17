@@ -10,6 +10,8 @@ import { getIsoAuditAnalysis } from '@/lib/isoAuditAnalysis';
 import { findIsoApplication, toAuditDurationInput } from '@/lib/isoApplications';
 import { listIsoQuoteDrafts } from '@/lib/isoQuoteDrafts';
 import StartQuoteButton from './StartQuoteButton';
+import PrintApplicationButton from './PrintApplicationButton';
+import printStyles from './ApplicationPrint.module.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +25,7 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
   const analysis = await getIsoAuditAnalysis(id);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-5">
+    <main className={`iso-application-detail mx-auto max-w-7xl px-4 py-6 sm:px-5 ${printStyles.detail}`}>
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/iso/applications" className="text-sm font-bold text-teal-700 hover:underline">신청서 접수함</Link>
@@ -63,12 +65,12 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
           <h3 className="text-lg font-bold text-slate-900">고객 제출 신청서</h3>
           <p className="mt-1 text-sm text-slate-500">고객이 제출한 화면과 같은 서식으로 표시됩니다.</p>
         </div>
-        <span className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-600">읽기 전용</span>
+        <div className="flex items-center gap-2"><span className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-600">읽기 전용</span><PrintApplicationButton /></div>
       </div>
 
-      {application.complianceApplication
+      <div className={printStyles.printArea}><h1 className={printStyles.printTitle}>인증 심사 신청서</h1>{application.complianceApplication
         ? <IsoComplianceApplicationForm submitted={application.complianceApplication} />
-        : <IsoApplicationFormReplica application={application} />}
+        : <IsoApplicationFormReplica application={application} />}</div>
 
       <section className="mt-6 border-t border-slate-200 pt-5">
         <h3 className="text-base font-bold text-slate-900">견적 초안 이력</h3>
