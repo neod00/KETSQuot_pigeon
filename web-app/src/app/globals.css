@@ -22,6 +22,10 @@ body {
 }
 
 @media print {
+  body:has(.iso-application-detail) .portal-legacy-internal-header {
+    display: none !important;
+  }
+
   .no-print {
     display: none !important;
   }
