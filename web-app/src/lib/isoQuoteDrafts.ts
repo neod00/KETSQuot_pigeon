@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { randomUUID } from 'node:crypto';
-import { applyApprovedAuditAnalysis, getIsoAuditAnalysis } from './isoAuditAnalysis';
 import { findIsoApplication, toAuditDurationInput, toIsoQuoteInput } from './isoApplications';
 import { getIsoJson, listIsoJson, setIsoJson } from './isoStorage';
 import type { IsoQuoteDraft, IsoQuoteDraftStatus, IsoQuoteInput } from './isoTypes';
@@ -21,13 +20,7 @@ export async function createIsoQuoteDraft(applicationId: string, username: strin
     createdAt: now,
     updatedAt: now,
     createdBy: username,
-    quoteInput: toIsoQuoteInput(
-      application,
-      applyApprovedAuditAnalysis(
-        toAuditDurationInput(application),
-        await getIsoAuditAnalysis(applicationId),
-      ),
-    ),
+    quoteInput: toIsoQuoteInput(application, toAuditDurationInput(application)),
   };
   await setIsoJson(STORE, keyFor(draft.id), draft);
   return draft;

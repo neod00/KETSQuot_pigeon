@@ -1,8 +1,0 @@
-.printTitle { display: none; }
-
-@media print {
-  .detail > :not(.printArea) { display: none !important; }
-  .detail { max-width: none !important; margin: 0 !important; padding: 0 !important; }
-  .printArea { width: 100%; padding: 6mm 8mm; }
-  .printTitle { display: block; font-size: 18px; font-weight: 700; margin: 0 0 5mm; }
-}

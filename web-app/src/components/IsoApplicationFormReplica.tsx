@@ -59,11 +59,12 @@ function Footer({ page }: { page: number }) {
   return <footer className={styles.footer}><strong>LRQA</strong><span>인증 심사 신청서 |{page}</span></footer>;
 }
 
-function Page({ children }: { children: ReactNode }) {
-  return <div className={styles.page}>{children}</div>;
+function Page({ children, collapsible, title, initialOpen }: { children: ReactNode; collapsible?: boolean; title: string; initialOpen?: boolean }) {
+  const page = <div className={styles.page}>{children}</div>;
+  return collapsible ? <details className={styles.pageGroup} open={initialOpen}><summary>{title}</summary>{page}</details> : page;
 }
 
-export default function IsoApplicationFormReplica({ application }: { application: IsoApplication }) {
+export default function IsoApplicationFormReplica({ application, collapsible = false }: { application: IsoApplication; collapsible?: boolean }) {
   const fields: Fields = application.sourceFields || {};
   const get = (...keys: string[]) => {
     for (const key of keys) {
@@ -86,10 +87,10 @@ export default function IsoApplicationFormReplica({ application }: { application
   ] as const;
 
   return (
-    <div className={styles.viewport} aria-label="고객 제출 신청서 원본 디자인 읽기 전용 보기">
+    <div className={`${styles.viewport} ${collapsible ? styles.collapsible : ''}`} aria-label="고객 제출 신청서 원본 디자인 읽기 전용 보기">
       <div className={styles.paper}>
         <div className={styles.language}><select aria-label="신청서 언어" value="ko" disabled><option value="ko">KR 한국어</option></select></div>
-        <Page>
+        <Page collapsible={collapsible} title="회사 정보" initialOpen>
           <header className={styles.header}>
             <h1>인증 심사 신청서</h1>
             <h2>표준 ISO 9001, 14001, 45001</h2>
@@ -113,7 +114,7 @@ export default function IsoApplicationFormReplica({ application }: { application
           <Footer page={1} />
         </Page>
 
-        <Page>
+        <Page collapsible={collapsible} title="연락처·평가 요구사항">
           <Section title="연락처 세부 정보">
             <Pair><Line label="담당자 성함 (직급/직책 포함)" value={get('담당자명', 'contactName')} /><Line label="부서" value={get('부서', 'department')} size="medium" /></Pair>
             <Pair><Line label="이메일 주소" value={get('담당자이메일', 'contactEmail')} /><Line label="전화 번호" value={get('담당자전화', 'contactPhone')} size="medium" /></Pair>
@@ -141,7 +142,7 @@ export default function IsoApplicationFormReplica({ application }: { application
           <Footer page={2} />
         </Page>
 
-        <Page>
+        <Page collapsible={collapsible} title="인증범위·기존 인증">
           <Section title="인증 범위 확인"><TextAnswer prompt="인증서에 활동 내용을 어떻게 기재하고 싶으십니까?" value={get('활동내용기재', '인증범위', 'activityDescription', 'certificationScope') || application.scope} rows={4} /></Section>
           <Section title="법적 의무">
             <TextAnswer prompt="조직이 운영하기 위해 필요한 사업장 허가, 라이선스 또는 이와 유사한 규제 기관의 승인이 있습니까?" value={get('규제기관승인여부', 'regulatoryApproval')} />
@@ -154,7 +155,7 @@ export default function IsoApplicationFormReplica({ application }: { application
           <Footer page={3} />
         </Page>
 
-        <Page>
+        <Page collapsible={collapsible} title="직원 현황">
           <Section title="직원 현황">
             <Line label="총 직원 수" value={get('총직원수', 'totalEmployees') || String(application.employeeCount || '')} size="short" required />
             <Line label="정규직 직원 수" value={get('정규직수', 'permanentEmployees')} size="short" />
@@ -173,7 +174,7 @@ export default function IsoApplicationFormReplica({ application }: { application
           <Footer page={4} />
         </Page>
 
-        <Page>
+        <Page collapsible={collapsible} title="교대근무·인증 전환">
           <p className={styles.prompt}>조직의 교대 근무 방식에 대해 전반적으로 설명하며, 각 교대 근무 방식에 해당하는 근무 시간 또는 인원을 표시하세요. 아래 항목에 적합하지 않은 경우 교대 근무 방식에 대한 별도의 설명을 추가하세요.</p>
           <table className={styles.table}><thead><tr><th>교대 근무 횟수</th><th>교대 근무 시간</th><th>총 직원 수</th></tr></thead><tbody>
             {[1, 2, 3, 4].map((number) => <tr key={number}><td>교대조 {number}</td><td>{number === 1 ? get('교대근무시간', 'shiftHours') : ''}</td><td>{get(`교대조${number}`, `shift${number}`) || (number === 1 ? get('교대총직원수', 'shiftTotalEmployees') : '')}</td></tr>)}
@@ -198,7 +199,7 @@ export default function IsoApplicationFormReplica({ application }: { application
           <Footer page={5} />
         </Page>
 
-        <Page>
+        <Page collapsible={collapsible} title="표준별 추가 정보">
           <Section title="ISO 14001 인증을 신청한 경우에만 작성">
             <TextAnswer prompt="조직이 운영하는 사업 분야(예: 화학 또는 엔지니어링 분야 등)와 사업장 위치(공단 지역, 상업 지역 등)를 간략하게 설명하세요. 또한 조직이 보유하고 있는 환경 관련 법적 허가가 있는지 여부와 종류를 기재하세요." value={get('ISO14001사업분야', 'iso14001Business')} rows={5} />
             <TextAnswer prompt="주요 프로세스를 나열하고 각 프로세스와 관련된 주요 환경 위험을 간략하게 설명하세요." value={get('ISO14001환경위험', 'iso14001Risks')} rows={5} />
@@ -210,7 +211,7 @@ export default function IsoApplicationFormReplica({ application }: { application
           <Footer page={6} />
         </Page>
 
-        <Page>
+        <Page collapsible={collapsible} title="추가 정보·동의">
           <Section title="추가 정보">
             <p className={styles.prompt}>아래 정보는 인증에 포함될 활동을 더 잘 정의하고 견적을 올바르게 작성하기 위해 필요합니다.</p>
             <YesNo prompt="원격 심사가 가능하다면 원격 심사를 받으시겠습니까?" value={get('원격심사여부', 'remoteAudit')} />
@@ -228,7 +229,7 @@ export default function IsoApplicationFormReplica({ application }: { application
           <Footer page={7} />
         </Page>
 
-        <Page>
+        <Page collapsible={collapsible} title="문의처">
           <section className={styles.contact}>
             <div className={styles.contactLeft}><h3>문의하기</h3><div className={styles.contactLine}>로이드인증원(LRQA Korea) 사업개발본부</div><div className={styles.contactLine}>T. +82 2 736 6231</div><div className={styles.contactLine}>E. zzzkorea-sales@lrqa.com</div><p>모든 정보는 정확하고 최신의 상태를 유지하기 위해 최선을 다했으나, 일부 내용의 부정확성이나 변경 사항에 대해 LRQA는 책임을 지지 않습니다. © LRQA Group Limited 2025</p></div>
             <div className={styles.contactRight}><span>YOUR FUTURE. OUR FOCUS.</span><strong>LRQA</strong></div>
