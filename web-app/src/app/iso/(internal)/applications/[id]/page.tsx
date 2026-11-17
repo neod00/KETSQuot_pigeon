@@ -2,16 +2,16 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AuditDurationSummary from '@/components/AuditDurationSummary';
 import ApplicationAdjDownloadButton from './ApplicationAdjDownloadButton';
-import ApplicationAuditAssistant from './ApplicationAuditAssistant';
 import IsoApplicationFormReplica from '@/components/IsoApplicationFormReplica';
 import IsoComplianceApplicationForm from '@/components/IsoComplianceApplicationForm';
 import { calculateAuditDuration } from '@/lib/auditDurationEngine';
-import { getIsoAuditAnalysis } from '@/lib/isoAuditAnalysis';
 import { findIsoApplication, toAuditDurationInput } from '@/lib/isoApplications';
 import { listIsoQuoteDrafts } from '@/lib/isoQuoteDrafts';
 import StartQuoteButton from './StartQuoteButton';
 import PrintApplicationButton from './PrintApplicationButton';
-import printStyles from './ApplicationPrint.module.css';
+import ApplicationReviewTabs from './ApplicationReviewTabs';
+import ApplicationSummary from './ApplicationSummary';
+import styles from './ApplicationReview.module.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,17 +22,17 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
   const drafts = await listIsoQuoteDrafts(id);
   const auditInput = toAuditDurationInput(application);
   const auditDuration = calculateAuditDuration(auditInput);
-  const analysis = await getIsoAuditAnalysis(id);
 
   return (
-    <main className={`iso-application-detail mx-auto max-w-7xl px-4 py-6 sm:px-5 ${printStyles.detail}`}>
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+    <main className={`iso-application-detail ${styles.detail}`}>
+      <div className={styles.header}>
         <div>
           <Link href="/iso/applications" className="text-sm font-bold text-teal-700 hover:underline">신청서 접수함</Link>
-          <h2 className="mt-2 text-2xl font-bold text-slate-900">{application.companyName}</h2>
-          <p className="mt-1 font-mono text-xs text-slate-500">{application.id} · {application.submittedAt || '신청일시 미입력'}</p>
+          <h2>{application.companyName}</h2>
+          <div className={styles.badges}>{application.standards.map(standard => <span className={styles.badge} key={standard}>{standard}</span>)}</div>
+          <p className={styles.meta}>{application.id} · {application.submittedAt || '신청일시 미입력'}</p>
         </div>
-        <StartQuoteButton applicationId={application.id} disabled={!application.quoteReady} />
+        <div className={styles.actions}><PrintApplicationButton /><StartQuoteButton applicationId={application.id} disabled={!application.quoteReady} /></div>
       </div>
 
       {!application.quoteReady && (
@@ -47,43 +47,36 @@ export default async function IsoApplicationDetailPage({ params }: { params: Pro
         </section>
       )}
 
-      <section className="mb-6">
-        <div className="mb-3">
-          <h3 className="text-lg font-bold text-slate-900">견적 사전 산정</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            신청서의 규격, 직원 수와 사업장 수를 기준으로 계산했습니다. 견적 초안을 만들면 아래 값과 근거가 함께 전달됩니다.
-          </p>
-        </div>
-        <AuditDurationSummary result={auditDuration} />
-        <ApplicationAdjDownloadButton application={application} auditInput={auditInput} auditResult={auditDuration} />
-      </section>
-
-      <ApplicationAuditAssistant applicationId={application.id} initialAnalysis={analysis} />
-
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900">고객 제출 신청서</h3>
-          <p className="mt-1 text-sm text-slate-500">고객이 제출한 화면과 같은 서식으로 표시됩니다.</p>
-        </div>
-        <div className="flex items-center gap-2"><span className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-600">읽기 전용</span><PrintApplicationButton /></div>
-      </div>
-
-      <div className={printStyles.printArea}><h1 className={printStyles.printTitle}>인증 심사 신청서</h1>{application.complianceApplication
-        ? <IsoComplianceApplicationForm submitted={application.complianceApplication} />
-        : <IsoApplicationFormReplica application={application} />}</div>
-
-      <section className="mt-6 border-t border-slate-200 pt-5">
-        <h3 className="text-base font-bold text-slate-900">견적 초안 이력</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {drafts.map((draft) => (
-            <Link key={draft.id} href={`/iso?draftId=${draft.id}`} className="block rounded-md border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50">
-              <p className="font-mono text-xs font-bold text-slate-700">{draft.id}</p>
-              <p className="mt-1 text-xs text-slate-500">v{draft.version} · {draft.status}</p>
-            </Link>
-          ))}
-          {drafts.length === 0 && <p className="text-sm text-slate-500">아직 생성된 초안이 없습니다.</p>}
-        </div>
-      </section>
+      <ApplicationReviewTabs
+        summary={<ApplicationSummary application={application} />}
+        form={application.complianceApplication
+          ? <IsoComplianceApplicationForm submitted={application.complianceApplication} collapsible />
+          : <IsoApplicationFormReplica application={application} collapsible />}
+        calculation={<>
+          <section className="mb-6">
+            <div className="mb-3">
+              <h3 className="text-lg font-bold text-slate-900">견적 사전 산정</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                신청서의 규격, 직원 수와 사업장 수를 기준으로 계산했습니다. 견적 초안을 만들면 아래 값과 근거가 함께 전달됩니다.
+              </p>
+            </div>
+            <AuditDurationSummary result={auditDuration} />
+            <ApplicationAdjDownloadButton application={application} auditInput={auditInput} auditResult={auditDuration} />
+          </section>
+          <section className="mt-6 border-t border-slate-200 pt-5">
+            <h3 className="text-base font-bold text-slate-900">견적 초안 이력</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {drafts.map((draft) => (
+                <Link key={draft.id} href={`/iso?draftId=${draft.id}`} className="block rounded-md border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50">
+                  <p className="font-mono text-xs font-bold text-slate-700">{draft.id}</p>
+                  <p className="mt-1 text-xs text-slate-500">v{draft.version} · {draft.status}</p>
+                </Link>
+              ))}
+              {drafts.length === 0 && <p className="text-sm text-slate-500">아직 생성된 초안이 없습니다.</p>}
+            </div>
+          </section>
+        </>}
+      />
     </main>
   );
 }

@@ -177,3 +177,14 @@
   .tableScroll { overflow: visible; }
   .personnel table { min-width: 0; }
 }
+.collapsible > summary { cursor: pointer; list-style: none; }
+.collapsible > summary::-webkit-details-marker { display: none; }
+.collapsible > summary::after { content: '+'; margin-left: auto; font-size: 20px; }
+.collapsible[open] > summary::after { content: '−'; }
+.collapsible > summary:focus-visible { outline: 3px solid #009b95; outline-offset: 3px; }
+@media screen {
+  .collapsible { margin-bottom: 10px; }
+  .collapsible > summary { padding: 13px 16px; }
+  .collapsible:not([open]) > summary { margin-bottom: 0; }
+}
+@media print { .collapsible > summary::after { display: none; } }

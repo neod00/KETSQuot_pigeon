@@ -1,0 +1,53 @@
+.detail { max-width: 1280px; margin: auto; padding: 0 20px 28px; color: #183147; }
+.header { position: sticky; top: 72px; z-index: 30; margin: 0 -20px 18px; padding: 14px 20px; background: #f8fafcfa; border-bottom: 1px solid #d9e3e9; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; backdrop-filter: blur(8px); }
+.header h2 { font-size: 23px; font-weight: 750; margin: 4px 0; }
+.meta { font-size: 12px; color: #607385; overflow-wrap: anywhere; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.badge { background: #e3f3ee; color: #156854; padding: 3px 8px; font-size: 12px; font-weight: 700; border-radius: 4px; }
+.tabs { display: flex; border-bottom: 1px solid #cbd7df; gap: 4px; margin-bottom: 18px; }
+.tabs button { padding: 12px 18px; color: #667889; border-bottom: 3px solid transparent; font-weight: 700; font-size: 14px; }
+.tabs button[aria-selected='true'] { color: #087a68; border-color: #0c967d; }
+.tabs button:focus-visible { outline: 2px solid #0c967d; outline-offset: -2px; }
+.panel[data-active='false'] { display: none; }
+.panel:focus { outline: none; }
+.formTools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 13px; color: #617486; margin-bottom: 12px; }
+.formTools button { padding: 6px 10px; margin-left: 6px; border: 1px solid #bdcdd6; background: white; border-radius: 4px; color: #254357; }
+.grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.card { padding: 18px; background: white; border: 1px solid #d9e3e9; border-radius: 6px; min-width: 0; }
+.card h3 { font-size: 15px; font-weight: 750; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #e4ebef; }
+.wide { grid-column: 1 / -1; }
+.row { display: grid; grid-template-columns: 112px minmax(0,1fr); gap: 12px; padding: 7px 0; font-size: 13px; line-height: 1.65; }
+.row dt { color: #657787; }
+.row dd { white-space: pre-wrap; overflow-wrap: anywhere; color: #183147; }
+.answers .row { grid-template-columns: minmax(0,1fr); gap: 3px; border-bottom: 1px solid #edf1f3; }
+.answers .row dt { color: #657787; }
+.scope { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.8; }
+.scope + .scope { margin-top: 12px; }
+.longAnswer > summary { cursor: pointer; list-style: none; }
+.longAnswer > summary::-webkit-details-marker { display: none; }
+.longAnswer strong { display: block; color: #087a68; font-size: 12px; margin-top: 4px; }
+.longAnswer[open] > summary > span { display: none; }
+.longAnswer[open] > summary > strong { font-size: 0; }
+.longAnswer[open] > summary > strong::after { content: '접기'; font-size: 12px; }
+.longAnswer p { margin-top: 8px; }
+.longAnswer summary:focus-visible { outline: 2px solid #0c967d; outline-offset: 2px; }
+:global(html[data-portal-design='legacy']) .header { top: 0; }
+.site + .site { border-top: 1px solid #e4ebef; margin-top: 12px; padding-top: 12px; }
+.personnel { margin-top: 12px; font-size: 13px; }
+.personnel summary { cursor: pointer; padding: 8px 0; font-weight: 700; }
+.scroll { overflow-x: auto; }
+.personnel table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.personnel td,.personnel th { padding: 7px; border: 1px solid #d7e1e7; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
+.personnel thead,.personnel tfoot { background: #eff5f5; }
+.empty { color: #758796; font-size: 13px; }
+.printTitle { display: none; }
+@media(max-width:820px) { .detail { padding: 0 12px 20px; } .header { margin: 0 -12px 14px; padding: 12px; top: 0; } .grid { grid-template-columns: minmax(0,1fr); } .header h2 { font-size: 20px; } .tabs button { padding: 10px 12px; font-size: 13px; } }
+@media print {
+  .detail > :not(.printHost) { display: none !important; }
+  .detail { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+  .tabs,.formTools { display: none !important; }
+  .panel:not(.formPanel) { display: none !important; }
+  .formPanel[data-active] { display: block !important; width: 100%; padding: 6mm 8mm; }
+  .printTitle { display: block; font-size: 18px; font-weight: 700; margin-bottom: 5mm; }
+}

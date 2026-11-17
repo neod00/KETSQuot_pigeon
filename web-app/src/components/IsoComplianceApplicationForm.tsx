@@ -10,9 +10,9 @@ import {
 import styles from './IsoComplianceApplicationForm.module.css';
 const STEPS = ['회사 정보', '담당자·표준', '범위·인증', '인력 현황', '인증 전환', '표준별 정보', '검토·제출'];
 const DRAFT_KEY = 'lrqa_iso_compliance_application_v1';
-const WizardContext = createContext({ step: 0, readOnly: false });
+const WizardContext = createContext({ step: 0, readOnly: false, collapsible: false });
 
-export default function IsoComplianceApplicationForm({ submitted, submitUrl = '/api/iso/compliance-applications' }: { submitted?: IsoComplianceApplicationInput; submitUrl?: string }) {
+export default function IsoComplianceApplicationForm({ submitted, submitUrl = '/api/iso/compliance-applications', collapsible = false }: { submitted?: IsoComplianceApplicationInput; submitUrl?: string; collapsible?: boolean }) {
   const [draft, setDraft] = useState<IsoComplianceApplicationInput>(createIsoComplianceApplication);
   const [reference, setReference] = useState('');
   const [error, setError] = useState('');
@@ -95,7 +95,7 @@ export default function IsoComplianceApplicationForm({ submitted, submitUrl = '/
 
   if (reference) return <div className={styles.success} role="status"><p className={styles.eyebrow}>LRQA · 신청 접수 완료</p><h1>인증 심사 신청서가 접수되었습니다.</h1><p>{form.standards.join(' · ')}</p><p>접수번호 <strong>{reference}</strong></p><p>담당자가 신청 내용을 검토한 후 연락드리겠습니다.</p><button type="button" onClick={() => { setDraft(createIsoComplianceApplication()); setStep(0); setReference(''); }}>새 신청서 작성</button></div>;
 
-  return <WizardContext.Provider value={{ step, readOnly }}><div className={`${styles.formWrap} ${dark ? styles.dark : ''}`}>
+  return <WizardContext.Provider value={{ step, readOnly, collapsible }}><div className={`${styles.formWrap} ${dark ? styles.dark : ''}`}>
     {!readOnly && <><div className={styles.toolbar}><span className={styles.language}>KR 한국어</span><button type="button" onClick={() => { setDark(!dark); try { localStorage.setItem(`${DRAFT_KEY}_dark`, String(!dark)); } catch {} }}>{dark ? '라이트모드' : '다크모드'}</button><button type="button" onClick={() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ draft, step })); setSaveStatus('임시저장 완료'); } catch { setSaveStatus('임시저장 불가'); } }}>임시저장</button></div><nav className={styles.progress} aria-label="신청서 진행 단계"><div className={styles.progressRow}><strong>{step + 1} / 7 · {STEPS[step]}</strong><span role="status">{saveStatus}</span></div><div className={styles.track}><div style={{ width: `${(step + 1) / 7 * 100}%` }} /></div><div className={styles.steps}>{STEPS.map((title, index) => <button key={title} type="button" aria-current={step === index ? 'step' : undefined} onClick={() => go(index)}>{index + 1}. {title}</button>)}</div></nav><header className={styles.header} hidden={step !== 0}><div className={styles.logo}>LRQA</div><h1>인증 심사 신청서</h1><h2>표준 ISO 37001, 37301</h2></header><p hidden={step !== 0} className={styles.intro}>LRQA의 무료 견적을 받고 싶다면 다음 양식을 완전히 작성하여 제출해 주시기 바랍니다.</p></>}
     <form ref={formRef} onSubmit={submit} noValidate className={styles.form}>
       <fieldset disabled={readOnly || busy} className={styles.allFields}>
@@ -130,8 +130,9 @@ export default function IsoComplianceApplicationForm({ submitted, submitUrl = '/
 }
 
 function Section({ title, id, badge, children }: { title: string; id: string; badge?: string; children: ReactNode }) {
-  const { step, readOnly } = useContext(WizardContext);
+  const { step, readOnly, collapsible } = useContext(WizardContext);
   const index = ({ company: 0, contact: 1, standards: 1, 'common-0': 2, 'common-1': 2, sites: 3, 'common-2': 4, iso37001: 5, iso37301: 5, consent: 6 } as Record<string, number>)[id] ?? 0;
+  if (readOnly && collapsible) return <details className={`${styles.section} ${styles.collapsible}`} id={id} open={id === 'company'}><summary className={styles.sectionHeader}><h2>{title}</h2>{badge && <span>{badge}</span>}</summary>{children}</details>;
   return <section data-step={index} hidden={!readOnly && step !== index} className={styles.section} id={id}><div className={styles.sectionHeader}><h2>{title}</h2>{badge && <span>{badge}</span>}</div>{children}</section>;
 }
 function Fields({ definitions, values, onChange, prefix }: { definitions: ApplicationField[]; values: Record<string, string>; onChange: (key: string, value: string) => void; prefix: string }) {

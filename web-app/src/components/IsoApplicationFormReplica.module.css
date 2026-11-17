@@ -396,3 +396,13 @@
   .page { min-height: 0; break-after: page; }
   .page + .page { border: 0; padding-top: 40px; }
 }
+.pageGroup > summary { cursor: pointer; padding: 16px 20px; background: #10132f; color: white; font-size: 15px; font-weight: 700; border-left: 5px solid #00d7b0; }
+.pageGroup + .pageGroup { margin-top: 12px; }
+.pageGroup > summary:focus-visible { outline: 3px solid #009b95; outline-offset: 3px; }
+@media screen {
+  .collapsible { padding: 0; border: 0; }
+  .collapsible .paper { width: 100%; max-width: 800px; box-shadow: none; }
+  .collapsible .page { min-height: 0; }
+  .collapsible .language { display: none; }
+}
+@media print { .pageGroup > summary { display: none; } .pageGroup + .pageGroup { margin-top: 0; } }
